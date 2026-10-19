@@ -39,6 +39,8 @@ export function createAppearance(rc: RenderedControl) {
     ? control.elements.find((e) => e.role === "base" && e.colors.active)?.colors.active ?? "#ffffff"
     : control.glow.color;
   const toggleActive = control.toggleActive ?? true;
+  // a trigger showing its fill only glows; the fill is its active look
+  const fillShown = control.type === "trigger" && control.trigger?.showFill === true;
 
   let current: string | null = null;
 
@@ -48,7 +50,7 @@ export function createAppearance(rc: RenderedControl) {
     if (key === current) return;
     current = key;
     for (const p of painted) {
-      const color = looksActive ? (p.active ?? p.inactive) : p.inactive;
+      const color = looksActive && !fillShown ? (p.active ?? p.inactive) : p.inactive;
       for (const s of p.shapes) {
         if (color) s.style.fill = color;
         else s.style.removeProperty("fill");

@@ -1,13 +1,15 @@
 import type { Binding, ResolvedSkin } from "@ninjoy/skin-format";
 import { autoSize, type LayoutEdit } from "../engine/layout.ts";
-import { StickFingers } from "../engine/fingers.ts";
-import { clampSettings, settingsFromStorage, stickZones, type ControlOverride, type PlayerSettings } from "../engine/settings.ts";
+import { EntryOrder, StickFingers } from "../engine/fingers.ts";
+import { clampSettings, settingsFromStorage, stickZones, triggerZones, type ControlOverride, type PlayerSettings } from "../engine/settings.ts";
 import { stickValue } from "../engine/stick.ts";
+import { triggerForce } from "../engine/zones.ts";
 import { StateBuilder, type ControllerState, type DS4Button } from "../engine/state.ts";
 import { createStore } from "../platform/storage.ts";
 import { createAppearance } from "./appearance.ts";
 import { HitTester } from "./hit-test.ts";
 import { createThumb } from "./thumb.ts";
+import { createTriggerFill } from "./trigger-fill.ts";
 import { attachInput, type Finger } from "./input.ts";
 import { render, type RenderedControl } from "./renderer.ts";
 
@@ -69,6 +71,9 @@ export function createController(options: ControllerOptions): Controller {
   /** thumb at rest relative to the stick's touch area, measured once per layout */
   const thumbRest = new Map<RenderedControl, ReturnType<ReturnType<typeof createThumb>["measure"]>>();
   const stickFingers = new StickFingers();
+  const triggers = rendered.controls.filter((rc) => rc.control.type === "trigger");
+  const triggerOrder = new Map(triggers.map((rc) => [rc, new EntryOrder<number>()]));
+  const fills = new Map(triggers.filter((rc) => rc.control.trigger?.showFill).map((rc) => [rc, createTriggerFill(rc)]));
   const builder = new StateBuilder();
   builder.setGyro(settings.gyro);
   let state = builder.publish(platform.now());
@@ -77,7 +82,8 @@ export function createController(options: ControllerOptions): Controller {
   const update = (vibrateFor?: Finger) => {
     builder.reset();
     const now = platform.now();
-    const touched = new Set<RenderedControl>();
+    /** control → fingers touching it */
+    const touched = new Map<RenderedControl, Finger[]>();
     for (const finger of input.fingers.values()) {
       // a stick grabs the finger as soon as it touches it, and keeps it until release
       if (stickFingers.stickOf(finger.id) === undefined) {
@@ -85,14 +91,16 @@ export function createController(options: ControllerOptions): Controller {
         if (stick) stickFingers.grab(stick.control.id, finger.id, now);
       }
       for (const rc of rendered.controls) {
-        if (rc.control.type !== "stick" && hitTester.hits(rc, finger.x, finger.y, settings.finger)) touched.add(rc);
+        if (rc.control.type !== "stick" && hitTester.hits(rc, finger.x, finger.y, settings.finger)) {
+          touched.set(rc, [...(touched.get(rc) ?? []), finger]);
+        }
       }
     }
-    for (const rc of sticks) if (updateStick(rc)) touched.add(rc);
-    for (const rc of touched) {
+    for (const rc of sticks) if (updateStick(rc)) touched.set(rc, []);
+    for (const rc of triggers) updateTrigger(rc, touched.get(rc) ?? []);
+    for (const rc of touched.keys()) {
       const { control } = rc;
       if (control.type === "button") for (const b of control.bindings ?? []) builder.press(BUTTON_OF[b]);
-      else if (control.type === "trigger" && control.trigger) builder.trigger(control.trigger.which, 1);
     }
 
     let activated = false;
@@ -133,6 +141,25 @@ export function createController(options: ControllerOptions): Controller {
     if (click && click !== "none" && stickFingers.clicking(control.id)) builder.press(BUTTON_OF[click]);
     thumb.moveTo(value.clamped.x - rest.offset.x * area.width, value.clamped.y - rest.offset.y * area.height, true);
     return true;
+  };
+
+  /** Force from the last finger that entered the trigger, along its direction in the touch-area box. */
+  const updateTrigger = (rc: RenderedControl, fingers: Finger[]) => {
+    const { control } = rc;
+    const order = triggerOrder.get(rc)!;
+    order.track(fingers.map((f) => f.id));
+    const finger = fingers.find((f) => f.id === order.last());
+    if (!finger || !control.trigger) {
+      fills.get(rc)?.update(0, 0, 0, false);
+      return;
+    }
+    const r = hitTester.box(rc);
+    const along = { up: (r.bottom - finger.y) / r.height, down: (finger.y - r.top) / r.height, left: (r.right - finger.x) / r.width, right: (finger.x - r.left) / r.width };
+    const raw = Math.min(1, Math.max(0, along[control.trigger.direction]));
+    const zones = triggerZones(control, settings, overrides[control.id]);
+    const force = triggerForce(raw, zones.maxZone, zones.minForce);
+    builder.trigger(control.trigger.which, force);
+    fills.get(rc)?.update(raw, force, zones.maxZone, true);
   };
 
   const input = attachInput(rendered.stage, {
