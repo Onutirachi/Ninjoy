@@ -257,6 +257,10 @@ inherits; confirm the resolved colors follow the inheritance rules.
 - **FR-019a**: The skin MAY enable or disable a glow on pressed controls and choose its color,
   as a skin default overridable per control. The glow is on by default with Ninjoy's built-in
   color.
+- **FR-019b**: For toggle controls (fullscreen, gyro), the skin MAY decide whether the "on"
+  state uses the full active appearance (active colors and glow), as a skin default
+  overridable per toggle. Default: yes. Toggle icons (label-on/label-off) follow the on/off
+  state regardless of this setting.
 
 **Groups and anchors**
 
@@ -276,7 +280,9 @@ inherits; confirm the resolved colors follow the inheritance rules.
 **Colors**
 
 - **FR-024**: For each individual element (path or shape) of a control's SVG, the skin MAY
-  declare an inactive color and an active color, or inherit.
+  declare an inactive color and an active color. Each of the two colors of each element
+  either has its own value or inherits, independently of the other color and of the other
+  elements.
 - **FR-025**: Color resolution MUST follow: element value → skin default for that element's
   role → color drawn in the SVG.
 - **FR-025a**: A trigger MAY additionally declare (or inherit from skin defaults) the color of
