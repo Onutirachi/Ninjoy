@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ninjoy.app/schemas/skin-manifest.v1.json",
+  "title": "Ninjoy skin manifest, format 1",
+  "description": "Structure of skin.json. Cross-references, SVG contents and role rules are checked by the semantic validator (see data-model.md).",
+  "type": "object",
+  "required": ["format", "name", "author", "version", "orientation", "controls"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "format": { "const": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "author": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-[0-9A-Za-z.-]+)?$"
+    },
+    "orientation": { "const": "landscape" },
+    "preview": { "$ref": "#/$defs/path" },
+    "background": { "$ref": "#/$defs/background" },
+    "defaults": { "$ref": "#/$defs/defaults" },
+    "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
+    "controls": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/control" } },
+    "extensions": { "type": "object" }
+  },
+  "$defs": {
+    "path": {
+      "description": "Relative path inside the package, '/' separated, no '..' segments.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))[^\\\\:]+$"
+    },
+    "color": {
+      "type": "string",
+      "pattern": "^(#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?|inherit)$"
+    },
+    "colorPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inactive": { "$ref": "#/$defs/color" },
+        "active": { "$ref": "#/$defs/color" }
+      }
+    },
+    "anchor": { "enum": ["left", "center", "right"] },
+    "fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+    "glow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "color": {
+          "anyOf": [{ "$ref": "#/$defs/color" }, { "const": "active" }]
+        }
+      }
+    },
+    "triggerTuning": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxZone": { "$ref": "#/$defs/fraction" },
+        "minForce": { "$ref": "#/$defs/fraction" }
+      }
+    },
+    "stickTuning": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deadZone": { "$ref": "#/$defs/fraction" },
+        "maxZone": { "$ref": "#/$defs/fraction" }
+      }
+    },
+    "triggerColors": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fill": { "$ref": "#/$defs/color" },
+        "maxZone": { "$ref": "#/$defs/color" }
+      }
+    },
+    "role": {
+      "enum": ["base", "label", "label-on", "label-off", "thumb", "thumb-label", "hitbox", "pressed", "level"]
+    },
+    "background": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "color": { "$ref": "#/$defs/color" },
+        "image": { "$ref": "#/$defs/path" },
+        "placement": { "enum": ["cover", "contain", "center", "tile"] },
+        "opacity": { "$ref": "#/$defs/fraction" }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "colors": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/role" },
+          "additionalProperties": { "$ref": "#/$defs/colorPair" }
+        },
+        "trigger": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fill": { "$ref": "#/$defs/color" },
+            "maxZone": { "$ref": "#/$defs/color" },
+            "showFill": { "type": "boolean" }
+          }
+        },
+        "glow": { "$ref": "#/$defs/glow" },
+        "toggleActive": { "type": "boolean" },
+        "tuning": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "trigger": { "$ref": "#/$defs/triggerTuning" },
+            "stick": { "$ref": "#/$defs/stickTuning" }
+          }
+        }
+      }
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "controls"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "anchor": { "$ref": "#/$defs/anchor" },
+        "controls": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/controlId" }
+        }
+      }
+    },
+    "controlId": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 64 },
+    "box": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "element": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": { "$ref": "#/$defs/role" },
+        "colors": { "$ref": "#/$defs/colorPair" }
+      }
+    },
+    "binding": {
+      "enum": [
+        "cross", "circle", "square", "triangle",
+        "up", "down", "left", "right",
+        "l1", "r1", "l2", "r2", "l3", "r3",
+        "share", "options", "ps",
+        "touchpad", "touchpad-left", "touchpad-right"
+      ]
+    },
+    "control": {
+      "type": "object",
+      "required": ["id", "type", "svg", "box"],
+      "properties": {
+        "id": { "$ref": "#/$defs/controlId" },
+        "type": { "enum": ["button", "stick", "trigger", "touchpad", "system"] },
+        "svg": { "$ref": "#/$defs/path" },
+        "box": { "$ref": "#/$defs/box" },
+        "elements": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/element" }
+        },
+        "anchor": { "$ref": "#/$defs/anchor" },
+        "glow": { "$ref": "#/$defs/glow" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "button" } } },
+          "then": {
+            "required": ["bindings"],
+            "properties": {
+              "bindings": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/binding" } }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "stick" } } },
+          "then": {
+            "required": ["side"],
+            "properties": {
+              "side": { "enum": ["left", "right"] },
+              "click": { "anyOf": [{ "$ref": "#/$defs/binding" }, { "const": "none" }] },
+              "tuning": { "$ref": "#/$defs/stickTuning" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "trigger" } } },
+          "then": {
+            "required": ["trigger"],
+            "properties": {
+              "trigger": { "enum": ["l2", "r2"] },
+              "direction": { "enum": ["up", "down", "left", "right"] },
+              "colors": { "$ref": "#/$defs/triggerColors" },
+              "showFill": { "type": "boolean" },
+              "tuning": { "$ref": "#/$defs/triggerTuning" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "touchpad" } } },
+          "then": {
+            "required": ["area"],
+            "properties": { "area": { "enum": ["full", "left", "right"] } }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "system" } } },
+          "then": {
+            "required": ["action"],
+            "properties": {
+              "action": { "enum": ["menu", "fullscreen", "gyro"] },
+              "toggleActive": { "type": "boolean" }
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}
