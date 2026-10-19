@@ -1,10 +1,13 @@
 import type { Binding, ResolvedSkin } from "@ninjoy/skin-format";
 import { autoSize, type LayoutEdit } from "../engine/layout.ts";
-import { clampSettings, settingsFromStorage, type PlayerSettings } from "../engine/settings.ts";
+import { StickFingers } from "../engine/fingers.ts";
+import { clampSettings, settingsFromStorage, stickZones, type ControlOverride, type PlayerSettings } from "../engine/settings.ts";
+import { stickValue } from "../engine/stick.ts";
 import { StateBuilder, type ControllerState, type DS4Button } from "../engine/state.ts";
 import { createStore } from "../platform/storage.ts";
 import { createAppearance } from "./appearance.ts";
 import { HitTester } from "./hit-test.ts";
+import { createThumb } from "./thumb.ts";
 import { attachInput, type Finger } from "./input.ts";
 import { render, type RenderedControl } from "./renderer.ts";
 
@@ -55,11 +58,17 @@ export function createController(options: ControllerOptions): Controller {
   const store = createStore(options.storage === undefined ? globalThis.localStorage ?? null : options.storage);
   let settings = settingsFromStorage(store.loadSettings());
   let edits: Record<string, LayoutEdit> = store.loadLayout(skin.meta);
+  const overrides: Record<string, ControlOverride> = store.loadOverrides(skin.meta);
 
   const rendered = render(skin, root);
   const hitTester = new HitTester();
   const looks = new Map(rendered.controls.map((rc) => [rc, createAppearance(rc)]));
   const active = new Set<RenderedControl>();
+  const sticks = rendered.controls.filter((rc) => rc.control.type === "stick");
+  const thumbs = new Map(sticks.map((rc) => [rc, createThumb(rc)]));
+  /** thumb at rest relative to the stick's touch area, measured once per layout */
+  const thumbRest = new Map<RenderedControl, ReturnType<ReturnType<typeof createThumb>["measure"]>>();
+  const stickFingers = new StickFingers();
   const builder = new StateBuilder();
   builder.setGyro(settings.gyro);
   let state = builder.publish(platform.now());
@@ -67,12 +76,19 @@ export function createController(options: ControllerOptions): Controller {
 
   const update = (vibrateFor?: Finger) => {
     builder.reset();
+    const now = platform.now();
     const touched = new Set<RenderedControl>();
     for (const finger of input.fingers.values()) {
+      // a stick grabs the finger as soon as it touches it, and keeps it until release
+      if (stickFingers.stickOf(finger.id) === undefined) {
+        const stick = sticks.find((rc) => hitTester.hits(rc, finger.x, finger.y, settings.finger));
+        if (stick) stickFingers.grab(stick.control.id, finger.id, now);
+      }
       for (const rc of rendered.controls) {
-        if (hitTester.hits(rc, finger.x, finger.y, settings.finger)) touched.add(rc);
+        if (rc.control.type !== "stick" && hitTester.hits(rc, finger.x, finger.y, settings.finger)) touched.add(rc);
       }
     }
+    for (const rc of sticks) if (updateStick(rc)) touched.add(rc);
     for (const rc of touched) {
       const { control } = rc;
       if (control.type === "button") for (const b of control.bindings ?? []) builder.press(BUTTON_OF[b]);
@@ -89,23 +105,50 @@ export function createController(options: ControllerOptions): Controller {
     }
     if (activated && vibrateFor?.pointerType === "touch") platform.vibrate(12);
 
-    const next = builder.publish(platform.now());
+    const next = builder.publish(now);
     if (next !== state) {
       state = next;
       for (const listener of listeners) listener(state);
     }
   };
 
+  /** Stick value, click and thumb from the finger driving it; true while it is held. */
+  const updateStick = (rc: RenderedControl): boolean => {
+    const { control } = rc;
+    const thumb = thumbs.get(rc)!;
+    const finger = input.fingers.get(stickFingers.owner(control.id) ?? -1);
+    if (!finger) {
+      thumb.moveTo(0, 0, false);
+      return false;
+    }
+    const area = hitTester.box(rc);
+    let rest = thumbRest.get(rc);
+    if (!rest) thumbRest.set(rc, (rest = thumb.measure(area)));
+    // the thumb's center travels inside the ellipse inscribed in the touch area minus the thumb
+    const travel = { x: Math.max(1, (area.width / 2) * (1 - rest.size.x)), y: Math.max(1, (area.height / 2) * (1 - rest.size.y)) };
+    const cx = area.left + area.width / 2, cy = area.top + area.height / 2;
+    const value = stickValue({ x: finger.x - cx, y: finger.y - cy }, travel, stickZones(control, settings, overrides[control.id]));
+    builder.stick(control.side ?? "left", value.x, value.y);
+    const click = control.stick?.click;
+    if (click && click !== "none" && stickFingers.clicking(control.id)) builder.press(BUTTON_OF[click]);
+    thumb.moveTo(value.clamped.x - rest.offset.x * area.width, value.clamped.y - rest.offset.y * area.height, true);
+    return true;
+  };
+
   const input = attachInput(rendered.stage, {
     down: (finger) => update(finger),
     move: (finger) => update(finger),
-    up: () => update(),
+    up: (finger) => {
+      stickFingers.release(finger.id, platform.now());
+      update();
+    },
   }, platform.now);
 
   const relayout = () => {
     const size = settings.size === "auto" ? autoSize(root.getBoundingClientRect().height) : settings.size;
     rendered.relayout({ size, height: settings.height, edits });
     hitTester.invalidate();
+    thumbRest.clear();
     update();
   };
   const resizeObserver = new ResizeObserver(() => relayout());
@@ -137,6 +180,7 @@ export function createController(options: ControllerOptions): Controller {
     relayout,
     dispose() {
       resizeObserver.disconnect();
+      for (const thumb of thumbs.values()) thumb.dispose();
       input.dispose();
       rendered.dispose();
       listeners.clear();

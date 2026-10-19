@@ -83,13 +83,13 @@ state.
 
 **Independent Test**: Drag on a stick, read values and thumb position; double-tap and hold.
 
-- [ ] T025 [P] [US2] Unit test `controller/test/unit/stick.test.ts`: `stickValue` — offset/travel per axis, unit-ellipse clamp, radial dead zone 10% → 0, 100% zone 5% → magnitude 1 beyond 95%, rectangular box gives independent axes; `applyZones` boundaries
-- [ ] T026 [P] [US2] Unit test `controller/test/unit/fingers.test.ts`: a stick takes a finger on first touch and keeps it outside; newest finger wins and the previous takes over; a finger already owned by a stick is not taken by another stick; double-tap: tap < 250 ms then a touch within 300 ms sets click; a 300 ms tap or a 400 ms gap does not
-- [ ] T027 [P] [US2] Browser test `controller/test/browser/sticks.test.ts`: US2 scenarios on the official skin and on an off-center/rectangular-hitbox test skin — value follows and saturates outside; same finger presses a button it passes; thumb rests where drawn, follows the finger's center within the ellipse minus thumb size, returns to rest; visual smoothing does not delay the value; double-tap-and-hold holds L3 while the stick moves; `click: none` disables it
-- [ ] T028 [P] [US2] `controller/src/engine/zones.ts` (`applyZones`) and `controller/src/engine/stick.ts` (`stickValue`)
-- [ ] T029 [P] [US2] `controller/src/engine/fingers.ts`: stick ownership, newest-wins, double-tap timing (250 ms tap, 300 ms window), trigger last-entered ordering (used in US3) and touchpad recency (used in US4)
-- [ ] T030 [US2] `controller/src/dom/thumb.ts`: thumb and thumb-label elements translated together; rest offset kept as a ratio of the touch-area box; exponential smoothing 25 ms following / 45 ms returning in `requestAnimationFrame`, animation only while moving
-- [ ] T031 [US2] Stick handling in `controller/src/dom/controller.ts`: touch-area box and thumb ratio measured per layout, stick values and click binding into the state, thumb target updates
+- [X] T025 [P] [US2] Unit test `controller/test/unit/stick.test.ts`: `stickValue` — offset/travel per axis, unit-ellipse clamp, radial dead zone 10% → 0, 100% zone 5% → magnitude 1 beyond 95%, rectangular box gives independent axes; `applyZones` boundaries
+- [X] T026 [P] [US2] Unit test `controller/test/unit/fingers.test.ts`: a stick takes a finger on first touch and keeps it outside; newest finger wins and the previous takes over; a finger already owned by a stick is not taken by another stick; double-tap: tap < 250 ms then a touch within 300 ms sets click; a 300 ms tap or a 400 ms gap does not
+- [X] T027 [P] [US2] Browser test `controller/test/browser/sticks.test.ts`: US2 scenarios on the official skin and on an off-center/rectangular-hitbox test skin — value follows and saturates outside; same finger presses a button it passes; thumb rests where drawn, follows the finger's center within the ellipse minus thumb size, returns to rest; visual smoothing does not delay the value; double-tap-and-hold holds L3 while the stick moves; `click: none` disables it
+- [X] T028 [P] [US2] `controller/src/engine/zones.ts` (`applyZones`) and `controller/src/engine/stick.ts` (`stickValue`)
+- [X] T029 [P] [US2] `controller/src/engine/fingers.ts`: stick ownership, newest-wins, double-tap timing (250 ms tap, 300 ms window), trigger last-entered ordering (used in US3) and touchpad recency (used in US4)
+- [X] T030 [US2] `controller/src/dom/thumb.ts`: thumb and thumb-label elements translated together; rest offset kept as a ratio of the touch-area box; exponential smoothing 25 ms following / 45 ms returning in `requestAnimationFrame`, animation only while moving
+- [X] T031 [US2] Stick handling in `controller/src/dom/controller.ts`: touch-area box and thumb ratio measured per layout, stick values and click binding into the state, thumb target updates
 
 ---
 
@@ -99,7 +99,7 @@ state.
 
 - [ ] T032 [P] [US3] Unit test `controller/test/unit/trigger.test.ts`: `triggerForce(r, z, m) = m + (1 − m) × min(1, r / (1 − z))`; 40% with z 0.25 → 0.533; 80% → 1; bottom with m 0.10 → 0.10; no touch → 0
 - [ ] T033 [P] [US3] Browser test `controller/test/browser/triggers.test.ts`: US3 scenarios — force by position for each direction (up/down/left/right test skin), last finger entered decides then the previous; no fill visible when untouched; fill clipped to the union of base shapes (two-base test skin); fill opacity `0.3 + 0.7·force`, zone opacity `0.12 + 0.88·force³`, both 0 when untouched; skin `showFill: false` → no fill and active appearance
-- [ ] T034 [P] [US3] `triggerForce` in `controller/src/engine/zones.ts`
+- [X] T034 [P] [US3] `triggerForce` in `controller/src/engine/zones.ts`
 - [ ] T035 [US3] `controller/src/dom/trigger-fill.ts`: mask from clones of all base shapes, fill and 100%-zone rectangles inserted after the last base element, custom `level` revealed by a growing mask, opacities from research R4
 - [ ] T036 [US3] Trigger handling in `controller/src/dom/controller.ts`: raw position along the direction within the touch-area box, last-entered finger, force into the state (max over controls with the same trigger)
 
