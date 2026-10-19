@@ -4,7 +4,8 @@
   "type": "module",
   "license": "GPL-3.0-only",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "controller"
   ],
   "engines": {
     "node": ">=26"
