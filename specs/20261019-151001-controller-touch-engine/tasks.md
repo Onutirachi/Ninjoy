@@ -124,10 +124,10 @@ state.
 **Independent Test**: Render at 20:9, 16:9, 4:3; change size/height; edit and reload.
 
 - [X] T044 [P] [US5] (done in Phase 2: the renderer needs it) Unit test `controller/test/unit/layout.test.ts`: `groupTransform` per data-model.md formula — identity at 100% on 20:9; anchors at wider aspect; fit-width on 4:3; size shrinks towards the anchor bottom; lift = height × free space; player offsets scale with size; player scale around the group center; `autoSize(430) = 1`, `autoSize(770) ≈ 0.56`, `autoSize(2000) = 0.4`
-- [ ] T045 [P] [US5] Browser test `controller/test/browser/layout.test.ts`: US5 scenarios on the official skin at 1600×720 (every control within 1 px, SC-004), 16:9 (left/right groups at their edges), 4:3 (fits width); SC-005 check (lower outer corner of each side group within 15% of the screen width from its edge at automatic size on 1024×768); edit-mode drag + resize, size change keeps relative positions, reload keeps edits, reset restores
+- [X] T045 [P] [US5] Browser test `controller/test/browser/layout.test.ts`: US5 scenarios on the official skin at 1600×720 (every control within 1 px, SC-004), 16:9 (left/right groups at their edges), 4:3 (fits width); SC-005 check (lower outer corner of each side group within 15% of the screen width from its edge at automatic size on 1024×768); edit-mode drag + resize, size change keeps relative positions, reload keeps edits, reset restores
 - [X] T046 [P] [US5] (done in Phase 2: the renderer needs it) `controller/src/engine/layout.ts`: `groupTransform`, `autoSize`, fit factor
-- [ ] T047 [US5] Apply layout in `controller/src/dom/renderer.ts` (group transforms on relayout, size/height from settings) and invalidate hit-test caches
-- [ ] T048 [US5] `controller/src/ui/edit-mode.ts`: select a group (or ungrouped control) under the finger, drag (delta converted to canvas units at the current scale), resize 50–200% around its center, persist per skin, reset; inputs are not sent to the state while editing
+- [X] T047 [US5] Apply layout in `controller/src/dom/renderer.ts` (group transforms on relayout, size/height from settings) and invalidate hit-test caches
+- [X] T048 [US5] `controller/src/ui/edit-mode.ts`: select a group (or ungrouped control) under the finger, drag (delta converted to canvas units at the current scale), resize 50–200% around its center, persist per skin, reset; inputs are not sent to the state while editing
 
 ---
 

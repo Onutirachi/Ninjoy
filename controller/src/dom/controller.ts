@@ -12,6 +12,7 @@ import { browserMotion, type MotionAdapter } from "../platform/motion.ts";
 import { createStore } from "../platform/storage.ts";
 import { browserVibration, type VibrationAdapter } from "../platform/vibration.ts";
 import { createAppearance } from "./appearance.ts";
+import { createEditor } from "./edit.ts";
 import { HitTester } from "./hit-test.ts";
 import { attachInput, type Finger } from "./input.ts";
 import { render, type RenderedControl } from "./renderer.ts";
@@ -41,12 +42,31 @@ export interface ControllerOptions {
   onNotice?: (key: NoticeKey) => void;
 }
 
+/** The group selected in edit-layout mode and its tunable sticks and triggers. */
+export interface EditSelection {
+  group: string;
+  scale: number;
+  tunable: { id: string; type: "stick" | "trigger" }[];
+}
+
 export interface Controller {
   readonly state: ControllerState;
   subscribe(listener: (state: ControllerState) => void): () => void;
   readonly settings: PlayerSettings;
   updateSettings(patch: Partial<PlayerSettings>): void;
   setEditMode(on: boolean): void;
+  readonly editing: boolean;
+  readonly selection: EditSelection | null;
+  /** edit mode, selection or a group's size changed */
+  onEditChange(listener: () => void): () => void;
+  /** resizes the selected group around its center (0.5–2) */
+  setGroupScale(scale: number): void;
+  readonly fullscreen: boolean;
+  /** from a tap; shows the home-screen notice where unsupported */
+  toggleFullscreen(): void;
+  /** per-control zones set in edit mode; undefined = inherits the menu */
+  override(controlId: string): ControlOverride | undefined;
+  setOverride(controlId: string, override: ControlOverride | null): void;
   resetLayout(): void;
   releaseAll(): void;
   /** re-measure after resize/orientation change (also automatic) */
@@ -265,6 +285,11 @@ export function createController(options: ControllerOptions): Controller {
     });
   };
 
+  const toggleFullscreen = () => {
+    if (platform.fullscreen.supported()) platform.fullscreen.toggle(document.documentElement);
+    else notify("noFullscreen");
+  };
+
   const runSystem = (finger: Finger) => {
     for (const rc of systems) {
       if (!hitTester.hits(rc, finger.x, finger.y, settings.finger)) continue;
@@ -273,8 +298,7 @@ export function createController(options: ControllerOptions): Controller {
         input.releaseAll();
         options.onMenu?.();
       } else if (action === "fullscreen") {
-        if (platform.fullscreen.supported()) platform.fullscreen.toggle(document.documentElement);
-        else notify("noFullscreen");
+        toggleFullscreen();
       } else if (action === "gyro") {
         toggleGyro(!state.gyro);
       }
@@ -290,6 +314,35 @@ export function createController(options: ControllerOptions): Controller {
       if (completed) runSystem(finger);
     },
   }, platform.now);
+
+  let editing = false;
+  const editListeners = new Set<() => void>();
+  const editChanged = () => {
+    for (const listener of editListeners) listener();
+  };
+  const editor = createEditor(rendered, hitTester, {
+    radius: () => settings.finger,
+    edits: () => edits,
+    change(group, edit, done) {
+      edits = { ...edits, [group]: edit };
+      if (done) store.saveLayout(skin.meta, edits);
+      relayout();
+      editChanged();
+    },
+    selected: editChanged,
+  });
+  const selection = (): EditSelection | null => {
+    const group = editor.selected;
+    if (!group) return null;
+    const members = rendered.controls.filter((rc) => rc.control.group === group);
+    return {
+      group,
+      scale: edits[group]?.scale ?? 1,
+      tunable: members
+        .filter((rc) => rc.control.type === "stick" || rc.control.type === "trigger")
+        .map((rc) => ({ id: rc.control.id, type: rc.control.type as "stick" | "trigger" })),
+    };
+  };
 
   const relayout = () => {
     const size = settings.size === "auto" ? autoSize(root.getBoundingClientRect().height) : settings.size;
@@ -320,17 +373,38 @@ export function createController(options: ControllerOptions): Controller {
       if (gyro !== undefined && gyro !== state.gyro) toggleGyro(gyro);
     },
     setEditMode(on) {
-      input.setEnabled(!on);
+      editing = on;
+      input.setEnabled(!on); // inputs are not sent while editing
+      editor.setEnabled(on);
+      editChanged();
+    },
+    get editing() { return editing; },
+    get selection() { return selection(); },
+    onEditChange(listener) {
+      editListeners.add(listener);
+      return () => editListeners.delete(listener);
+    },
+    setGroupScale: (scale) => editor.setScale(scale),
+    get fullscreen() { return platform.fullscreen.active(); },
+    toggleFullscreen,
+    override: (id) => overrides[id],
+    setOverride(id, override) {
+      if (override) overrides[id] = override;
+      else delete overrides[id];
+      store.saveOverrides(skin.meta, overrides);
+      update();
     },
     resetLayout() {
       edits = {};
       store.saveLayout(skin.meta, edits);
       relayout();
+      editChanged();
     },
     releaseAll: () => input.releaseAll(),
     relayout,
     dispose() {
       resizeObserver.disconnect();
+      editor.dispose();
       stopFullscreen();
       stopMotion?.();
       for (const thumb of thumbs.values()) thumb.dispose();
