@@ -38,8 +38,9 @@ interface ReportEntry {
 
 Order of checks (all problems are collected, not only the first):
 1. Package size and manifest presence (`missing-manifest`, `package-too-large`).
-2. Manifest JSON parse (`invalid-json`) and schema validation (`schema`, with `field` = JSON
-   pointer and `value`).
+2. Manifest JSON parse (`invalid-json`), newer format (`unsupported-format`) and schema
+   validation (`schema-invalid-value` with `field` = JSON pointer and `value`;
+   `schema-missing-field` and `schema-unexpected-field` with `field`).
 3. Semantic rules from [data-model.md](../data-model.md).
 4. Each referenced SVG: parse (`invalid-svg`), unsafe content (`unsafe-element`,
    `unsafe-attribute`, `unsafe-reference`, `unsafe-css`, `unsafe-doctype`), element ids
