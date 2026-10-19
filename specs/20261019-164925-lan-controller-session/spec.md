@@ -182,6 +182,33 @@ Players type a short, memorable address instead of an IP.
 
 ---
 
+### User Story 7 - Branded opening and notice screens (Priority: P3)
+
+The page opens with a short Ninjoy splash, and every notice (connecting, in use, disconnected…)
+uses one recognizable look: the Ninjoy logo with a message over a slowly moving background.
+
+**Why this priority**: Identity and polish; the session works without it.
+
+**Independent Test**: Open the page, watch the splash, then trigger each notice (kick, slot in
+use, stop the host) and turn a phone upright.
+
+**Acceptance Scenarios**:
+
+1. **Given** the page opens, **Then** the logo fades in, zooms quickly to a very large size while
+   fading out, and the controller appears; the whole splash lasts about 1.5 seconds and never
+   delays a controller that is already connected.
+2. **Given** the connection takes longer than the splash, **Then** the "connecting" notice shows
+   until it is ready.
+3. **Given** any notice, **Then** it shows the logo, a short pulsing message in the player's
+   language, any action button (e.g. "join as controller 3") and the animated background.
+4. **Given** a phone (shortest screen side under 600 CSS px) held upright, **Then** a notice asks
+   to turn it sideways; **Given** a tablet held upright, **Then** no notice shows and the
+   controller fits the width at the bottom of the screen.
+5. **Given** the device has no internet, **Then** the splash, notices and fonts still look
+   complete (everything they need is served by the host).
+
+---
+
 ### Edge Cases
 
 - Many players: 16 or more devices connected at once keep the same responsiveness.
@@ -266,7 +293,15 @@ Players type a short, memorable address instead of an IP.
 
 - **FR-018**: The page MUST show clear screens, in English or Portuguese like the rest of the
   page, for: connecting, controller in use, opened elsewhere, disconnected by the host, host not
-  available (retrying), update needed.
+  available (retrying), update needed, and turn the device sideways (phones only, see US7).
+  Every notice and the certificate explanation page share one look: the Ninjoy logo, a short
+  pulsing message, optional action buttons, over a slowly moving background pattern made of
+  Ninjoy's own artwork (no third-party symbols or logos).
+- **FR-018a**: The page MUST open with a splash of about 1.5 s (logo fades in, zooms quickly to a
+  very large size and fades out, then the controller appears); it runs while connecting and is
+  shown once per page load.
+- **FR-018b**: Fonts and images used by the page MUST be served by the host (no internet), and
+  every font MUST have a license that allows bundling it with Ninjoy.
 - **FR-019**: The page and host MUST measure the round-trip time periodically; the development
   panel shows connection status, slot number, round-trip time and the last lightbar color.
 - **FR-020**: The host core MUST offer later features: the list of slots (number, connected or
@@ -327,6 +362,13 @@ Players type a short, memorable address instead of an IP.
   can be tuned after real-world testing.
 - The touch engine's controller state is the source of truth on the page; this feature does not
   change its behavior, only sends it.
+- Skins are landscape-only in format v1; a portrait skin orientation (for tablets held upright)
+  may be added to the skin format later. The 600 CSS px threshold for the "turn sideways" notice
+  can be tuned after testing.
+- The desktop app will reuse the same splash and notice look; it is specified with the desktop
+  app.
+- The logo and visual identity come from the maintainer's earlier Ninjoy prototype; the old
+  fonts are replaced by an openly licensed font with a similar or better fit.
 - Vibration intensity is approximated with on/off pulses, since browsers can only switch
   vibration on and off.
 - Dependencies: the controller touch engine (implemented) and the skin package format
