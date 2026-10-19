@@ -274,16 +274,19 @@ inherits; confirm the resolved colors follow the inheritance rules.
   control MAY declare a normal color and a pressed color, or inherit.
 - **FR-025**: Color resolution MUST follow: control value → skin default for that role → color
   drawn in the SVG.
-- **FR-025a**: A trigger MAY additionally declare (or inherit from skin defaults) the colors of
-  its force fill, its dead zone and its 100% zone; when nothing is declared, Ninjoy's built-in
-  colors are used.
+- **FR-025a**: A trigger MAY additionally declare (or inherit from skin defaults) the color of
+  its force fill and the color of its 100% zone. By default the 100% zone uses the fill color;
+  each can be set independently. When nothing is declared, Ninjoy's built-in color is used.
+  (How the fill and the zone are shown while pressing is defined by the touch engine spec.)
 
 **Tuning**
 
-- **FR-026**: The manifest MAY declare tuning defaults: trigger dead zone and trigger 100% zone;
-  stick dead zone and stick 100% zone; each as a fraction between 0 and 1, settable per control
-  type and overridable per control. Missing values fall back to Ninjoy's built-in defaults:
-  trigger dead zone 0.05, trigger 100% zone 0.25, stick dead zone 0.10, stick 100% zone 0.05.
+- **FR-026**: The manifest MAY declare tuning defaults: trigger 100% zone and trigger minimum
+  force (the force of any touch on the trigger); stick dead zone and stick 100% zone; each as
+  a fraction between 0 and 1, settable per control type and overridable per control. Triggers
+  have no dead zone: lifting the finger is zero force. Missing values fall back to Ninjoy's
+  built-in defaults: trigger 100% zone 0.25, trigger minimum force 0, stick dead zone 0.10,
+  stick 100% zone 0.05.
 - **FR-027**: Tuning values are the skin's defaults only; players can change them on their
   device and those changes are never written into the skin.
 
