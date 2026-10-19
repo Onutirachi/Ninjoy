@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import en from "../messages/en.json" with { type: "json" };
 import pt from "../messages/pt.json" with { type: "json" };
-import { REPORT_CODES } from "../src/report.ts";
+import { formatReportEntry, REPORT_CODES } from "../src/report.ts";
 
 const catalogs = { en, pt } as Record<string, Record<string, string>>;
 
@@ -23,4 +23,16 @@ describe("message catalogs", () => {
       expect(Object.keys(catalog).filter((code) => !(code in REPORT_CODES))).toEqual([]);
     });
   }
+});
+
+describe("formatReportEntry", () => {
+  const entry = { severity: "error", code: "missing-thumb", params: { control: "stick-left" } } as const;
+
+  it("renders English", () => {
+    expect(formatReportEntry(entry, "en")).toBe('Stick "stick-left" has no thumb element.');
+  });
+
+  it("renders Portuguese", () => {
+    expect(formatReportEntry(entry, "pt")).toBe('O analógico "stick-left" não tem a bolinha (thumb).');
+  });
 });

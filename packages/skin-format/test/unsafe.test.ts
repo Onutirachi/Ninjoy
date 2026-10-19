@@ -46,7 +46,7 @@ describe("unsafe skin content", () => {
 
   it("accepts a local image inside the package", async () => {
     const result = await load(svg(`<image href="../images/a.png"/>`), { "images/a.png": new Uint8Array([137, 80, 78, 71]) });
-    expect(result.report).toEqual([]);
+    expect(result.report.filter((e) => e.severity !== "info")).toEqual([]);
     expect(result.ok).toBe(true);
   });
 
@@ -58,7 +58,7 @@ describe("unsafe skin content", () => {
   it("accepts embedded raster images and local fragment references", async () => {
     const artwork = svg(`<defs><linearGradient id="g"/></defs><image href="data:image/png;base64,iVBORw0KGgo="/><circle r="5" fill="url(#g)"/><use href="#bg"/>`);
     const result = await load(artwork);
-    expect(result.report).toEqual([]);
+    expect(result.report.filter((e) => e.severity !== "info")).toEqual([]);
   });
 });
 

@@ -36,7 +36,9 @@ interface ReportEntry {
 }
 ```
 
-Order of checks (all problems are collected, not only the first):
+Order of checks. Within each step every problem is collected, not only the first; a step runs
+only when the previous ones found no errors, because their rules assume a well-formed
+manifest (step 3 and 4 always run together):
 1. Package size and manifest presence (`missing-manifest`, `package-too-large`).
 2. Manifest JSON parse (`invalid-json`), newer format (`unsupported-format`) and schema
    validation (`schema-invalid-value` with `field` = JSON pointer and `value`;

@@ -1,10 +1,58 @@
+import { BUILTIN, CANVAS } from "../constants.ts";
 import type { ReportCollector } from "../report.ts";
 import type { Manifest, ManifestControl, Role } from "../types.ts";
 import type { SvgScan } from "./svg.ts";
 
+const KNOWN_FIELDS = new Set([
+  "$schema", "format", "name", "author", "version", "orientation", "preview",
+  "background", "defaults", "groups", "controls", "extensions",
+]);
+
 /** Skin-level rules the schema cannot express (cross-references, counts, sums). */
-export function checkManifest(_manifest: Manifest, _paths: Set<string>, _report: ReportCollector): void {
-  // Filled in by US3.
+export function checkManifest(manifest: Manifest, report: ReportCollector): void {
+  for (const field of Object.keys(manifest)) {
+    if (!KNOWN_FIELDS.has(field)) report.warning("unknown-field", { field });
+  }
+
+  const ids = new Set<string>();
+  for (const control of manifest.controls) {
+    if (ids.has(control.id)) report.error("duplicate-control", { control: control.id });
+    ids.add(control.id);
+  }
+
+  const groupOf = new Map<string, string>();
+  const groupNames = new Set<string>();
+  for (const group of manifest.groups ?? []) {
+    if (groupNames.has(group.name)) report.error("duplicate-group", { group: group.name });
+    groupNames.add(group.name);
+    for (const id of group.controls) {
+      if (!ids.has(id)) report.error("unknown-control", { group: group.name, control: id });
+      else if (groupOf.has(id)) report.error("control-in-two-groups", { control: id, group: group.name });
+      else groupOf.set(id, group.name);
+    }
+  }
+
+  const tuning = manifest.defaults?.tuning;
+  for (const control of manifest.controls) {
+    const at = { control: control.id };
+    const group = groupOf.get(control.id);
+    if (control.anchor && group) report.warning("anchor-ignored", { ...at, group });
+
+    const { x, y, width, height } = control.box;
+    if (x < 0 || y < 0 || x + width > CANVAS.width || y + height > CANVAS.height) report.warning("outside-canvas", at);
+
+    if (control.type === "stick") {
+      const t = { ...BUILTIN.stick, ...tuning?.stick, ...control.tuning };
+      if (t.deadZone + t.maxZone >= 1) report.error("invalid-tuning", { ...at, field: "deadZone + maxZone" });
+    }
+    if (control.type === "trigger") {
+      const t = { ...BUILTIN.trigger, ...tuning?.trigger, ...control.tuning };
+      if (t.maxZone >= 1) report.error("invalid-tuning", { ...at, field: "maxZone" });
+    }
+  }
+
+  if (!manifest.controls.some((c) => c.type === "system" && c.action === "menu")) report.warning("no-menu");
+  if (!manifest.preview) report.info("no-preview");
 }
 
 const STICK_ONLY: Role[] = ["thumb", "thumb-label"];

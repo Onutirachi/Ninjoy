@@ -47,7 +47,7 @@ describe("loadSkin basics", () => {
 
   it("reports an SVG that is not well-formed", async () => {
     const result = await loadSkin(filesFromMap({ "skin.json": JSON.stringify(manifest()), "cross.svg": "<svg><g></svg>" }));
-    expect(codes(result)).toEqual(["invalid-svg"]);
+    expect(result.report.filter((e) => e.severity === "error").map((e) => e.code)).toEqual(["invalid-svg"]);
   });
 
   it("rejects packages over the size limit", async () => {
