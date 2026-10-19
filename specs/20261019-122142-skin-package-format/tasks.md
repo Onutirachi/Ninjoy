@@ -178,11 +178,11 @@ state independently.
 
 ### Tests for User Story 6
 
-- [ ] T038 [P] [US6] Resolution test in `packages/skin-format/test/resolve.test.ts`: element with only `active` set inherits `inactive` from `defaults.colors[role]`; nothing set → `null` for both (keep SVG colors); `"inherit"` equals omission; descendant of a colored group inherits the group's colors unless it has its own; trigger `maxZone` color defaults to resolved `fill`; `showFill` control → defaults → `true`; glow control → defaults → `{ enabled: true, color: "active" }`; `toggleActive` control → defaults → `true` (only on fullscreen/gyro); tuning control → `defaults.tuning[type]` → built-in
+- [X] T038 [P] [US6] Resolution test in `packages/skin-format/test/resolve.test.ts`: element with only `active` set inherits `inactive` from `defaults.colors[role]`; nothing set → `null` for both (keep SVG colors); `"inherit"` equals omission; descendant of a colored group inherits the group's colors unless it has its own; trigger `maxZone` color defaults to resolved `fill`; `showFill` control → defaults → `true`; glow control → defaults → `{ enabled: true, color: "active" }`; `toggleActive` control → defaults → `true` (only on fullscreen/gyro); tuning control → `defaults.tuning[type]` → built-in
 
 ### Implementation for User Story 6
 
-- [ ] T039 [US6] Color, glow, toggle, trigger and tuning resolution in `packages/skin-format/src/resolve.ts`, including SVG-group color inheritance using the scanner's `insideGroupIds`
+- [X] T039 [US6] Color, glow, toggle, trigger and tuning resolution in `packages/skin-format/src/resolve.ts`, including SVG-group color inheritance using the scanner's `insideGroupIds`
 
 ---
 

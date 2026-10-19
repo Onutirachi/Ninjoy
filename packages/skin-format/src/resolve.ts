@@ -1,5 +1,5 @@
 import { BUILTIN, CANVAS } from "./constants.ts";
-import type { Anchor, Manifest, ManifestControl, ResolvedControl, ResolvedSkin } from "./types.ts";
+import type { Anchor, ColorPair, Manifest, ManifestControl, ResolvedControl, ResolvedElement, ResolvedSkin, Role } from "./types.ts";
 import type { SvgScan } from "./validate/svg.ts";
 
 export interface LoadedControl {
@@ -8,7 +8,32 @@ export interface LoadedControl {
   scan: SvgScan;
 }
 
-function resolveControl({ control, text }: LoadedControl, manifest: Manifest): ResolvedControl {
+/** A declared color, or undefined when omitted or "inherit". */
+const own = (color: string | undefined) => (color && color !== "inherit" ? color : undefined);
+
+/**
+ * Element colors: element value → its nearest listed ancestor group (SVG groups share their
+ * colors with their contents) → the skin default for the element's role → null (keep the SVG
+ * color). Each state (inactive / active) inherits independently.
+ */
+function resolveElements({ control, scan }: LoadedControl, manifest: Manifest): ResolvedElement[] {
+  const listed = control.elements ?? {};
+  const roleDefaults = manifest.defaults?.colors ?? {};
+  const defaultsFor = (role: Role | null): ColorPair | undefined =>
+    role === null ? undefined : role === "thumb-label" ? roleDefaults["thumb-label"] ?? roleDefaults.label : roleDefaults[role];
+
+  return Object.entries(listed).map(([id, element]) => {
+    // listed ancestors, nearest first
+    const ancestors = [...(scan.ids.get(id)?.insideGroupIds ?? [])].reverse().map((g) => listed[g]).filter((e) => e !== undefined);
+    const role = element.role ?? ancestors.find((a) => a.role)?.role ?? null;
+    const pick = (state: keyof ColorPair) =>
+      own(element.colors?.[state]) ?? ancestors.map((a) => own(a.colors?.[state])).find((c) => c !== undefined) ?? own(defaultsFor(role)?.[state]) ?? null;
+    return { id, role, colors: { inactive: pick("inactive"), active: pick("active") } };
+  });
+}
+
+function resolveControl(loaded: LoadedControl, manifest: Manifest): ResolvedControl {
+  const { control, text } = loaded;
   const defaults = manifest.defaults ?? {};
   const resolved: ResolvedControl = {
     id: control.id,
@@ -17,12 +42,11 @@ function resolveControl({ control, text }: LoadedControl, manifest: Manifest): R
     box: { ...control.box },
     anchor: "center",
     group: control.id,
-    elements: Object.entries(control.elements ?? {}).map(([id, element]) => ({
-      id,
-      role: element.role ?? null,
-      colors: { inactive: null, active: null },
-    })),
-    glow: { enabled: BUILTIN.glow.enabled, color: BUILTIN.glow.color },
+    elements: resolveElements(loaded, manifest),
+    glow: {
+      enabled: control.glow?.enabled ?? defaults.glow?.enabled ?? BUILTIN.glow.enabled,
+      color: own(control.glow?.color) ?? own(defaults.glow?.color) ?? BUILTIN.glow.color,
+    },
   };
   switch (control.type) {
     case "button":
@@ -39,12 +63,14 @@ function resolveControl({ control, text }: LoadedControl, manifest: Manifest): R
     }
     case "trigger": {
       const tuning = { ...BUILTIN.trigger, ...defaults.tuning?.trigger, ...control.tuning };
+      const fill = own(control.colors?.fill) ?? own(defaults.trigger?.fill) ?? BUILTIN.trigger.fill;
       resolved.trigger = {
         which: control.trigger ?? "l2",
         direction: control.direction ?? "up",
-        showFill: BUILTIN.trigger.showFill,
-        fill: BUILTIN.trigger.fill,
-        maxZone: BUILTIN.trigger.fill,
+        showFill: control.showFill ?? defaults.trigger?.showFill ?? BUILTIN.trigger.showFill,
+        fill,
+        // the 100% zone uses the fill color unless it has its own
+        maxZone: own(control.colors?.maxZone) ?? own(defaults.trigger?.maxZone) ?? fill,
         tuning: { maxZone: tuning.maxZone, minForce: tuning.minForce },
       };
       break;
@@ -54,7 +80,7 @@ function resolveControl({ control, text }: LoadedControl, manifest: Manifest): R
       break;
     case "system":
       resolved.action = control.action ?? "menu";
-      if (resolved.action !== "menu") resolved.toggleActive = BUILTIN.toggleActive;
+      if (resolved.action !== "menu") resolved.toggleActive = control.toggleActive ?? defaults.toggleActive ?? BUILTIN.toggleActive;
       break;
   }
   return resolved;
