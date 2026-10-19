@@ -1,22 +1,20 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { filesFromMap, loadSkin, type LoadResult, type ResolvedSkin } from "../src/index.ts";
-import { OFFICIAL_SKIN as SKIN_DIR, readSkinFolder } from "./helpers.ts";
+import { fixture, OFFICIAL_SKIN as SKIN_DIR, readSkinFolder } from "./helpers.ts";
 
 describe("official Ninjoy skin", () => {
   let result: LoadResult;
   let skin: ResolvedSkin;
 
   beforeAll(async () => {
-    // reference-boxes.json is test data and LICENSE.md a notice: neither is part of the package
-    const files = readSkinFolder(SKIN_DIR, ["reference-boxes.json", "LICENSE.md"]);
+    const files = readSkinFolder(SKIN_DIR);
     result = await loadSkin(filesFromMap(files));
     if (result.ok) skin = result.skin;
   });
 
-  it("loads with no errors and no warnings", () => {
-    expect(result.report.filter((e) => e.severity !== "info")).toEqual([]);
+  it("loads with no errors, warnings or notes", () => {
+    expect(result.report).toEqual([]);
     expect(result.ok).toBe(true);
   });
 
@@ -36,7 +34,7 @@ describe("official Ninjoy skin", () => {
   });
 
   it("keeps every control where the artist drew it (within 1 canvas unit)", () => {
-    const reference = JSON.parse(readFileSync(join(SKIN_DIR, "reference-boxes.json"), "utf8")) as Record<string, { x: number; y: number; width: number; height: number }>;
+    const reference = JSON.parse(readFileSync(fixture("ninjoy-reference-boxes.json"), "utf8")) as Record<string, { x: number; y: number; width: number; height: number }>;
     expect(Object.keys(reference).sort()).toEqual(skin.controls.map((c) => c.id).sort());
     for (const control of skin.controls) {
       const ref = reference[control.id]!;

@@ -12,7 +12,8 @@ const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
 /** Loads a one-control skin (plus a menu, to avoid the no-menu warning) and returns its report codes. */
 async function check(control: object) {
   const menu = { id: "menu", type: "system", action: "menu", svg: "c.svg", box, elements: { a: { role: "base" } } };
-  return codes(await loadInline({ ...base, controls: [{ id: "c", svg: "c.svg", box, ...control }, menu] }, { "c.svg": SVG }));
+  const result = await loadInline({ ...base, controls: [{ id: "c", svg: "c.svg", box, ...control }, menu] }, { "c.svg": SVG });
+  return result.report.filter((e) => e.severity !== "info").map((e) => e.code); // notes (e.g. no preview) are not about roles
 }
 
 describe("element role rules", () => {

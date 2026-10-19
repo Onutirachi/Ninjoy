@@ -65,7 +65,13 @@ export async function loadSkin(files: SkinFiles): Promise<LoadResult> {
   if (!validateSchema(manifest, report)) return fail();
 
   // 3. skin-level rules
-  checkManifest(manifest, new Set(paths), report);
+  checkManifest(manifest, report);
+  const used = new Set<string>([MANIFEST_PATH]);
+  for (const file of [manifest.preview, manifest.background?.image]) {
+    if (!file) continue;
+    used.add(file);
+    if (!contents.has(file)) report.error("missing-file", { file });
+  }
 
   // 4. control artwork
   const loaded: LoadedControl[] = [];
@@ -78,14 +84,19 @@ export async function loadSkin(files: SkinFiles): Promise<LoadResult> {
     const text = decoder.decode(data);
     const scan = scanSvg(text, control.svg, report);
     if (!scan) continue;
+    used.add(control.svg);
     for (const ref of scan.references) {
       const target = joinPath(control.svg, ref);
       if (target === null) report.error("unsafe-reference", { file: control.svg, element: "image", value: ref });
       else if (!contents.has(target)) report.error("missing-file", { file: target, control: control.id });
+      else used.add(target);
     }
     checkElements(control, scan, report);
     loaded.push({ control, text, scan });
   }
+  // license and readme files at the root are expected companions, not unused artwork
+  const companion = (path: string) => /^(license|licence|readme|copying)(\.[a-z]+)?$/i.test(path);
+  for (const path of paths) if (!used.has(path) && !companion(path)) report.info("unused-file", { file: path });
 
   if (report.hasErrors) return fail();
   return { ok: true, skin: resolveSkin(manifest, loaded), report: report.entries };
