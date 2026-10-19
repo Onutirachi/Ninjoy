@@ -29,12 +29,12 @@ increment.
 
 **Purpose**: Monorepo, package skeleton, CI.
 
-- [ ] T001 Create the npm-workspaces root `package.json` (private, `"type": "module"`, `"workspaces": ["packages/*"]`, scripts `test`, `typecheck` delegating to workspaces) and `tsconfig.base.json` (strict, ES2023, `module`/`moduleResolution` `NodeNext`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`)
-- [ ] T002 Create `packages/skin-format/package.json` as `@ninjoy/skin-format` (ESM, `exports` for `./` and `./schema`, scripts `test` = `vitest run`, `typecheck` = `tsc --noEmit`, `validate` = run `src/cli.ts`), with dependencies `@cfworker/json-schema@^4`, `saxes@^6`, `fflate@^0.8` and dev dependencies `typescript@^7`, `vitest@^5`, `@types/node`; plus `packages/skin-format/tsconfig.json` extending the base config
-- [ ] T003 [P] Add `packages/skin-format/vitest.config.ts` (Node environment, `test/**/*.test.ts`)
-- [ ] T004 [P] Add `.github/workflows/ci.yml`: on pull requests and pushes to `main`, Node 26, `npm ci`, `npm run typecheck`, `npm test`
-- [ ] T005 [P] Copy `specs/20261019-122142-skin-package-format/contracts/skin-manifest.v1.schema.json` to `packages/skin-format/schema/skin-manifest.v1.schema.json`
-- [ ] T006 Run `npm install` at the root and commit the generated `package-lock.json`
+- [X] T001 Create the npm-workspaces root `package.json` (private, `"type": "module"`, `"workspaces": ["packages/*"]`, scripts `test`, `typecheck` delegating to workspaces) and `tsconfig.base.json` (strict, ES2023, `module`/`moduleResolution` `NodeNext`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`)
+- [X] T002 Create `packages/skin-format/package.json` as `@ninjoy/skin-format` (ESM, `exports` for `./` and `./schema`, scripts `test` = `vitest run`, `typecheck` = `tsc --noEmit`, `validate` = run `src/cli.ts`), with dependencies `@cfworker/json-schema@^4`, `saxes@^6`, `fflate@^0.8` and dev dependencies `typescript@^7`, `vitest@^5`, `@types/node`; plus `packages/skin-format/tsconfig.json` extending the base config
+- [X] T003 [P] Add `packages/skin-format/vitest.config.ts` (Node environment, `test/**/*.test.ts`)
+- [X] T004 [P] Add `.github/workflows/ci.yml`: on pull requests and pushes to `main`, Node 26, `npm ci`, `npm run typecheck`, `npm test`
+- [X] T005 [P] Copy `specs/20261019-122142-skin-package-format/contracts/skin-manifest.v1.schema.json` to `packages/skin-format/schema/skin-manifest.v1.schema.json`
+- [X] T006 Run `npm install` at the root and commit the generated `package-lock.json`
 
 ---
 
