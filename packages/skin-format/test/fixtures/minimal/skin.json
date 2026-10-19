@@ -1,0 +1,49 @@
+{
+  "format": 1,
+  "name": "Minimal",
+  "author": "Ninjoy tests",
+  "version": "1.0.0",
+  "orientation": "landscape",
+  "preview": "preview.png",
+  "groups": [{ "name": "right-side", "anchor": "right", "controls": ["diagonal", "r2"] }],
+  "controls": [
+    {
+      "id": "diagonal",
+      "type": "button",
+      "bindings": ["up", "left"],
+      "svg": "controls/diagonal.svg",
+      "box": { "x": 1300, "y": 100, "width": 120, "height": 120 },
+      "elements": { "bg": { "role": "base" }, "icon": { "role": "label" } }
+    },
+    {
+      "id": "stick",
+      "type": "stick",
+      "side": "left",
+      "svg": "controls/stick.svg",
+      "box": { "x": 200, "y": 360, "width": 300, "height": 300 },
+      "elements": {
+        "ring": { "role": "base" },
+        "ball": { "role": "thumb" },
+        "ball-text": { "role": "thumb-label" },
+        "area": { "role": "hitbox" }
+      }
+    },
+    {
+      "id": "r2",
+      "type": "trigger",
+      "trigger": "r2",
+      "direction": "right",
+      "svg": "controls/r2.svg",
+      "box": { "x": 1100, "y": 560, "width": 300, "height": 100 },
+      "elements": { "body": { "role": "base" } }
+    },
+    {
+      "id": "menu",
+      "type": "system",
+      "action": "menu",
+      "svg": "controls/menu.svg",
+      "box": { "x": 770, "y": 640, "width": 60, "height": 60 },
+      "elements": { "dot": { "role": "base" } }
+    }
+  ]
+}

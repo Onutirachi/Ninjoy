@@ -14,6 +14,11 @@ export async function loadSkin(files: SkinFiles): Promise<LoadResult> {
   const fail = (): LoadResult => ({ ok: false, report: report.entries });
 
   // 1. package size and manifest
+  const declared = files.size?.() ?? 0;
+  if (declared > MAX_PACKAGE_BYTES) {
+    report.error("package-too-large", { bytes: declared, max: MAX_PACKAGE_BYTES });
+    return fail();
+  }
   const paths = files.list();
   const contents = new Map<string, Uint8Array>();
   let bytes = 0;

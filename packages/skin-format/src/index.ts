@@ -1,5 +1,5 @@
 export { BUILTIN, CANVAS, MAX_PACKAGE_BYTES } from "./constants.ts";
-export { filesFromMap } from "./files.ts";
+export { filesFromMap, filesFromZip } from "./files.ts";
 export { loadSkin } from "./load.ts";
 export { formatReportEntry, REPORT_CODES, type Locale, type ReportCode } from "./report.ts";
 export type * from "./types.ts";
