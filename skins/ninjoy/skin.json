@@ -1,0 +1,751 @@
+{
+  "$schema": "https://ninjoy.app/schemas/skin-manifest.v1.json",
+  "format": 1,
+  "name": "Ninjoy",
+  "author": "Ninjoy",
+  "version": "0.1.0",
+  "orientation": "landscape",
+  "preview": "preview.png",
+  "background": {
+    "color": "#000000"
+  },
+  "defaults": {
+    "colors": {
+      "base": {
+        "active": "#227DC3"
+      },
+      "label": {
+        "active": "#FFFFFF"
+      },
+      "label-on": {
+        "active": "#FFFFFF"
+      },
+      "label-off": {
+        "active": "#FFFFFF"
+      },
+      "thumb": {
+        "active": "#3099E8"
+      },
+      "thumb-label": {
+        "active": "#FFFFFF"
+      }
+    },
+    "trigger": {
+      "fill": "#3099E8"
+    },
+    "glow": {
+      "enabled": true,
+      "color": "active"
+    },
+    "toggleActive": true,
+    "tuning": {
+      "trigger": {
+        "maxZone": 0.25,
+        "minForce": 0
+      },
+      "stick": {
+        "deadZone": 0.1,
+        "maxZone": 0.05
+      }
+    }
+  },
+  "groups": [
+    {
+      "name": "lshoulders",
+      "anchor": "left",
+      "controls": [
+        "l1-left",
+        "r1-left",
+        "l2-left",
+        "r2-left"
+      ]
+    },
+    {
+      "name": "dpad",
+      "anchor": "left",
+      "controls": [
+        "up",
+        "left",
+        "right",
+        "down"
+      ]
+    },
+    {
+      "name": "lstick",
+      "anchor": "left",
+      "controls": [
+        "stick-left"
+      ]
+    },
+    {
+      "name": "ltouchpad",
+      "anchor": "left",
+      "controls": [
+        "touchpad-left",
+        "touchpad-click-left"
+      ]
+    },
+    {
+      "name": "lcenter",
+      "anchor": "left",
+      "controls": [
+        "fullscreen",
+        "share",
+        "gyro"
+      ]
+    },
+    {
+      "name": "rtouchpad",
+      "anchor": "right",
+      "controls": [
+        "touchpad-right",
+        "touchpad-click-right"
+      ]
+    },
+    {
+      "name": "rcenter",
+      "anchor": "right",
+      "controls": [
+        "ps",
+        "options",
+        "menu"
+      ]
+    },
+    {
+      "name": "rstick",
+      "anchor": "right",
+      "controls": [
+        "stick-right"
+      ]
+    },
+    {
+      "name": "actions",
+      "anchor": "right",
+      "controls": [
+        "triangle",
+        "square",
+        "circle",
+        "cross"
+      ]
+    },
+    {
+      "name": "rshoulders",
+      "anchor": "right",
+      "controls": [
+        "l1-right",
+        "r1-right",
+        "l2-right",
+        "r2-right"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "l1-left",
+      "type": "button",
+      "bindings": [
+        "l1"
+      ],
+      "svg": "controls/l1-left.svg",
+      "box": {
+        "x": 0,
+        "y": 369.95,
+        "width": 103.17,
+        "height": 108.91
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "r1-left",
+      "type": "button",
+      "bindings": [
+        "r1"
+      ],
+      "svg": "controls/r1-left.svg",
+      "box": {
+        "x": 107.39,
+        "y": 369.95,
+        "width": 126.01,
+        "height": 98.55
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "l2-left",
+      "type": "trigger",
+      "trigger": "l2",
+      "direction": "up",
+      "svg": "controls/l2-left.svg",
+      "box": {
+        "x": 0,
+        "y": 482.64,
+        "width": 126.08,
+        "height": 237.36
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "r2-left",
+      "type": "trigger",
+      "trigger": "r2",
+      "direction": "up",
+      "svg": "controls/r2-left.svg",
+      "box": {
+        "x": 117.32,
+        "y": 471.09,
+        "width": 116.08,
+        "height": 248.91
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "up",
+      "type": "button",
+      "bindings": [
+        "up"
+      ],
+      "svg": "controls/up.svg",
+      "box": {
+        "x": 105.03,
+        "y": 0,
+        "width": 140,
+        "height": 140
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "left",
+      "type": "button",
+      "bindings": [
+        "left"
+      ],
+      "svg": "controls/left.svg",
+      "box": {
+        "x": 0,
+        "y": 105.02,
+        "width": 140,
+        "height": 140
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "right",
+      "type": "button",
+      "bindings": [
+        "right"
+      ],
+      "svg": "controls/right.svg",
+      "box": {
+        "x": 209.96,
+        "y": 105.02,
+        "width": 140,
+        "height": 140
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "down",
+      "type": "button",
+      "bindings": [
+        "down"
+      ],
+      "svg": "controls/down.svg",
+      "box": {
+        "x": 105.03,
+        "y": 209.96,
+        "width": 140,
+        "height": 140
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "stick-left",
+      "type": "stick",
+      "side": "left",
+      "svg": "controls/stick-left.svg",
+      "box": {
+        "x": 253.48,
+        "y": 370.04,
+        "width": 349.96,
+        "height": 349.96
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "thumb": {
+          "role": "thumb"
+        },
+        "thumb-label": {
+          "role": "thumb-label"
+        },
+        "hitbox": {
+          "role": "hitbox"
+        }
+      }
+    },
+    {
+      "id": "touchpad-left",
+      "type": "touchpad",
+      "area": "left",
+      "svg": "controls/touchpad-left.svg",
+      "box": {
+        "x": 370.04,
+        "y": 0,
+        "width": 349.96,
+        "height": 349.96
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        }
+      }
+    },
+    {
+      "id": "touchpad-click-left",
+      "type": "button",
+      "bindings": [
+        "touchpad-left"
+      ],
+      "svg": "controls/touchpad-click-left.svg",
+      "box": {
+        "x": 612.6,
+        "y": 369.95,
+        "width": 183.81,
+        "height": 80.04
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "fullscreen",
+      "type": "system",
+      "action": "fullscreen",
+      "svg": "controls/fullscreen.svg",
+      "box": {
+        "x": 621.95,
+        "y": 469.98,
+        "width": 174.46,
+        "height": 80.04
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label-off": {
+          "role": "label-off"
+        },
+        "label-on": {
+          "role": "label-on"
+        }
+      }
+    },
+    {
+      "id": "share",
+      "type": "button",
+      "bindings": [
+        "share"
+      ],
+      "svg": "controls/share.svg",
+      "box": {
+        "x": 631.37,
+        "y": 570,
+        "width": 165.04,
+        "height": 79.95
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "gyro",
+      "type": "system",
+      "action": "gyro",
+      "svg": "controls/gyro.svg",
+      "box": {
+        "x": 640.76,
+        "y": 670.03,
+        "width": 155.65,
+        "height": 49.97
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "touchpad-right",
+      "type": "touchpad",
+      "area": "right",
+      "svg": "controls/touchpad-right.svg",
+      "box": {
+        "x": 880,
+        "y": 0,
+        "width": 349.96,
+        "height": 349.96
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        }
+      }
+    },
+    {
+      "id": "touchpad-click-right",
+      "type": "button",
+      "bindings": [
+        "touchpad-right"
+      ],
+      "svg": "controls/touchpad-click-right.svg",
+      "box": {
+        "x": 816.4,
+        "y": 369.95,
+        "width": 171.03,
+        "height": 80.04
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "ps",
+      "type": "button",
+      "bindings": [
+        "ps"
+      ],
+      "svg": "controls/ps.svg",
+      "box": {
+        "x": 816.4,
+        "y": 469.98,
+        "width": 161.65,
+        "height": 80.04
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "options",
+      "type": "button",
+      "bindings": [
+        "options"
+      ],
+      "svg": "controls/options.svg",
+      "box": {
+        "x": 816.4,
+        "y": 570,
+        "width": 152.29,
+        "height": 79.95
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "menu",
+      "type": "system",
+      "action": "menu",
+      "svg": "controls/menu.svg",
+      "box": {
+        "x": 816.4,
+        "y": 670.03,
+        "width": 142.93,
+        "height": 49.97
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "stick-right",
+      "type": "stick",
+      "side": "right",
+      "svg": "controls/stick-right.svg",
+      "box": {
+        "x": 996.56,
+        "y": 370.04,
+        "width": 349.96,
+        "height": 349.96
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "thumb": {
+          "role": "thumb"
+        },
+        "thumb-label": {
+          "role": "thumb-label"
+        },
+        "hitbox": {
+          "role": "hitbox"
+        }
+      }
+    },
+    {
+      "id": "triangle",
+      "type": "button",
+      "bindings": [
+        "triangle"
+      ],
+      "svg": "controls/triangle.svg",
+      "box": {
+        "x": 1354.61,
+        "y": 0,
+        "width": 140.64,
+        "height": 140.64
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "square",
+      "type": "button",
+      "bindings": [
+        "square"
+      ],
+      "svg": "controls/square.svg",
+      "box": {
+        "x": 1250.04,
+        "y": 104.66,
+        "width": 140.64,
+        "height": 140.64
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "circle",
+      "type": "button",
+      "bindings": [
+        "circle"
+      ],
+      "svg": "controls/circle.svg",
+      "box": {
+        "x": 1459.27,
+        "y": 104.66,
+        "width": 140.64,
+        "height": 140.64
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "cross",
+      "type": "button",
+      "bindings": [
+        "cross"
+      ],
+      "svg": "controls/cross.svg",
+      "box": {
+        "x": 1354.61,
+        "y": 209.32,
+        "width": 140.64,
+        "height": 140.64
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "l1-right",
+      "type": "button",
+      "bindings": [
+        "l1"
+      ],
+      "svg": "controls/l1-right.svg",
+      "box": {
+        "x": 1366.51,
+        "y": 369.95,
+        "width": 126.08,
+        "height": 98.55
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "r1-right",
+      "type": "button",
+      "bindings": [
+        "r1"
+      ],
+      "svg": "controls/r1-right.svg",
+      "box": {
+        "x": 1496.82,
+        "y": 369.95,
+        "width": 103.18,
+        "height": 108.91
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "l2-right",
+      "type": "trigger",
+      "trigger": "l2",
+      "direction": "up",
+      "svg": "controls/l2-right.svg",
+      "box": {
+        "x": 1366.51,
+        "y": 471.09,
+        "width": 116.17,
+        "height": 248.91
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    },
+    {
+      "id": "r2-right",
+      "type": "trigger",
+      "trigger": "r2",
+      "direction": "up",
+      "svg": "controls/r2-right.svg",
+      "box": {
+        "x": 1473.92,
+        "y": 482.64,
+        "width": 126.08,
+        "height": 237.36
+      },
+      "elements": {
+        "base": {
+          "role": "base"
+        },
+        "label": {
+          "role": "label"
+        }
+      }
+    }
+  ]
+}
