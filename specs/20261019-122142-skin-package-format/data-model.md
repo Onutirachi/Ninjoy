@@ -57,7 +57,7 @@ The canvas is always 1600 × 720 units; it is not stored in the manifest.
 | Field | Type | Notes |
 |---|---|---|
 | `colors` | `{ [role]: ColorPair }` | Default colors per role (see Element). |
-| `trigger` | `{ fill?: Color, maxZone?: Color }` | Trigger fill and 100% zone colors; `maxZone` defaults to `fill`. |
+| `trigger` | `{ fill?: Color, maxZone?: Color, showFill?: boolean }` | Trigger fill and 100% zone colors (`maxZone` defaults to `fill`); `showFill` default `true`. |
 | `glow` | Glow | Default `{ enabled: true, color: "active" }`. |
 | `toggleActive` | boolean | Whether a toggle that is on uses the active appearance. Default `true`. |
 | `tuning` | `{ trigger?: TriggerTuning, stick?: StickTuning }` | |
@@ -98,7 +98,7 @@ Type-specific fields:
 |---|---|
 | `button` | `bindings`: Binding[] (≥ 1, unique) |
 | `stick` | `side`: `left` \| `right`; `click?`: Binding \| `none` (double-tap-and-hold; default `l3` for left, `r3` for right); `tuning?`: StickTuning |
-| `trigger` | `trigger`: `l2` \| `r2`; `direction?`: `up` \| `down` \| `left` \| `right` (default `up`); `colors?`: `{ fill?, maxZone? }`; `tuning?`: TriggerTuning |
+| `trigger` | `trigger`: `l2` \| `r2`; `direction?`: `up` \| `down` \| `left` \| `right` (default `up`); `colors?`: `{ fill?, maxZone? }`; `showFill?`: boolean; `tuning?`: TriggerTuning |
 | `touchpad` | `area`: `full` \| `left` \| `right` |
 | `system` | `action`: `menu` \| `fullscreen` \| `gyro`; `toggleActive?`: boolean (only for `fullscreen`, `gyro`) |
 
@@ -123,7 +123,7 @@ descendants. A descendant listed separately overrides the group for itself.
 | Role | Applies to | Count | Notes |
 |---|---|---|---|
 | `hitbox` | all | 0 or 1, single shape | The exact touch area; invisible. A group → error `hitbox-not-single-shape`; more than one → error `too-many-hitboxes`. |
-| `base` | all | with hitbox: ≥ 0; without hitbox: exactly 1 single shape | Without a hitbox the base is the touch area: 0 → error `missing-touch-area`, more than 1 or a group → error `base-not-single-shape`. |
+| `base` | all | ≥ 0; ≥ 1 without hitbox | Without a hitbox the touch area is the union of all base elements; none → error `missing-touch-area`. |
 | `label` | all | ≥ 0 | Shown in both states unless label-on/off exist. |
 | `label-on` | all | ≥ 0 | Shown while active (pressed / toggle on). |
 | `label-off` | all | ≥ 0 | Shown while inactive. Only one of the pair present → used for both states. |
@@ -136,8 +136,11 @@ descendants. A descendant listed separately overrides the group for itself.
 - A stick without any `thumb` element → error `missing-thumb`.
 - An element listed both as a group and inside another listed group with a different role →
   error `conflicting-roles`.
-- The trigger fill is masked by the union of all base elements, so several base paths are
-  fine for triggers that have a hitbox.
+- The trigger fill is masked by the union of all base elements, so several base paths work.
+- Stick travel and trigger force use the bounding box of the touch area (hitbox, or union of
+  base elements).
+- A base-union touch area may consist of separate pieces; the loader cannot detect this (it
+  does not render geometry). The Studio shows the touch area and warns about separate pieces.
 - Elements are never moved, aligned or centered; only the stick thumb moves (FR-014b, FR-015).
 - The whole control is active or inactive at once; elements only differ in their colors.
 
@@ -158,6 +161,7 @@ For every control the loader returns resolved values, so renderers never re-impl
   → `null` (keep the color drawn in the SVG).
 - **trigger colors**: control `colors` → `defaults.trigger` → built-in; `maxZone` falls back
   to the resolved `fill`.
+- **trigger showFill**: control `showFill` → `defaults.trigger.showFill` → `true`.
 - **glow**: control `glow` → `defaults.glow` → built-in (enabled, color `active`).
 - **toggleActive**: control → `defaults.toggleActive` → `true`.
 - **tuning**: control `tuning` → `defaults.tuning[type]` → built-in.

@@ -69,7 +69,7 @@ interface ResolvedControl {
   // type-specific, resolved
   bindings?: Binding[];
   side?: "left" | "right";
-  trigger?: { which: "l2" | "r2"; direction: "up" | "down" | "left" | "right"; fill: string; maxZone: string; tuning: { maxZone: number; minForce: number } };
+  trigger?: { which: "l2" | "r2"; direction: "up" | "down" | "left" | "right"; showFill: boolean; fill: string; maxZone: string; tuning: { maxZone: number; minForce: number } };
   stick?: { click: Binding | "none"; tuning: { deadZone: number; maxZone: number } };
   area?: "full" | "left" | "right";
   action?: "menu" | "fullscreen" | "gyro";
@@ -112,7 +112,7 @@ The same schema file is published in the repository at
 const CANVAS = { width: 1600, height: 720 } as const;
 const MAX_PACKAGE_BYTES = 20 * 1024 * 1024;
 const BUILTIN = {
-  trigger: { maxZone: 0.25, minForce: 0, fill: "#3099E8" },
+  trigger: { maxZone: 0.25, minForce: 0, fill: "#3099E8", showFill: true },
   stick: { deadZone: 0.1, maxZone: 0.05 },
   glow: { enabled: true, color: "active" },
   toggleActive: true,

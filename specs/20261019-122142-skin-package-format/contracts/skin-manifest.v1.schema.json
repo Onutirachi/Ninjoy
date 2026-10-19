@@ -99,7 +99,15 @@
           "propertyNames": { "$ref": "#/$defs/role" },
           "additionalProperties": { "$ref": "#/$defs/colorPair" }
         },
-        "trigger": { "$ref": "#/$defs/triggerColors" },
+        "trigger": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fill": { "$ref": "#/$defs/color" },
+            "maxZone": { "$ref": "#/$defs/color" },
+            "showFill": { "type": "boolean" }
+          }
+        },
         "glow": { "$ref": "#/$defs/glow" },
         "toggleActive": { "type": "boolean" },
         "tuning": {
@@ -200,6 +208,7 @@
               "trigger": { "enum": ["l2", "r2"] },
               "direction": { "enum": ["up", "down", "left", "right"] },
               "colors": { "$ref": "#/$defs/triggerColors" },
+              "showFill": { "type": "boolean" },
               "tuning": { "$ref": "#/$defs/triggerTuning" }
             }
           }

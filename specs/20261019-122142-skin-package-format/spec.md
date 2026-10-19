@@ -188,8 +188,7 @@ inherits; confirm the resolved colors follow the inheritance rules.
   (publishing a skin without a menu is blocked by the Studio/Workshop features).
 - A control SVG with elements that have no role: treated as decoration of that control.
 - An element with conflicting roles (directly and through a group), two hitboxes, a hitbox
-  made of a group, or a control without hitbox whose base is not exactly one single shape:
-  error naming the control, so a touch area can never be split into separate pieces.
+  made of a group, or a control with neither hitbox nor base: error naming the control.
 - Toggle icons: `label-on`/`label-off` declared on a control that is not a toggle (fullscreen,
   gyro): warning, roles ignored.
 - A `level` element on a control that is not a trigger: warning, ignored.
@@ -243,11 +242,11 @@ inherits; confirm the resolved colors follow the inheritance rules.
   element is a single shape or a group from the SVG (a group counts as one element and its
   role and colors apply to everything inside it). Except where FR-014a limits it, a role MAY
   cover several elements. Elements without a role are decoration.
-- **FR-014a**: The touch area MUST be a single shape, so it can never be split into separate
-  pieces: a control MAY have at most one hitbox element and it MUST be a single shape (not a
-  group); a control without a hitbox MUST have exactly one base element and it MUST be a
-  single shape. Base, label, label-on, label-off, thumb, thumb-label and pressed MAY each
-  have several elements when a hitbox exists.
+- **FR-014a**: A control MAY have at most one hitbox element and it MUST be a single shape (not
+  a group). Without a hitbox, the touch area is the union of all base elements; at least one
+  base element is then required. Base, label, label-on, label-off, thumb, thumb-label and
+  pressed MAY each have several elements. (Warning the artist when a base-union touch area is
+  split into separate pieces is the Studio's job, since it renders the artwork.)
 - **FR-014b**: Ninjoy MUST NOT move, align or center any element: every element is drawn
   exactly where the artist placed it. The only element that moves is the stick thumb.
 - **FR-015**: A stick MUST have at least one thumb element; all thumb and thumb-label elements
@@ -260,7 +259,8 @@ inherits; confirm the resolved colors follow the inheritance rules.
 - **FR-015b**: A control is active as a whole: while a finger is on its touch area every
   element switches to its active appearance at the same time, and all switch back together.
 - **FR-016**: The touch area of a control MUST be exactly the shape of its hitbox if present,
-  otherwise exactly the shape of its single base element (FR-014a); the format adds no margin.
+  otherwise exactly the union of its base elements (FR-014a); the format adds no margin. Stick
+  travel (FR-015) and trigger force use the bounding box of that touch area.
 - **FR-017**: Any control MAY provide two icons: label-on (shown while the control is active:
   pressed, or switched on for toggles such as fullscreen and gyro) and label-off (shown while
   inactive). A control with a single icon (label, or only one of the two) shows it in both
@@ -303,6 +303,10 @@ inherits; confirm the resolved colors follow the inheritance rules.
 - **FR-025a**: A trigger MAY additionally declare (or inherit from skin defaults) the color of
   its force fill and the color of its 100% zone. By default the 100% zone uses the fill color;
   each can be set independently. When nothing is declared, Ninjoy's built-in color is used.
+  The fill is cut to the union of the trigger's base elements, so several base paths work.
+- **FR-025b**: A trigger MAY hide its force fill and 100% zone (skin default, overridable per
+  trigger; default: shown). A trigger without fill still sends force and still uses the
+  active appearance while pressed.
   (How the fill and the zone are shown while pressing is defined by the touch engine spec.)
 
 **Tuning**
