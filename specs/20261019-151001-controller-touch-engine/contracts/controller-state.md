@@ -34,8 +34,8 @@ interface ControllerState {
 
 Guarantees:
 - A new state object is published synchronously while handling the event that changed it.
-- When no finger is down, `buttons` contains only toggle-independent nothing (empty), sticks
-  are 0, triggers 0, no touches.
+- When no finger is down, `buttons` is empty, sticks are 0, triggers 0 and there are no
+  touches (`gyro` and `motion` are independent of fingers).
 - Consumers must treat the object as read-only.
 
 ## Engine API (`controller/src/dom/controller.ts`)
