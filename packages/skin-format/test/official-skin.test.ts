@@ -1,33 +1,16 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { filesFromMap, loadSkin, type LoadResult, type ResolvedSkin } from "../src/index.ts";
-
-const SKIN_DIR = fileURLToPath(new URL("../../../skins/ninjoy", import.meta.url));
-
-/** Reads a skin folder from disk into an in-memory package. */
-export function readSkinFolder(dir: string): Record<string, Uint8Array> {
-  const files: Record<string, Uint8Array> = {};
-  const walk = (current: string) => {
-    for (const name of readdirSync(current)) {
-      const path = join(current, name);
-      if (statSync(path).isDirectory()) walk(path);
-      else files[relative(dir, path).replace(/\\/g, "/")] = readFileSync(path);
-    }
-  };
-  walk(dir);
-  return files;
-}
+import { OFFICIAL_SKIN as SKIN_DIR, readSkinFolder } from "./helpers.ts";
 
 describe("official Ninjoy skin", () => {
   let result: LoadResult;
   let skin: ResolvedSkin;
 
   beforeAll(async () => {
-    const files = readSkinFolder(SKIN_DIR);
-    delete files["reference-boxes.json"]; // test data, not part of the package
-    delete files["LICENSE.md"];
+    // reference-boxes.json is test data and LICENSE.md a notice: neither is part of the package
+    const files = readSkinFolder(SKIN_DIR, ["reference-boxes.json", "LICENSE.md"]);
     result = await loadSkin(filesFromMap(files));
     if (result.ok) skin = result.skin;
   });

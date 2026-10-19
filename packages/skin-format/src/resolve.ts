@@ -17,7 +17,11 @@ function resolveControl({ control, text }: LoadedControl, manifest: Manifest): R
     box: { ...control.box },
     anchor: "center",
     group: control.id,
-    elements: [],
+    elements: Object.entries(control.elements ?? {}).map(([id, element]) => ({
+      id,
+      role: element.role ?? null,
+      colors: { inactive: null, active: null },
+    })),
     glow: { enabled: BUILTIN.glow.enabled, color: BUILTIN.glow.color },
   };
   switch (control.type) {

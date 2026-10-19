@@ -6,6 +6,8 @@ import type { ReportCode } from "./report.ts";
 export interface SkinFiles {
   list(): string[];
   read(path: string): Promise<Uint8Array>;
+  /** Total uncompressed size, when known before reading (archives). */
+  size?(): number;
 }
 
 // ---------- vocabulary ----------

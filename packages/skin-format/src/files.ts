@@ -1,3 +1,5 @@
+import { unzipSync } from "fflate";
+import { MAX_PACKAGE_BYTES } from "./constants.ts";
 import type { SkinFiles } from "./types.ts";
 
 const normalize = (path: string) => path.replace(/\\/g, "/").replace(/^\.\//, "");
@@ -16,4 +18,26 @@ export function filesFromMap(files: Record<string, Uint8Array | string>): SkinFi
       return data;
     },
   };
+}
+
+/**
+ * A `.ninjoyskin` archive (zip). Sizes are checked against the declared uncompressed sizes
+ * before anything is inflated, so a tiny "zip bomb" cannot exhaust memory. A damaged archive
+ * yields an empty package (reported as a missing manifest).
+ */
+export function filesFromZip(archive: Uint8Array): SkinFiles {
+  let declared = 0;
+  let entries: Record<string, Uint8Array> = {};
+  try {
+    entries = unzipSync(archive, {
+      filter: (file) => {
+        declared += file.originalSize;
+        return declared <= MAX_PACKAGE_BYTES && !file.name.endsWith("/");
+      },
+    });
+  } catch {
+    entries = {};
+  }
+  const files = filesFromMap(declared > MAX_PACKAGE_BYTES ? {} : entries);
+  return { ...files, size: () => declared };
 }
