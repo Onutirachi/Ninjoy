@@ -28,5 +28,8 @@
   "notice.noVibration": "This device does not support vibration.",
   "notice.motionDenied": "Motion access was denied, so the gyroscope stays off.",
   "notice.noMotion": "This device has no motion sensor available, so the gyroscope stays off.",
-  "notice.motionInsecure": "Motion sensors need a secure (HTTPS) connection, so the gyroscope stays off."
+  "notice.motionInsecure": "Motion sensors need a secure (HTTPS) connection, so the gyroscope stays off.",
+  "menu.px.value": "{value} px",
+  "control.stickLeft": "Left stick",
+  "control.stickRight": "Right stick"
 }

@@ -135,9 +135,9 @@ state.
 
 **Independent Test**: Change each setting, observe it, reload.
 
-- [ ] T049 [P] [US6] Browser test `controller/test/browser/menu.test.ts`: US6 scenarios — finger size applies immediately to hit testing; zone changes apply to inheriting sticks/triggers; per-trigger override in edit mode starts from menu values and changes only that trigger; language auto (pt-BR → Portuguese, de → English) and manual choice; every setting persists across a reload; opening the menu releases all controls; the skin data is unchanged
-- [ ] T050 [US6] `controller/src/ui/menu.ts` and `controller/src/ui/styles.css`: menu with size (auto + slider), height, finger size, stick dead/100% zones, trigger min force/100% zone, gyro, fullscreen, edit layout, reset layout, language; every text from the catalogs; opening calls `releaseAll`
-- [ ] T051 [US6] Per-control overrides in `controller/src/ui/edit-mode.ts` and `controller/src/engine/settings.ts`: "inherit from menu" per trigger/stick, initialized from menu values, persisted per skin, used by stick/trigger handling
+- [X] T049 [P] [US6] Browser test `controller/test/browser/menu.test.ts`: US6 scenarios — finger size applies immediately to hit testing; zone changes apply to inheriting sticks/triggers; per-trigger override in edit mode starts from menu values and changes only that trigger; language auto (pt-BR → Portuguese, de → English) and manual choice; every setting persists across a reload; opening the menu releases all controls; the skin data is unchanged
+- [X] T050 [US6] `controller/src/ui/menu.ts` and `controller/src/ui/styles.css`: menu with size (auto + slider), height, finger size, stick dead/100% zones, trigger min force/100% zone, gyro, fullscreen, edit layout, reset layout, language; every text from the catalogs; opening calls `releaseAll`
+- [X] T051 [US6] Per-control overrides in `controller/src/ui/edit-mode.ts` and `controller/src/engine/settings.ts`: "inherit from menu" per trigger/stick, initialized from menu values, persisted per skin, used by stick/trigger handling
 
 ---
 

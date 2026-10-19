@@ -28,5 +28,8 @@
   "notice.noVibration": "Este aparelho não suporta vibração.",
   "notice.motionDenied": "O acesso ao movimento foi negado, então o giroscópio fica desligado.",
   "notice.noMotion": "Este aparelho não tem sensor de movimento disponível, então o giroscópio fica desligado.",
-  "notice.motionInsecure": "Os sensores de movimento precisam de uma conexão segura (HTTPS), então o giroscópio fica desligado."
+  "notice.motionInsecure": "Os sensores de movimento precisam de uma conexão segura (HTTPS), então o giroscópio fica desligado.",
+  "menu.px.value": "{value} px",
+  "control.stickLeft": "Analógico esquerdo",
+  "control.stickRight": "Analógico direito"
 }
