@@ -97,11 +97,11 @@ state.
 
 **Independent Test**: Touch a trigger at several heights, read the force, watch the fill.
 
-- [ ] T032 [P] [US3] Unit test `controller/test/unit/trigger.test.ts`: `triggerForce(r, z, m) = m + (1 − m) × min(1, r / (1 − z))`; 40% with z 0.25 → 0.533; 80% → 1; bottom with m 0.10 → 0.10; no touch → 0
-- [ ] T033 [P] [US3] Browser test `controller/test/browser/triggers.test.ts`: US3 scenarios — force by position for each direction (up/down/left/right test skin), last finger entered decides then the previous; no fill visible when untouched; fill clipped to the union of base shapes (two-base test skin); fill opacity `0.3 + 0.7·force`, zone opacity `0.12 + 0.88·force³`, both 0 when untouched; skin `showFill: false` → no fill and active appearance
+- [X] T032 [P] [US3] Unit test `controller/test/unit/trigger.test.ts`: `triggerForce(r, z, m) = m + (1 − m) × min(1, r / (1 − z))`; 40% with z 0.25 → 0.533; 80% → 1; bottom with m 0.10 → 0.10; no touch → 0
+- [X] T033 [P] [US3] Browser test `controller/test/browser/triggers.test.ts`: US3 scenarios — force by position for each direction (up/down/left/right test skin), last finger entered decides then the previous; no fill visible when untouched; fill clipped to the union of base shapes (two-base test skin); fill opacity `0.3 + 0.7·force`, zone opacity `0.12 + 0.88·force³`, both 0 when untouched; skin `showFill: false` → no fill and active appearance
 - [X] T034 [P] [US3] `triggerForce` in `controller/src/engine/zones.ts`
-- [ ] T035 [US3] `controller/src/dom/trigger-fill.ts`: mask from clones of all base shapes, fill and 100%-zone rectangles inserted after the last base element, custom `level` revealed by a growing mask, opacities from research R4
-- [ ] T036 [US3] Trigger handling in `controller/src/dom/controller.ts`: raw position along the direction within the touch-area box, last-entered finger, force into the state (max over controls with the same trigger)
+- [X] T035 [US3] `controller/src/dom/trigger-fill.ts`: mask from clones of all base shapes, fill and 100%-zone rectangles inserted after the last base element, custom `level` revealed by a growing mask, opacities from research R4
+- [X] T036 [US3] Trigger handling in `controller/src/dom/controller.ts`: raw position along the direction within the touch-area box, last-entered finger, force into the state (max over controls with the same trigger)
 
 ---
 
