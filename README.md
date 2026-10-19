@@ -9,3 +9,12 @@ network. Each player scans a QR code, opens the page in their browser, and plays
 > 🚧 Early development. The project follows Spec-Driven Development with
 > [Spec Kit](https://github.com/github/spec-kit): specs live in `specs/`, and the
 > project principles live in `.specify/memory/constitution.md`.
+
+## License
+
+Ninjoy's source code is free software released under the
+[GNU General Public License v3.0](LICENSE), with an
+[additional permission](LICENSE-EXCEPTIONS.md) for linking with the Steamworks SDK.
+
+The Ninjoy name, logo and official skins are not covered by the GPL; see
+[TRADEMARKS.md](TRADEMARKS.md).
