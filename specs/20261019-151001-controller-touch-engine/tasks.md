@@ -145,9 +145,9 @@ state.
 
 **Independent Test**: Press controls of the official skin and compare with the declared looks.
 
-- [ ] T052 [P] [US7] Browser test `controller/test/browser/appearance.test.ts`: US7 scenarios — every element shows its resolved active color while active and its inactive color (or the SVG's own) otherwise, all at once; stick base and thumb change while the stick is used; label-on/label-off swap and single-icon behavior; glow present in the glow color or the active base color, absent when disabled; gyro looks active while on unless `toggleActive` is false; vibration stub called once per activation
-- [ ] T053 [US7] `controller/src/dom/appearance.ts`: apply resolved colors per element (descendants of colored groups included), label-on/off visibility, pressed elements, glow (concentrated drop shadows), toggle active look, trigger glow when the fill is shown; changes only on state transitions
-- [ ] T054 [US7] Vibration on activation in `controller/src/dom/controller.ts` through `controller/src/platform/vibration.ts` (12 ms, only for touch input)
+- [X] T052 [P] [US7] Browser test `controller/test/browser/appearance.test.ts`: US7 scenarios — every element shows its resolved active color while active and its inactive color (or the SVG's own) otherwise, all at once; stick base and thumb change while the stick is used; label-on/label-off swap and single-icon behavior; glow present in the glow color or the active base color, absent when disabled; gyro looks active while on unless `toggleActive` is false; vibration stub called once per activation
+- [X] T053 [US7] `controller/src/dom/appearance.ts`: apply resolved colors per element (descendants of colored groups included), label-on/off visibility, pressed elements, glow (concentrated drop shadows), toggle active look, trigger glow when the fill is shown; changes only on state transitions
+- [X] T054 [US7] Vibration on activation in `controller/src/dom/controller.ts` through `controller/src/platform/vibration.ts` (12 ms, only for touch input)
 
 ---
 
