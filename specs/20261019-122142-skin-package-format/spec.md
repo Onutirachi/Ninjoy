@@ -238,11 +238,13 @@ inherits; confirm the resolved colors follow the inheritance rules.
 **Element roles**
 
 - **FR-014**: Each control MUST reference its own SVG and MAY assign roles to elements of that
-  SVG: base, label, label-on, label-off, thumb, hitbox, pressed, level. Elements without a role
-  are decoration.
-- **FR-015**: A stick MUST have exactly one thumb. The thumb's allowed travel is the ellipse
-  inscribed in the bounding box of the hitbox (or of the base when there is no hitbox), with
-  width and height independent.
+  SVG: base, label, label-on, label-off, thumb, thumb-label, hitbox, pressed, level. A role MAY
+  cover several elements (for example an icon made of two paths). Elements without a role are
+  decoration.
+- **FR-015**: A stick MUST have at least one thumb element; all thumb and thumb-label elements
+  move together with the finger (thumb-label elements are colored like labels). The thumb's
+  allowed travel is the ellipse inscribed in the bounding box of the hitbox (or of the base
+  when there is no hitbox), with width and height independent.
 - **FR-016**: The touch area of a control MUST be exactly the shape of its hitbox if present,
   otherwise exactly the shape of its base, otherwise the whole control artwork; the format
   adds no margin.
