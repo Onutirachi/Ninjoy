@@ -188,10 +188,10 @@ state independently.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T040 [P] Performance check in `packages/skin-format/test/performance.test.ts`: loading `skins/ninjoy` 20 times averages under 50 ms in Node (proxy for the plan's phone budget)
-- [ ] T041 [P] Update `README.md` with the repository layout (`packages/`, `skins/`, `docs/`) and how to run tests and the validator
-- [ ] T042 Run every scenario in `specs/20261019-122142-skin-package-format/quickstart.md` and fix any gap
-- [ ] T043 Mark completed tasks in `specs/20261019-122142-skin-package-format/tasks.md` and set **Status** to "Implemented" in `specs/20261019-122142-skin-package-format/spec.md`
+- [X] T040 [P] Performance check in `packages/skin-format/test/performance.test.ts`: loading `skins/ninjoy` 20 times averages under 50 ms in Node (proxy for the plan's phone budget)
+- [X] T041 [P] Update `README.md` with the repository layout (`packages/`, `skins/`, `docs/`) and how to run tests and the validator
+- [X] T042 Run every scenario in `specs/20261019-122142-skin-package-format/quickstart.md` and fix any gap
+- [X] T043 Mark completed tasks in `specs/20261019-122142-skin-package-format/tasks.md` and set **Status** to "Implemented" in `specs/20261019-122142-skin-package-format/spec.md`
 
 ---
 

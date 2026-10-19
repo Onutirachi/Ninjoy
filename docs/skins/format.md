@@ -148,7 +148,6 @@ A layer that fills the whole screen behind the controls. `placement` is `cover`,
   "author": "You",
   "version": "1.0.0",
   "orientation": "landscape",
-  "preview": "preview.png",
   "controls": [
     {
       "id": "cross",
@@ -195,6 +194,17 @@ A layer that fills the whole screen behind the controls. `placement` is `cover`,
   <circle id="ball" cx="50" cy="50" r="22" fill="#266697"/>
 </svg>
 ```
+
+`controls/menu.svg`:
+
+```xml
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+  <circle id="dot" cx="5" cy="5" r="5" fill="#1F4A6B"/>
+</svg>
+```
+
+These four files are a complete, valid skin. To show a thumbnail in menus, add a 1600 × 720
+image to the folder and reference it with `"preview": "preview.png"`.
 
 A skin without a `menu` control loads, but players cannot open the Ninjoy menu from it.
 

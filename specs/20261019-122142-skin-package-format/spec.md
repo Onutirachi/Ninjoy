@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-19
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Skin package format v1 for Ninjoy: the data format that describes a
 touch controller skin, which the controller page renders and the future Skin Studio will produce."
