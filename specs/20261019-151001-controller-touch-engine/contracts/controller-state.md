@@ -44,8 +44,19 @@ Guarantees:
 interface ControllerOptions {
   skin: ResolvedSkin;                 // from @ninjoy/skin-format
   root: HTMLElement;                  // element the controller fills
-  storage?: Storage;                  // defaults to localStorage; tests pass a stub
+  storage?: Storage | null;           // defaults to localStorage; null keeps settings in memory
   platform?: Partial<Platform>;       // vibration/fullscreen/motion adapters (tests stub them)
+  onMenu?: () => void;                // the skin's menu control was tapped
+  onNotice?: (key: NoticeKey) => void; // an unsupported feature to explain
+}
+
+type NoticeKey = "noFullscreen" | "noVibration" | "motionDenied" | "noMotion" | "motionInsecure";
+
+/** The group selected in edit-layout mode and its tunable sticks and triggers. */
+interface EditSelection {
+  group: string;
+  scale: number;
+  tunable: { id: string; type: "stick" | "trigger" }[];
 }
 
 interface Controller {
@@ -54,6 +65,14 @@ interface Controller {
   readonly settings: PlayerSettings;
   updateSettings(patch: Partial<PlayerSettings>): void;
   setEditMode(on: boolean): void;
+  readonly editing: boolean;
+  readonly selection: EditSelection | null;
+  onEditChange(listener: () => void): () => void;
+  setGroupScale(scale: number): void;          // 0.5–2, around the group's center
+  readonly fullscreen: boolean;
+  toggleFullscreen(): void;
+  override(controlId: string): ControlOverride | undefined;   // undefined = inherits the menu
+  setOverride(controlId: string, override: ControlOverride | null): void;
   resetLayout(): void;
   releaseAll(): void;
   /** re-measure after resize/orientation change (also automatic) */
