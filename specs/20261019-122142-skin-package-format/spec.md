@@ -91,13 +91,16 @@ error or warning message.
 **Acceptance Scenarios**:
 
 1. **Given** a control bound to an unknown input such as "crss", **When** the skin is validated,
-   **Then** the report names the control, the invalid value and suggests "cross".
+   **Then** the skin is rejected and the report names the control, the field and the invalid
+   value.
 2. **Given** a stick without a thumb, **When** the skin is validated, **Then** the skin is
    rejected with an error naming the stick and the missing thumb.
 3. **Given** a manifest that references an SVG file not present in the package, **When** the
    skin is validated, **Then** the skin is rejected with an error naming the missing file.
 4. **Given** a valid skin with an optional item missing (for example no preview image),
    **When** it is validated, **Then** it loads and the report contains an informational note.
+5. **Given** a skin with no menu control, **When** it is validated, **Then** it loads and the
+   report contains a warning that the skin has no menu button.
 
 ---
 
@@ -107,22 +110,23 @@ A player installs a skin made by a stranger. Whatever the skin contains, it cann
 contact the internet or read anything from the player's device.
 
 **Why this priority**: Required by the constitution (Principle IV). Skins will be shared publicly
-(Workshop), so this is a safety requirement, not a nice-to-have.
+(Workshop) and a skin file can be edited by hand outside the Studio, so this is a safety
+requirement, not a nice-to-have.
 
-**Independent Test**: Load a package whose SVGs contain scripts, event handler attributes,
-embedded foreign content and links to external resources; confirm all of it is removed and
-reported, and nothing is executed or fetched.
+**Independent Test**: Load packages whose SVGs contain, one at a time, a script, an event handler
+attribute, embedded foreign content and a link to an external resource; confirm each package is
+rejected and nothing is executed or fetched.
 
 **Acceptance Scenarios**:
 
-1. **Given** an SVG containing a script element, **When** the skin is installed, **Then** the
-   script is removed, never executed, and the report lists the removal.
-2. **Given** an SVG element with an event handler attribute, **When** the skin is installed,
-   **Then** the attribute is removed and reported.
+1. **Given** an SVG containing a script element, **When** the skin is loaded, **Then** the skin
+   is rejected, the script is never executed, and the report names the file and the element.
+2. **Given** an SVG element with an event handler attribute, **When** the skin is loaded,
+   **Then** the skin is rejected and the report names the file and the attribute.
 3. **Given** an SVG referencing an image or style on another server, **When** the skin is
-   installed, **Then** the reference is removed and reported, and no network request is made.
+   loaded, **Then** the skin is rejected and no network request is made.
 4. **Given** an SVG referencing an image file inside the same package, **When** the skin is
-   installed, **Then** the image is kept and displayed.
+   loaded, **Then** the image is displayed.
 
 ---
 
@@ -145,8 +149,10 @@ implied by its position.
    control in the group reports anchor "right".
 2. **Given** a control that belongs to no group and declares no anchor, placed in the left third
    of the canvas, **When** the skin is loaded, **Then** its anchor is "left".
-3. **Given** a background declared by the skin, **When** the skin is loaded, **Then** it is
-   identified as the element that fills the whole screen behind the controls.
+3. **Given** a skin background with a color and a watermark image set to "center" at 30%
+   opacity, **When** the skin is loaded, **Then** the background is a screen-filling layer
+   behind the controls with that color, and the image is centered at 30% opacity without
+   being distorted.
 
 ---
 
@@ -178,7 +184,8 @@ inherits; confirm the resolved colors follow the inheritance rules.
 - A control placed partially or completely outside the 1600 × 720 canvas: warning, control kept.
 - Two controls overlapping: allowed (overlap is how one finger presses two buttons).
 - The same DS4 input bound by several controls (for example L1 on both sides): allowed.
-- A skin with no menu control: allowed; the touch engine provides a default menu button.
+- A skin with no menu control: loads with a warning; no menu button is added automatically
+  (publishing a skin without a menu is blocked by the Studio/Workshop features).
 - A control SVG with elements that have no role: treated as decoration of that control.
 - An element marked with two roles, or two elements marked as the same unique role (two thumbs):
   error naming the control.
@@ -255,8 +262,11 @@ inherits; confirm the resolved colors follow the inheritance rules.
 - **FR-022**: When no anchor is declared, the anchor MUST be derived from the horizontal center
   of the group (or control): left third of the canvas → left, right third → right, otherwise
   center.
-- **FR-023**: The background, when present, MUST be marked as such and is the only element
-  allowed to stretch to fill the screen.
+- **FR-023**: The skin MAY declare a background: a screen-filling layer behind all controls,
+  defined by a color and an optional image (SVG or raster from the package) with a placement
+  (cover, contain, center or tile) and an opacity, so it can serve as a picture or a
+  watermark. The background is not a control, never distorts its image, and is not affected by
+  groups, anchors or the player's size settings.
 
 **Colors**
 
@@ -264,12 +274,16 @@ inherits; confirm the resolved colors follow the inheritance rules.
   control MAY declare a normal color and a pressed color, or inherit.
 - **FR-025**: Color resolution MUST follow: control value → skin default for that role → color
   drawn in the SVG.
+- **FR-025a**: A trigger MAY additionally declare (or inherit from skin defaults) the colors of
+  its force fill, its dead zone and its 100% zone; when nothing is declared, Ninjoy's built-in
+  colors are used.
 
 **Tuning**
 
 - **FR-026**: The manifest MAY declare tuning defaults: trigger dead zone and trigger 100% zone;
   stick dead zone and stick 100% zone; each as a fraction between 0 and 1, settable per control
-  type and overridable per control. Missing values fall back to Ninjoy's built-in defaults.
+  type and overridable per control. Missing values fall back to Ninjoy's built-in defaults:
+  trigger dead zone 0.05, trigger 100% zone 0.25, stick dead zone 0.10, stick 100% zone 0.05.
 - **FR-027**: Tuning values are the skin's defaults only; players can change them on their
   device and those changes are never written into the skin.
 
@@ -280,10 +294,12 @@ inherits; confirm the resolved colors follow the inheritance rules.
 - **FR-029**: A skin with any error MUST NOT be loaded; a skin with only warnings or info MUST
   load.
 - **FR-030**: Invalid enumerated values (binding, type, side, direction, area, anchor, role)
-  MUST produce an error that suggests the closest valid value when one is close enough.
-- **FR-031**: Installing a skin MUST remove scripts, event handler attributes, embedded foreign
-  content and references to resources outside the package, and MUST list every removal in the
-  report. Removing unsafe content is reported as a warning, not an error.
+  MUST produce an error naming the control, the field and the invalid value.
+- **FR-031**: A skin whose files contain scripts, event handler attributes, embedded foreign
+  content or references to resources outside the package MUST be rejected with an error naming
+  the file and the offending element. (Cleaning imported artwork is the Studio's job.)
+- **FR-031a**: A skin without a menu control MUST load with a warning; Ninjoy MUST NOT add a
+  menu button automatically.
 - **FR-032**: Loading a skin MUST NOT execute code from the skin and MUST NOT make network
   requests to anywhere other than the Ninjoy host serving the skin.
 - **FR-033**: The package MUST NOT exceed 20 MB in total.
@@ -292,7 +308,8 @@ inherits; confirm the resolved colors follow the inheritance rules.
 
 - **FR-034**: The official "Ninjoy" skin MUST be provided in this format, reproducing the
   maintainer's current drawing (controls, positions, sizes, groups and anchors), and MUST be
-  used as the reference fixture for validation tests.
+  used as the reference fixture for validation tests. Once the Skin Studio exists, the official
+  skin will be recreated in it and replace this converted version.
 - **FR-035**: The format MUST be documented for skin authors in English, with a complete
   example, so a skin can be written by hand without reading source code.
 
@@ -302,6 +319,7 @@ inherits; confirm the resolved colors follow the inheritance rules.
   background, optional preview and optional local images.
 - **Manifest**: metadata (name, author, version, format version, orientation), list of
   controls, groups, color defaults, tuning defaults, background and preview references.
+- **Background**: color plus optional image with placement and opacity, filling the screen.
 - **Control**: one interactive element; has a type, bindings or type-specific settings, a box
   on the canvas, an SVG, element roles, optional colors, optional tuning and optional anchor.
 - **Element role**: the meaning of one element of a control's SVG (base, label, label-on,
@@ -319,11 +337,9 @@ inherits; confirm the resolved colors follow the inheritance rules.
 - **SC-002**: A person who has never seen the format can write a working two-control skin
   (one button, one stick) from the documentation alone in under 30 minutes.
 - **SC-003**: 100% of the unsafe-content test cases (scripts, event handlers, foreign content,
-  external references) are removed and reported, with zero code executed and zero external
-  requests made.
-- **SC-004**: Every validation error message names the affected control or file, and every
-  invalid enumerated value within two typing mistakes of a valid one gets the correct
-  suggestion.
+  external references) are rejected, with zero code executed and zero external requests made.
+- **SC-004**: Every validation error message names the affected control or file and the field
+  or value at fault.
 - **SC-005**: A skin package produced by the future Skin Studio can be represented without
   any field outside this format (verified against the Studio requirements recorded so far).
 
@@ -335,7 +351,8 @@ inherits; confirm the resolved colors follow the inheritance rules.
   the plan.
 - The maximum package size of 20 MB is a reasonable default for vector skins with a few raster
   images; it can be revised.
-- When a skin has no menu control, the touch engine provides a default one (touch engine spec).
+- A player using a skin without a menu cannot open the Ninjoy menu from the phone; the host
+  will be able to change that controller's skin (host spec).
 - Player customizations (size, height, moved or resized groups, finger size, tuning overrides)
   are stored on the player's device per skin and are out of scope here.
 - Importing a whole skin from a single layer-named SVG is out of scope; the official skin will
