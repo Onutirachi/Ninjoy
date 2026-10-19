@@ -70,7 +70,7 @@ interface ResolvedControl {
   bindings?: Binding[];
   side?: "left" | "right";
   trigger?: { which: "l2" | "r2"; direction: "up" | "down" | "left" | "right"; fill: string; maxZone: string; tuning: { maxZone: number; minForce: number } };
-  stick?: { tuning: { deadZone: number; maxZone: number } };
+  stick?: { click: Binding | "none"; tuning: { deadZone: number; maxZone: number } };
   area?: "full" | "left" | "right";
   action?: "menu" | "fullscreen" | "gyro";
   toggleActive?: boolean;                     // fullscreen and gyro only

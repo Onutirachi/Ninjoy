@@ -97,7 +97,7 @@ Type-specific fields:
 | Type | Fields |
 |---|---|
 | `button` | `bindings`: Binding[] (≥ 1, unique) |
-| `stick` | `side`: `left` \| `right`; `tuning?`: StickTuning |
+| `stick` | `side`: `left` \| `right`; `click?`: Binding \| `none` (double-tap-and-hold; default `l3` for left, `r3` for right); `tuning?`: StickTuning |
 | `trigger` | `trigger`: `l2` \| `r2`; `direction?`: `up` \| `down` \| `left` \| `right` (default `up`); `colors?`: `{ fill?, maxZone? }`; `tuning?`: TriggerTuning |
 | `touchpad` | `area`: `full` \| `left` \| `right` |
 | `system` | `action`: `menu` \| `fullscreen` \| `gyro`; `toggleActive?`: boolean (only for `fullscreen`, `gyro`) |
@@ -108,7 +108,10 @@ Type-specific fields:
 
 ## Element
 
-An entry of `control.elements`, keyed by an SVG element id.
+An entry of `control.elements`, keyed by an SVG element id. The id may belong to a single
+shape (`path`, `circle`, `ellipse`, `rect`, `polygon`, `polyline`, `line`, `text`) or to a
+group (`g`); a group counts as one element and its role and colors apply to all its
+descendants. A descendant listed separately overrides the group for itself.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -119,20 +122,24 @@ An entry of `control.elements`, keyed by an SVG element id.
 
 | Role | Applies to | Count | Notes |
 |---|---|---|---|
-| `base` | all | ≥ 0 | Exact touch area when no hitbox. |
+| `hitbox` | all | 0 or 1, single shape | The exact touch area; invisible. A group → error `hitbox-not-single-shape`; more than one → error `too-many-hitboxes`. |
+| `base` | all | with hitbox: ≥ 0; without hitbox: exactly 1 single shape | Without a hitbox the base is the touch area: 0 → error `missing-touch-area`, more than 1 or a group → error `base-not-single-shape`. |
 | `label` | all | ≥ 0 | Shown in both states unless label-on/off exist. |
 | `label-on` | all | ≥ 0 | Shown while active (pressed / toggle on). |
 | `label-off` | all | ≥ 0 | Shown while inactive. Only one of the pair present → used for both states. |
-| `thumb` | stick | ≥ 1 for sticks | Moves with the finger. Elsewhere → error `role-not-allowed`. |
-| `thumb-label` | stick | ≥ 0 | Moves with the thumb, colored with `label` defaults. |
-| `hitbox` | all | ≥ 0 | Union of these shapes is the exact touch area; invisible. |
+| `thumb` | stick | ≥ 1 for sticks | Moves with the finger; rests where drawn. Elsewhere → error `role-not-allowed`. |
+| `thumb-label` | stick | ≥ 0 | Moves with the thumb, colored with `label` defaults. Elsewhere → error `role-not-allowed`. |
 | `pressed` | all | ≥ 0 | Visible only while pressed. |
 | `level` | trigger | ≥ 0 | Custom fill revealed by force. Elsewhere → warning `role-ignored`. |
 
 - Every key of `elements` must be an id present in the control's SVG (error `unknown-element`).
 - A stick without any `thumb` element → error `missing-thumb`.
-- A control with no `base`, no `hitbox` and no other element → the whole artwork is the touch
-  area (info `whole-artwork-hit-area`).
+- An element listed both as a group and inside another listed group with a different role →
+  error `conflicting-roles`.
+- The trigger fill is masked by the union of all base elements, so several base paths are
+  fine for triggers that have a hitbox.
+- Elements are never moved, aligned or centered; only the stick thumb moves (FR-014b, FR-015).
+- The whole control is active or inactive at once; elements only differ in their colors.
 
 ## Skin-level rules (semantic)
 

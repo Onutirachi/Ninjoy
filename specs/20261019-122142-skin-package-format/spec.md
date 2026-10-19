@@ -187,8 +187,9 @@ inherits; confirm the resolved colors follow the inheritance rules.
 - A skin with no menu control: loads with a warning; no menu button is added automatically
   (publishing a skin without a menu is blocked by the Studio/Workshop features).
 - A control SVG with elements that have no role: treated as decoration of that control.
-- An element marked with two roles, or two elements marked as the same unique role (two thumbs):
-  error naming the control.
+- An element with conflicting roles (directly and through a group), two hitboxes, a hitbox
+  made of a group, or a control without hitbox whose base is not exactly one single shape:
+  error naming the control, so a touch area can never be split into separate pieces.
 - Toggle icons: `label-on`/`label-off` declared on a control that is not a toggle (fullscreen,
   gyro): warning, roles ignored.
 - A `level` element on a control that is not a trigger: warning, ignored.
@@ -227,8 +228,8 @@ inherits; confirm the resolved colors follow the inheritance rules.
 - **FR-009**: A button MUST be bound to one or more of: cross, circle, square, triangle, up,
   down, left, right, L1, R1, L2, R2, L3, R3, share, options, PS, touchpad click, touchpad click
   (left half), touchpad click (right half). A button bound to L2 or R2 sends full force.
-- **FR-010**: A stick MUST declare its side (left or right). Its click (L3 or R3) is implied by
-  the side.
+- **FR-010**: A stick MUST declare its side (left or right). Its double-tap click is defined
+  by FR-015a.
 - **FR-011**: A trigger MUST declare L2 or R2 and the direction in which force grows: up, down,
   left or right (default up).
 - **FR-012**: A touchpad control MUST declare its area: full, left half or right half.
@@ -238,16 +239,28 @@ inherits; confirm the resolved colors follow the inheritance rules.
 **Element roles**
 
 - **FR-014**: Each control MUST reference its own SVG and MAY assign roles to elements of that
-  SVG: base, label, label-on, label-off, thumb, thumb-label, hitbox, pressed, level. A role MAY
-  cover several elements (for example an icon made of two paths). Elements without a role are
-  decoration.
+  SVG: base, label, label-on, label-off, thumb, thumb-label, hitbox, pressed, level. An
+  element is a single shape or a group from the SVG (a group counts as one element and its
+  role and colors apply to everything inside it). Except where FR-014a limits it, a role MAY
+  cover several elements. Elements without a role are decoration.
+- **FR-014a**: The touch area MUST be a single shape, so it can never be split into separate
+  pieces: a control MAY have at most one hitbox element and it MUST be a single shape (not a
+  group); a control without a hitbox MUST have exactly one base element and it MUST be a
+  single shape. Base, label, label-on, label-off, thumb, thumb-label and pressed MAY each
+  have several elements when a hitbox exists.
+- **FR-014b**: Ninjoy MUST NOT move, align or center any element: every element is drawn
+  exactly where the artist placed it. The only element that moves is the stick thumb.
 - **FR-015**: A stick MUST have at least one thumb element; all thumb and thumb-label elements
-  move together with the finger (thumb-label elements are colored like labels). The thumb's
-  allowed travel is the ellipse inscribed in the bounding box of the hitbox (or of the base
-  when there is no hitbox), with width and height independent.
+  move together (thumb-label elements are colored like labels). The thumb rests at the
+  position where it was drawn; while the stick is used, the thumb's center follows the finger
+  within the ellipse inscribed in the bounding box of the hitbox (or of the base when there
+  is no hitbox), width and height independent; on release it returns to its drawn position.
+- **FR-015a**: A stick MAY declare which button its double-tap-and-hold sends: any button
+  binding, or none. Default: L3 for the left stick, R3 for the right stick.
+- **FR-015b**: A control is active as a whole: while a finger is on its touch area every
+  element switches to its active appearance at the same time, and all switch back together.
 - **FR-016**: The touch area of a control MUST be exactly the shape of its hitbox if present,
-  otherwise exactly the shape of its base, otherwise the whole control artwork; the format
-  adds no margin.
+  otherwise exactly the shape of its single base element (FR-014a); the format adds no margin.
 - **FR-017**: Any control MAY provide two icons: label-on (shown while the control is active:
   pressed, or switched on for toggles such as fullscreen and gyro) and label-off (shown while
   inactive). A control with a single icon (label, or only one of the two) shows it in both

@@ -187,6 +187,7 @@
             "required": ["side"],
             "properties": {
               "side": { "enum": ["left", "right"] },
+              "click": { "anyOf": [{ "$ref": "#/$defs/binding" }, { "const": "none" }] },
               "tuning": { "$ref": "#/$defs/stickTuning" }
             }
           }
