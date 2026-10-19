@@ -1,5 +1,6 @@
 import { filesFromMap, loadSkin, type ResolvedSkin } from "@ninjoy/skin-format";
-import type { Controller } from "../../src/dom/controller.ts";
+import type { Controller, Platform } from "../../src/dom/controller.ts";
+import type { MotionSample, MotionSupport } from "../../src/platform/motion.ts";
 
 /** A fresh, absolutely positioned root of the given CSS size at the top-left of the page. */
 export function mount(width: number, height: number): HTMLElement {
@@ -46,4 +47,41 @@ export async function inlineSkin(manifest: object, files: Record<string, string>
   const result = await loadSkin(filesFromMap({ "skin.json": JSON.stringify({ format: 1, author: "Tests", version: "1.0.0", orientation: "landscape", ...manifest }), ...files }));
   if (!result.ok) throw new Error(JSON.stringify(result.report));
   return result.skin;
+}
+
+/** Platform without real device features: records calls and lets tests drive motion. */
+export function stubPlatform(o: { motion?: MotionSupport; permission?: boolean; fullscreen?: boolean; vibration?: boolean; angle?: number } = {}) {
+  const calls = { vibrate: [] as number[], fullscreen: 0, permission: 0 };
+  let fullscreenOn = false;
+  let motionListener: ((s: MotionSample) => void) | null = null;
+  const fullscreenListeners = new Set<() => void>();
+  const platform: Partial<Platform> = {
+    vibration: { supported: () => o.vibration ?? true, vibrate: (ms) => calls.vibrate.push(ms) },
+    fullscreen: {
+      supported: () => o.fullscreen ?? true,
+      active: () => fullscreenOn,
+      toggle: () => {
+        calls.fullscreen++;
+        fullscreenOn = !fullscreenOn;
+        for (const l of fullscreenListeners) l();
+      },
+      onChange: (l) => {
+        fullscreenListeners.add(l);
+        return () => fullscreenListeners.delete(l);
+      },
+    },
+    motion: {
+      support: () => o.motion ?? "none",
+      requestPermission: async () => {
+        calls.permission++;
+        return o.permission ?? true;
+      },
+      listen: (l) => {
+        motionListener = l;
+        return () => { motionListener = null; };
+      },
+      angle: () => o.angle ?? 0,
+    },
+  };
+  return Object.assign(platform, { calls, emitMotion: (s: MotionSample) => motionListener?.(s) });
 }
