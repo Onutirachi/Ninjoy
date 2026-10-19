@@ -43,24 +43,24 @@ loop and the `createController` API that every story extends.
 
 ### Tests
 
-- [ ] T007 [P] Unit test `controller/test/unit/state.test.ts`: an empty state has no buttons, zero sticks/triggers, no touches; `seq` increments on every publish; the builder OR-s buttons and max-es trigger forces; digital `l2`/`r2` set while force > 0
-- [ ] T008 [P] Unit test `controller/test/unit/settings.test.ts`: defaults (`size auto`, `height 0`, `finger 14`, zones from skin or built-in `0.10 / 0.05 / 0 / 0.25`, `gyro true`, `language auto`); ranges clamp (size 0.4–1, finger 0–40, stick dead 0–0.40, stick max 0–0.30, trigger min 0–0.50, trigger max 0–0.50); player values override skin defaults
-- [ ] T009 [P] Unit test `controller/test/unit/storage.test.ts`: versioned keys `ninjoy.v1.settings`, `ninjoy.v1.layout.<skin>`, `ninjoy.v1.overrides.<skin>` (skin key = name + version); unreadable JSON or a throwing storage falls back to defaults
-- [ ] T010 [P] Unit test `controller/test/unit/i18n.test.ts`: `en.json` and `pt.json` have the same keys; `navigator.languages` `["pt-BR"]` → pt, `["de"]` → en; explicit setting wins; `{param}` interpolation
-- [ ] T011 [P] Browser test `controller/test/browser/render.test.ts`: the bundled official skin renders 28 control SVGs and the background layer; each control's on-screen box matches its canvas box at 100% on a 1600 × 720 root (SC-004 basis)
+- [X] T007 [P] Unit test `controller/test/unit/state.test.ts`: an empty state has no buttons, zero sticks/triggers, no touches; `seq` increments on every publish; the builder OR-s buttons and max-es trigger forces; digital `l2`/`r2` set while force > 0
+- [X] T008 [P] Unit test `controller/test/unit/settings.test.ts`: defaults (`size auto`, `height 0`, `finger 14`, zones from skin or built-in `0.10 / 0.05 / 0 / 0.25`, `gyro true`, `language auto`); ranges clamp (size 0.4–1, finger 0–40, stick dead 0–0.40, stick max 0–0.30, trigger min 0–0.50, trigger max 0–0.50); player values override skin defaults
+- [X] T009 [P] Unit test `controller/test/unit/storage.test.ts`: versioned keys `ninjoy.v1.settings`, `ninjoy.v1.layout.<skin>`, `ninjoy.v1.overrides.<skin>` (skin key = name + version); unreadable JSON or a throwing storage falls back to defaults
+- [X] T010 [P] Unit test `controller/test/unit/i18n.test.ts`: `en.json` and `pt.json` have the same keys; `navigator.languages` `["pt-BR"]` → pt, `["de"]` → en; explicit setting wins; `{param}` interpolation
+- [X] T011 [P] Browser test `controller/test/browser/render.test.ts`: the bundled official skin renders 28 control SVGs and the background layer; each control's on-screen box matches its canvas box at 100% on a 1600 × 720 root (SC-004 basis)
 
 ### Implementation
 
-- [ ] T012 [P] `controller/src/engine/state.ts`: `DS4Button`, `ControllerState` exactly as in `contracts/controller-state.md`, and a `StateBuilder` (reset, press, stick, trigger force, touches, motion, gyro, publish → frozen object with incremented `seq` and `time`)
-- [ ] T013 [P] `controller/src/engine/settings.ts`: `PlayerSettings`, defaults, clamping, merge order (player → skin tuning → built-in) per data-model.md
-- [ ] T014 [P] `controller/src/platform/storage.ts`: safe JSON get/set over an injectable `Storage` with the versioned keys
-- [ ] T015 [P] `controller/src/i18n/index.ts`, `controller/src/i18n/en.json`, `controller/src/i18n/pt.json`: `t(key, params)`, detection from setting → `navigator.languages` → English
-- [ ] T016 `controller/src/skins.ts`: `import.meta.glob` (eager, raw) of `skins/ninjoy/skin.json` and `skins/ninjoy/controls/*.svg` → `filesFromMap` → `loadSkin` → `ResolvedSkin` (throw with the formatted report if it fails)
-- [ ] T017 `controller/src/dom/renderer.ts`: root `<svg>` with `viewBox` = `0 0 (720 × aspect) 720`; one `<g>` per resolved group; each control a nested `<svg>` at its box with the control SVG's own `viewBox` and contents (ids kept, prefixed per control to stay unique); background CSS layer (color, image placement cover/contain/center/tile, opacity); a `relayout()` hook that only re-applies group transforms
-- [ ] T018 `controller/src/dom/hit-test.ts`: touch-area shapes per control (hitbox shape, else every shape inside base elements, else the whole control); stroke counted only when computed stroke is visible and width > 0; per layout revision cache each shape's inverse screen matrix and screen box; `hits(control, x, y, radius)` tests the center plus 8 points on the radius with `isPointInFill`/`isPointInStroke`
-- [ ] T019 `controller/src/dom/input.ts`: pointer events on the stage (`touch-action: none`, capture with try/catch), fingers map, and the release paths of FR-017 (`pointerup`, `pointercancel`, `lostpointercapture`, window `blur`, `visibilitychange` hidden, explicit `releaseAll`)
-- [ ] T020 `controller/src/dom/controller.ts`: `createController(options)` wiring renderer, hit test, input and the state builder; `subscribe`, `settings`, `updateSettings`, `releaseAll`, `relayout` (also on resize/orientation change), `dispose`; recompute and publish synchronously on every input event
-- [ ] T021 [P] `controller/src/ui/dev-panel.ts` and `controller/src/main.ts`: bootstrap the bundled skin full-screen; with `?dev` show a live panel (pressed buttons, stick dots, trigger bars, touchpad dots, gyro/motion)
+- [X] T012 [P] `controller/src/engine/state.ts`: `DS4Button`, `ControllerState` exactly as in `contracts/controller-state.md`, and a `StateBuilder` (reset, press, stick, trigger force, touches, motion, gyro, publish → frozen object with incremented `seq` and `time`)
+- [X] T013 [P] `controller/src/engine/settings.ts`: `PlayerSettings`, defaults, clamping, merge order (player → skin tuning → built-in) per data-model.md
+- [X] T014 [P] `controller/src/platform/storage.ts`: safe JSON get/set over an injectable `Storage` with the versioned keys
+- [X] T015 [P] `controller/src/i18n/index.ts`, `controller/src/i18n/en.json`, `controller/src/i18n/pt.json`: `t(key, params)`, detection from setting → `navigator.languages` → English
+- [X] T016 `controller/src/skins.ts`: `import.meta.glob` (eager, raw) of `skins/ninjoy/skin.json` and `skins/ninjoy/controls/*.svg` → `filesFromMap` → `loadSkin` → `ResolvedSkin` (throw with the formatted report if it fails)
+- [X] T017 `controller/src/dom/renderer.ts`: root `<svg>` with `viewBox` = `0 0 (720 × aspect) 720`; one `<g>` per resolved group; each control a nested `<svg>` at its box with the control SVG's own `viewBox` and contents (ids kept, prefixed per control to stay unique); background CSS layer (color, image placement cover/contain/center/tile, opacity); a `relayout()` hook that only re-applies group transforms
+- [X] T018 `controller/src/dom/hit-test.ts`: touch-area shapes per control (hitbox shape, else every shape inside base elements, else the whole control); stroke counted only when computed stroke is visible and width > 0; per layout revision cache each shape's inverse screen matrix and screen box; `hits(control, x, y, radius)` tests the center plus 8 points on the radius with `isPointInFill`/`isPointInStroke`
+- [X] T019 `controller/src/dom/input.ts`: pointer events on the stage (`touch-action: none`, capture with try/catch), fingers map, and the release paths of FR-017 (`pointerup`, `pointercancel`, `lostpointercapture`, window `blur`, `visibilitychange` hidden, explicit `releaseAll`)
+- [X] T020 `controller/src/dom/controller.ts`: `createController(options)` wiring renderer, hit test, input and the state builder; `subscribe`, `settings`, `updateSettings`, `releaseAll`, `relayout` (also on resize/orientation change), `dispose`; recompute and publish synchronously on every input event
+- [X] T021 [P] `controller/src/ui/dev-panel.ts` and `controller/src/main.ts`: bootstrap the bundled skin full-screen; with `?dev` show a live panel (pressed buttons, stick dots, trigger bars, touchpad dots, gyro/motion)
 
 **Checkpoint**: the official skin renders; `npm test` passes; `npm run dev` shows the skin.
 
@@ -71,9 +71,9 @@ loop and the `createController` API that every story extends.
 **Independent Test**: In development mode, press, slide and release on buttons and watch the
 state.
 
-- [ ] T022 [P] [US1] Browser test `controller/test/browser/buttons.test.ts`: all US1 acceptance scenarios — press/release ✕; slide ✕ → ○ (release then press as the finger circle leaves/reaches); finger circle over △ and ○ presses both; finger size 0 and a point 1 px outside the drawn edge does not press; two fingers on one button (released only when both lift); a finger landing on empty space and sliding onto a button presses it
-- [ ] T023 [P] [US1] Browser test `controller/test/browser/no-stuck.test.ts`: 200 seeded random sequences (1–5 fingers, down/move/up/cancel, moves across the whole screen, random `blur`/`visibilitychange`) on the official skin always end with an empty state (SC-003); the seed is printed on failure
-- [ ] T024 [US1] Button handling in `controller/src/dom/controller.ts`: per finger, the set of touched controls; a button is pressed while any finger touches it; its bindings are added to the state (`touchpad-left`/`touchpad-right` handled in US4)
+- [X] T022 [P] [US1] Browser test `controller/test/browser/buttons.test.ts`: all US1 acceptance scenarios — press/release ✕; slide ✕ → ○ (release then press as the finger circle leaves/reaches); finger circle over △ and ○ presses both; finger size 0 and a point 1 px outside the drawn edge does not press; two fingers on one button (released only when both lift); a finger landing on empty space and sliding onto a button presses it
+- [X] T023 [P] [US1] Browser test `controller/test/browser/no-stuck.test.ts`: 200 seeded random sequences (1–5 fingers, down/move/up/cancel, moves across the whole screen, random `blur`/`visibilitychange`) on the official skin always end with an empty state (SC-003); the seed is printed on failure
+- [X] T024 [US1] Button handling in `controller/src/dom/controller.ts`: per finger, the set of touched controls; a button is pressed while any finger touches it; its bindings are added to the state (`touchpad-left`/`touchpad-right` handled in US4)
 
 **Checkpoint**: MVP — buttons work exactly like the prototype.
 
@@ -123,9 +123,9 @@ state.
 
 **Independent Test**: Render at 20:9, 16:9, 4:3; change size/height; edit and reload.
 
-- [ ] T044 [P] [US5] Unit test `controller/test/unit/layout.test.ts`: `groupTransform` per data-model.md formula — identity at 100% on 20:9; anchors at wider aspect; fit-width on 4:3; size shrinks towards the anchor bottom; lift = height × free space; player offsets scale with size; player scale around the group center; `autoSize(430) = 1`, `autoSize(770) ≈ 0.56`, `autoSize(2000) = 0.4`
+- [X] T044 [P] [US5] (done in Phase 2: the renderer needs it) Unit test `controller/test/unit/layout.test.ts`: `groupTransform` per data-model.md formula — identity at 100% on 20:9; anchors at wider aspect; fit-width on 4:3; size shrinks towards the anchor bottom; lift = height × free space; player offsets scale with size; player scale around the group center; `autoSize(430) = 1`, `autoSize(770) ≈ 0.56`, `autoSize(2000) = 0.4`
 - [ ] T045 [P] [US5] Browser test `controller/test/browser/layout.test.ts`: US5 scenarios on the official skin at 1600×720 (every control within 1 px, SC-004), 16:9 (left/right groups at their edges), 4:3 (fits width); SC-005 check (lower outer corner of each side group within 15% of the screen width from its edge at automatic size on 1024×768); edit-mode drag + resize, size change keeps relative positions, reload keeps edits, reset restores
-- [ ] T046 [P] [US5] `controller/src/engine/layout.ts`: `groupTransform`, `autoSize`, fit factor
+- [X] T046 [P] [US5] (done in Phase 2: the renderer needs it) `controller/src/engine/layout.ts`: `groupTransform`, `autoSize`, fit factor
 - [ ] T047 [US5] Apply layout in `controller/src/dom/renderer.ts` (group transforms on relayout, size/height from settings) and invalidate hit-test caches
 - [ ] T048 [US5] `controller/src/ui/edit-mode.ts`: select a group (or ungrouped control) under the finger, drag (delta converted to canvas units at the current scale), resize 50–200% around its center, persist per skin, reset; inputs are not sent to the state while editing
 
