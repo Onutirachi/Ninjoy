@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-19
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Controller page touch engine v1 for Ninjoy: the page that runs in
 the player's phone/tablet browser, renders a skin and turns touches into a DualShock 4

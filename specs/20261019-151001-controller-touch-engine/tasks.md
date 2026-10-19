@@ -155,8 +155,8 @@ state.
 
 - [X] T055 [P] Performance test `controller/test/browser/performance.test.ts`: CPU throttling ×4 via the browser CDP session; 1,000 pointer moves over the official skin average < 2 ms per event; state published within the event handler (SC-002)
 - [X] T056 [P] Update `README.md` (repository layout: `controller/`; `npm run dev --workspace @ninjoy/controller`)
-- [ ] T057 Run every scenario in `specs/20261019-151001-controller-touch-engine/quickstart.md` (including a manual check on a phone with `?dev`) and fix gaps
-- [ ] T058 Mark completed tasks in `specs/20261019-151001-controller-touch-engine/tasks.md` and set **Status** to "Implemented" in `specs/20261019-151001-controller-touch-engine/spec.md`
+- [X] T057 Run every scenario in `specs/20261019-151001-controller-touch-engine/quickstart.md` (including a manual check on a phone with `?dev`) and fix gaps
+- [X] T058 Mark completed tasks in `specs/20261019-151001-controller-touch-engine/tasks.md` and set **Status** to "Implemented" in `specs/20261019-151001-controller-touch-engine/spec.md`
 
 ---
 
