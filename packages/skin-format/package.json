@@ -1,0 +1,27 @@
+{
+  "name": "@ninjoy/skin-format",
+  "version": "0.1.0",
+  "description": "Ninjoy skin package format: schema, loader, validator and resolver.",
+  "license": "GPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./schema/skin-manifest.v1.schema.json"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "validate": "node src/cli.ts"
+  },
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "fflate": "^0.8.3",
+    "saxes": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "*",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
