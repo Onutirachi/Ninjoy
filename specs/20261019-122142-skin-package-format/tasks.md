@@ -161,11 +161,11 @@ fields resolve with defaults.
 
 ### Tests for User Story 5
 
-- [ ] T036 [P] [US5] Anchor/background test in `packages/skin-format/test/layout.test.ts`: group anchor `right` applies to all its controls; ungrouped control with no anchor and box center in the left third → `left`, middle → `center`, right third → `right`; group without anchor → derived from the union of its controls' boxes; implicit one-control groups named after the control; background `{ color, image, placement: "center", opacity: 0.3 }` resolves as given and defaults to color `#000000`, placement `cover`, opacity `1`
+- [X] T036 [P] [US5] Anchor/background test in `packages/skin-format/test/layout.test.ts`: group anchor `right` applies to all its controls; ungrouped control with no anchor and box center in the left third → `left`, middle → `center`, right third → `right`; group without anchor → derived from the union of its controls' boxes; implicit one-control groups named after the control; background `{ color, image, placement: "center", opacity: 0.3 }` resolves as given and defaults to color `#000000`, placement `cover`, opacity `1`
 
 ### Implementation for User Story 5
 
-- [ ] T037 [US5] Anchor, group and background resolution in `packages/skin-format/src/resolve.ts` (rules from `data-model.md` → "Resolution")
+- [X] T037 [US5] Anchor, group and background resolution in `packages/skin-format/src/resolve.ts` (rules from `data-model.md` → "Resolution")
 
 ---
 
