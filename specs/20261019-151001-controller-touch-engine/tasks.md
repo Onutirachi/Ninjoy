@@ -109,13 +109,13 @@ state.
 
 **Independent Test**: Touch the halves and click buttons, tap system controls, simulate motion.
 
-- [ ] T037 [P] [US4] Unit test `controller/test/unit/touchpad.test.ts`: `touchpadPoint` for full/left/right areas; selection of the 2 most recent touches
-- [ ] T038 [P] [US4] Unit test `controller/test/unit/motion.test.ts`: `toControllerFrame` for orientation angles 0, 90, −90/270, 180 (x/y rotated, z unchanged); gyro off → null motion
-- [ ] T039 [P] [US4] Browser test `controller/test/browser/system.test.ts`: US4 scenarios — half centers map to (0.25, 0.5) / (0.75, 0.5); only 2 most recent of 3 touches; touchpad-left click button presses `touchpad` and adds a left-half touch only when no finger is on the touchpad; menu opens only on release; fullscreen toggles through a stubbed platform and shows the home-screen notice when unsupported; gyro toggle on release updates `gyro`; motion events (stubbed) appear in the state only while gyro is on; permission denied keeps gyro off with a notice
-- [ ] T040 [P] [US4] `controller/src/engine/touchpad.ts` and `controller/src/engine/motion.ts`
-- [ ] T041 [P] [US4] `controller/src/platform/motion.ts` (devicemotion listener, iOS `requestPermission` from a user gesture, orientation angle), `controller/src/platform/fullscreen.ts`, `controller/src/platform/vibration.ts` — all injectable for tests
-- [ ] T042 [US4] Touchpad and system handling in `controller/src/dom/controller.ts`: touchpad touches and click buttons; system actions on release (menu → open menu, fullscreen, gyro); motion into the state while gyro is on
-- [ ] T043 [P] [US4] `controller/src/ui/notices.ts`: one-time, translated notices (no fullscreen → "Share → Add to Home Screen", no vibration, motion permission denied, no motion sensor)
+- [X] T037 [P] [US4] Unit test `controller/test/unit/touchpad.test.ts`: `touchpadPoint` for full/left/right areas; selection of the 2 most recent touches
+- [X] T038 [P] [US4] Unit test `controller/test/unit/motion.test.ts`: `toControllerFrame` for orientation angles 0, 90, −90/270, 180 (x/y rotated, z unchanged); gyro off → null motion
+- [X] T039 [P] [US4] Browser test `controller/test/browser/system.test.ts`: US4 scenarios — half centers map to (0.25, 0.5) / (0.75, 0.5); only 2 most recent of 3 touches; touchpad-left click button presses `touchpad` and adds a left-half touch only when no finger is on the touchpad; menu opens only on release; fullscreen toggles through a stubbed platform and shows the home-screen notice when unsupported; gyro toggle on release updates `gyro`; motion events (stubbed) appear in the state only while gyro is on; permission denied keeps gyro off with a notice
+- [X] T040 [P] [US4] `controller/src/engine/touchpad.ts` and `controller/src/engine/motion.ts`
+- [X] T041 [P] [US4] `controller/src/platform/motion.ts` (devicemotion listener, iOS `requestPermission` from a user gesture, orientation angle), `controller/src/platform/fullscreen.ts`, `controller/src/platform/vibration.ts` — all injectable for tests
+- [X] T042 [US4] Touchpad and system handling in `controller/src/dom/controller.ts`: touchpad touches and click buttons; system actions on release (menu → open menu, fullscreen, gyro); motion into the state while gyro is on
+- [X] T043 [P] [US4] `controller/src/ui/notices.ts`: one-time, translated notices (no fullscreen → "Share → Add to Home Screen", no vibration, motion permission denied, no motion sensor)
 
 ---
 

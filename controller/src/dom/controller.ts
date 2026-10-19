@@ -1,22 +1,32 @@
 import type { Binding, ResolvedSkin } from "@ninjoy/skin-format";
-import { autoSize, type LayoutEdit } from "../engine/layout.ts";
 import { EntryOrder, StickFingers } from "../engine/fingers.ts";
+import { autoSize, type LayoutEdit } from "../engine/layout.ts";
+import { toControllerFrame } from "../engine/motion.ts";
 import { clampSettings, settingsFromStorage, stickZones, triggerZones, type ControlOverride, type PlayerSettings } from "../engine/settings.ts";
+import { StateBuilder, type ControllerState, type DS4Button, type Touch } from "../engine/state.ts";
 import { stickValue } from "../engine/stick.ts";
+import { CLICK_POINT, MAX_TOUCHES, touchpadPoint } from "../engine/touchpad.ts";
 import { triggerForce } from "../engine/zones.ts";
-import { StateBuilder, type ControllerState, type DS4Button } from "../engine/state.ts";
+import { browserFullscreen, type FullscreenAdapter } from "../platform/fullscreen.ts";
+import { browserMotion, type MotionAdapter } from "../platform/motion.ts";
 import { createStore } from "../platform/storage.ts";
+import { browserVibration, type VibrationAdapter } from "../platform/vibration.ts";
 import { createAppearance } from "./appearance.ts";
 import { HitTester } from "./hit-test.ts";
-import { createThumb } from "./thumb.ts";
-import { createTriggerFill } from "./trigger-fill.ts";
 import { attachInput, type Finger } from "./input.ts";
 import { render, type RenderedControl } from "./renderer.ts";
+import { createThumb } from "./thumb.ts";
+import { createTriggerFill } from "./trigger-fill.ts";
 
 export interface Platform {
-  vibrate(ms: number): void;
   now(): number;
+  vibration: VibrationAdapter;
+  fullscreen: FullscreenAdapter;
+  motion: MotionAdapter;
 }
+
+/** Things the page explains when the device cannot do them. */
+export type NoticeKey = "noFullscreen" | "noVibration" | "motionDenied" | "noMotion" | "motionInsecure";
 
 export interface ControllerOptions {
   skin: ResolvedSkin;
@@ -24,7 +34,11 @@ export interface ControllerOptions {
   root: HTMLElement;
   /** defaults to localStorage; null keeps everything in memory */
   storage?: Storage | null;
+  /** vibration/fullscreen/motion adapters (tests stub them) */
   platform?: Partial<Platform>;
+  /** the skin's menu control was tapped */
+  onMenu?: () => void;
+  onNotice?: (key: NoticeKey) => void;
 }
 
 export interface Controller {
@@ -41,11 +55,13 @@ export interface Controller {
 }
 
 const defaultPlatform: Platform = {
-  vibrate: (ms) => navigator.vibrate?.(ms),
   now: () => performance.now(),
+  vibration: browserVibration,
+  fullscreen: browserFullscreen,
+  motion: browserMotion,
 };
 
-/** Skin bindings → DS4 buttons. The touchpad click buttons also add a touch (see US4). */
+/** Skin bindings → DS4 buttons. The touchpad click buttons also add a touch. */
 const BUTTON_OF: Record<Binding, DS4Button> = {
   cross: "cross", circle: "circle", square: "square", triangle: "triangle",
   up: "up", down: "down", left: "left", right: "right",
@@ -57,6 +73,7 @@ const BUTTON_OF: Record<Binding, DS4Button> = {
 export function createController(options: ControllerOptions): Controller {
   const { skin, root } = options;
   const platform: Platform = { ...defaultPlatform, ...options.platform };
+  const notify = (key: NoticeKey) => options.onNotice?.(key);
   const store = createStore(options.storage === undefined ? globalThis.localStorage ?? null : options.storage);
   let settings = settingsFromStorage(store.loadSettings());
   let edits: Record<string, LayoutEdit> = store.loadLayout(skin.meta);
@@ -66,18 +83,32 @@ export function createController(options: ControllerOptions): Controller {
   const hitTester = new HitTester();
   const looks = new Map(rendered.controls.map((rc) => [rc, createAppearance(rc)]));
   const active = new Set<RenderedControl>();
-  const sticks = rendered.controls.filter((rc) => rc.control.type === "stick");
+  const ofType = (type: string) => rendered.controls.filter((rc) => rc.control.type === type);
+
+  const sticks = ofType("stick");
   const thumbs = new Map(sticks.map((rc) => [rc, createThumb(rc)]));
   /** thumb at rest relative to the stick's touch area, measured once per layout */
   const thumbRest = new Map<RenderedControl, ReturnType<ReturnType<typeof createThumb>["measure"]>>();
   const stickFingers = new StickFingers();
-  const triggers = rendered.controls.filter((rc) => rc.control.type === "trigger");
+
+  const triggers = ofType("trigger");
   const triggerOrder = new Map(triggers.map((rc) => [rc, new EntryOrder<number>()]));
   const fills = new Map(triggers.filter((rc) => rc.control.trigger?.showFill).map((rc) => [rc, createTriggerFill(rc)]));
+
+  const touchpads = ofType("touchpad");
+  const touchOrder = new EntryOrder<number>();
+  const systems = ofType("system");
+
   const builder = new StateBuilder();
-  builder.setGyro(settings.gyro);
   let state = builder.publish(platform.now());
   const listeners = new Set<(state: ControllerState) => void>();
+
+  const publish = (now: number) => {
+    const next = builder.publish(now);
+    if (next === state) return;
+    state = next;
+    for (const listener of listeners) listener(state);
+  };
 
   const update = (vibrateFor?: Finger) => {
     builder.reset();
@@ -102,6 +133,7 @@ export function createController(options: ControllerOptions): Controller {
       const { control } = rc;
       if (control.type === "button") for (const b of control.bindings ?? []) builder.press(BUTTON_OF[b]);
     }
+    updateTouchpad(touched);
 
     let activated = false;
     for (const rc of rendered.controls) {
@@ -109,15 +141,13 @@ export function createController(options: ControllerOptions): Controller {
       if (isActive && !active.has(rc)) activated = true;
       if (isActive) active.add(rc);
       else active.delete(rc);
-      looks.get(rc)!.apply({ active: isActive, on: null });
+      looks.get(rc)!.apply({ active: isActive, on: toggleState(rc) });
     }
-    if (activated && vibrateFor?.pointerType === "touch") platform.vibrate(12);
-
-    const next = builder.publish(now);
-    if (next !== state) {
-      state = next;
-      for (const listener of listeners) listener(state);
+    if (activated && vibrateFor?.pointerType === "touch") {
+      if (platform.vibration.supported()) platform.vibration.vibrate(12);
+      else notify("noVibration");
     }
+    publish(now);
   };
 
   /** Stick value, click and thumb from the finger driving it; true while it is held. */
@@ -162,12 +192,102 @@ export function createController(options: ControllerOptions): Controller {
     fills.get(rc)?.update(raw, force, zones.maxZone, true);
   };
 
+  /** The 2 most recent fingers on touchpad areas; click buttons touch their half when the touchpad is free. */
+  const updateTouchpad = (touched: Map<RenderedControl, Finger[]>) => {
+    const points = new Map<number, Touch>();
+    for (const rc of touchpads) {
+      const box = hitTester.box(rc);
+      for (const finger of touched.get(rc) ?? []) {
+        if (points.has(finger.id)) continue;
+        const local = { x: (finger.x - box.left) / box.width, y: (finger.y - box.top) / box.height };
+        points.set(finger.id, { id: finger.id, ...touchpadPoint(local, rc.control.area ?? "full") });
+      }
+    }
+    touchOrder.track(points.keys());
+    const touches = touchOrder.recent(MAX_TOUCHES).map((id) => points.get(id)!);
+    if (!touches.length) {
+      for (const [rc, fingers] of touched) {
+        for (const side of ["left", "right"] as const) {
+          if (rc.control.type === "button" && rc.control.bindings?.includes(`touchpad-${side}`)) touches.push({ id: fingers[0]!.id, ...CLICK_POINT[side] });
+        }
+      }
+    }
+    builder.setTouches(touches.slice(0, MAX_TOUCHES));
+  };
+
+  const toggleState = (rc: RenderedControl): boolean | null => {
+    if (rc.control.action === "gyro") return state.gyro;
+    if (rc.control.action === "fullscreen") return platform.fullscreen.active();
+    return null;
+  };
+
+  // ---------- system controls (on release: browsers only allow fullscreen after a completed tap) ----------
+
+  let stopMotion: (() => void) | null = null;
+  const setGyro = (on: boolean) => {
+    stopMotion?.();
+    stopMotion = null;
+    builder.setGyro(on);
+    if (on) {
+      stopMotion = platform.motion.listen((sample) => {
+        const frame = toControllerFrame(sample.rate, sample.accel, platform.motion.angle());
+        builder.setMotion({ ...frame, time: sample.time });
+        publish(platform.now());
+      });
+    }
+    publish(platform.now());
+    update();
+  };
+
+  /** Gyro on/off from a tap (system control or menu). Turning on may ask for permission. */
+  const toggleGyro = (on: boolean) => {
+    const save = (value: boolean) => {
+      settings = { ...settings, gyro: value };
+      store.saveSettings(settings);
+    };
+    if (!on) {
+      save(false);
+      setGyro(false);
+      return;
+    }
+    const support = platform.motion.support();
+    if (support !== "available") {
+      notify(support === "insecure" ? "motionInsecure" : "noMotion");
+      return;
+    }
+    void platform.motion.requestPermission().then((granted) => {
+      if (!granted) {
+        notify("motionDenied");
+        return;
+      }
+      save(true);
+      setGyro(true);
+    });
+  };
+
+  const runSystem = (finger: Finger) => {
+    for (const rc of systems) {
+      if (!hitTester.hits(rc, finger.x, finger.y, settings.finger)) continue;
+      const action = rc.control.action;
+      if (action === "menu") {
+        input.releaseAll();
+        options.onMenu?.();
+      } else if (action === "fullscreen") {
+        if (platform.fullscreen.supported()) platform.fullscreen.toggle(document.documentElement);
+        else notify("noFullscreen");
+      } else if (action === "gyro") {
+        toggleGyro(!state.gyro);
+      }
+    }
+  };
+
   const input = attachInput(rendered.stage, {
     down: (finger) => update(finger),
     move: (finger) => update(finger),
-    up: (finger) => {
+    up: (finger, completed) => {
       stickFingers.release(finger.id, platform.now());
       update();
+      if (completed) runSystem(finger);
     },
   }, platform.now);
 
@@ -180,7 +300,10 @@ export function createController(options: ControllerOptions): Controller {
   };
   const resizeObserver = new ResizeObserver(() => relayout());
   resizeObserver.observe(root);
+  const stopFullscreen = platform.fullscreen.onChange(() => update());
   relayout();
+  // without a tap there is no permission prompt: start listening where the browser allows it
+  setGyro(settings.gyro && platform.motion.support() === "available");
 
   return {
     get state() { return state; },
@@ -190,10 +313,11 @@ export function createController(options: ControllerOptions): Controller {
       return () => listeners.delete(listener);
     },
     updateSettings(patch) {
-      settings = clampSettings({ ...settings, ...patch });
+      const { gyro, ...rest } = patch;
+      settings = clampSettings({ ...settings, ...rest });
       store.saveSettings(settings);
-      builder.setGyro(settings.gyro);
       relayout();
+      if (gyro !== undefined && gyro !== state.gyro) toggleGyro(gyro);
     },
     setEditMode(on) {
       input.setEnabled(!on);
@@ -207,6 +331,8 @@ export function createController(options: ControllerOptions): Controller {
     relayout,
     dispose() {
       resizeObserver.disconnect();
+      stopFullscreen();
+      stopMotion?.();
       for (const thumb of thumbs.values()) thumb.dispose();
       input.dispose();
       rendered.dispose();

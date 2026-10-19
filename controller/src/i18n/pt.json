@@ -27,5 +27,6 @@
   "notice.noFullscreen": "Este navegador não permite tela cheia. No iPhone, toque em Compartilhar → Adicionar à Tela de Início e abra o Ninjoy por lá.",
   "notice.noVibration": "Este aparelho não suporta vibração.",
   "notice.motionDenied": "O acesso ao movimento foi negado, então o giroscópio fica desligado.",
-  "notice.noMotion": "Este aparelho não tem sensor de movimento disponível, então o giroscópio fica desligado."
+  "notice.noMotion": "Este aparelho não tem sensor de movimento disponível, então o giroscópio fica desligado.",
+  "notice.motionInsecure": "Os sensores de movimento precisam de uma conexão segura (HTTPS), então o giroscópio fica desligado."
 }

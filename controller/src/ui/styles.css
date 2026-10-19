@@ -22,6 +22,21 @@ body {
   color: #ff8a80;
 }
 
+.nj-notice {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  max-width: min(520px, calc(100% - 32px));
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgb(20 32 44 / 0.95);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
+  text-align: center;
+  pointer-events: none;
+  z-index: 20;
+}
+
 /* development panel (?dev) */
 .nj-dev {
   position: fixed;

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createController, type Controller } from "../../src/dom/controller.ts";
 import { loadOfficialSkin } from "../../src/skins.ts";
-import { mount, touch } from "./helpers.ts";
+import { mount, stubPlatform, touch } from "./helpers.ts";
 
 /** mulberry32: small seeded PRNG so failures can be replayed */
 function random(seed: number) {
@@ -21,7 +21,7 @@ describe("no stuck controls (SC-003)", () => {
 
   beforeAll(async () => {
     root = mount(W, H);
-    controller = createController({ skin: await loadOfficialSkin(), root, storage: null });
+    controller = createController({ skin: await loadOfficialSkin(), root, storage: null, platform: stubPlatform({ fullscreen: false }) }); // toggles stay off: their "on" look is not a stuck control
     controller.updateSettings({ size: 1 });
   });
   afterAll(() => controller.dispose());
