@@ -14,3 +14,10 @@ reserved.
 You are welcome to fork and redistribute Ninjoy under the GPL. If you distribute a modified
 version, please give it a different name and logo and do not ship the official skins, so users
 can tell it apart from the official project.
+
+## Third-party trademarks
+
+PlayStation, DualShock and DualSense are trademarks of Sony Interactive Entertainment Inc. Xbox
+is a trademark of Microsoft Corporation. Steam is a trademark of Valve Corporation. These names
+are used only to describe compatibility. Ninjoy is not affiliated with, endorsed or sponsored by
+any of these companies, and it does not use their logos.
