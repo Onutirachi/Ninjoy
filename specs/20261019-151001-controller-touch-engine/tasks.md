@@ -27,12 +27,12 @@ Chromium (`controller/test/browser/`).
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Add `controller` to the root `package.json` workspaces (`["packages/*", "controller"]`)
-- [ ] T002 Create `controller/package.json` as `@ninjoy/controller` (private, ESM; scripts `dev` = `vite`, `build` = `vite build`, `test` = `vitest run`, `typecheck` = `tsc --noEmit`; dependency `@ninjoy/skin-format` `*`; dev dependencies `vite@^8`, `vitest@^5`, `@vitest/browser@^5`, `@vitest/browser-playwright@^5`, `playwright@^1.64`, `typescript@^7`), `controller/tsconfig.json` (extends base, `lib` DOM + ES2023, `allowImportingTsExtensions`), and `controller/index.html` (root element, `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`, landscape-friendly)
-- [ ] T003 [P] `controller/vite.config.ts` (server `host: true` so phones on the LAN can open it; `fs.allow` includes the repository root for `skins/`)
-- [ ] T004 [P] `controller/vitest.config.ts` with two projects: `unit` (environment node, `test/unit/**`) and `browser` (`browser.enabled`, provider `playwright()` from `@vitest/browser-playwright`, instance `chromium`, headless, `test/browser/**`)
-- [ ] T005 [P] Update `.github/workflows/ci.yml`: after `npm ci`, run `npx playwright install --with-deps chromium`
-- [ ] T006 Run `npm install` and `npx playwright install chromium`; commit `package-lock.json`
+- [X] T001 Add `controller` to the root `package.json` workspaces (`["packages/*", "controller"]`)
+- [X] T002 Create `controller/package.json` as `@ninjoy/controller` (private, ESM; scripts `dev` = `vite`, `build` = `vite build`, `test` = `vitest run`, `typecheck` = `tsc --noEmit`; dependency `@ninjoy/skin-format` `*`; dev dependencies `vite@^8`, `vitest@^5`, `@vitest/browser@^5`, `@vitest/browser-playwright@^5`, `playwright@^1.64`, `typescript@^7`), `controller/tsconfig.json` (extends base, `lib` DOM + ES2023, `allowImportingTsExtensions`), and `controller/index.html` (root element, `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`, landscape-friendly)
+- [X] T003 [P] `controller/vite.config.ts` (server `host: true` so phones on the LAN can open it; `fs.allow` includes the repository root for `skins/`)
+- [X] T004 [P] `controller/vitest.config.ts` with two projects: `unit` (environment node, `test/unit/**`) and `browser` (`browser.enabled`, provider `playwright()` from `@vitest/browser-playwright`, instance `chromium`, headless, `test/browser/**`)
+- [X] T005 [P] Update `.github/workflows/ci.yml`: after `npm ci`, run `npx playwright install --with-deps chromium`
+- [X] T006 Run `npm install` and `npx playwright install chromium`; commit `package-lock.json`
 
 ---
 
