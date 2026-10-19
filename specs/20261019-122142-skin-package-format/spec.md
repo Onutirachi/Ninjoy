@@ -246,12 +246,17 @@ inherits; confirm the resolved colors follow the inheritance rules.
 - **FR-016**: The touch area of a control MUST be exactly the shape of its hitbox if present,
   otherwise exactly the shape of its base, otherwise the whole control artwork; the format
   adds no margin.
-- **FR-017**: The roles label-on and label-off apply only to toggle system controls
-  (fullscreen, gyro): label-on is shown while the toggle is on, label-off while it is off.
+- **FR-017**: Any control MAY provide two icons: label-on (shown while the control is active:
+  pressed, or switched on for toggles such as fullscreen and gyro) and label-off (shown while
+  inactive). A control with a single icon (label, or only one of the two) shows it in both
+  states.
 - **FR-018**: The role level applies only to triggers and marks an optional custom fill that is
   revealed according to the trigger's force (never stretched).
 - **FR-019**: The role pressed marks an optional element shown only while the control is
   pressed.
+- **FR-019a**: The skin MAY enable or disable a glow on pressed controls and choose its color,
+  as a skin default overridable per control. The glow is on by default with Ninjoy's built-in
+  color.
 
 **Groups and anchors**
 
@@ -270,10 +275,10 @@ inherits; confirm the resolved colors follow the inheritance rules.
 
 **Colors**
 
-- **FR-024**: For each role that is drawn (base, label, thumb, hitbox, pressed and level), a
-  control MAY declare a normal color and a pressed color, or inherit.
-- **FR-025**: Color resolution MUST follow: control value → skin default for that role → color
-  drawn in the SVG.
+- **FR-024**: For each individual element (path or shape) of a control's SVG, the skin MAY
+  declare an inactive color and an active color, or inherit.
+- **FR-025**: Color resolution MUST follow: element value → skin default for that element's
+  role → color drawn in the SVG.
 - **FR-025a**: A trigger MAY additionally declare (or inherit from skin defaults) the color of
   its force fill and the color of its 100% zone. By default the 100% zone uses the fill color;
   each can be set independently. When nothing is declared, Ninjoy's built-in color is used.
@@ -288,7 +293,8 @@ inherits; confirm the resolved colors follow the inheritance rules.
   built-in defaults: trigger 100% zone 0.25, trigger minimum force 0, stick dead zone 0.10,
   stick 100% zone 0.05.
 - **FR-027**: Tuning values are the skin's defaults only; players can change them on their
-  device and those changes are never written into the skin.
+  device (globally in the menu, or per trigger/stick with an "inherit" option) and those
+  changes are never written into the skin.
 
 **Validation and safety**
 
