@@ -4,7 +4,7 @@ import type { I18n } from "../i18n/index.ts";
 const SHOW_MS = 5000;
 
 /** Explains unsupported device features, once per page load each. */
-export function createNotices(i18n: I18n, parent: HTMLElement = document.body) {
+export function createNotices(i18n: () => I18n, parent: HTMLElement = document.body) {
   const shown = new Set<NoticeKey>();
   const el = document.createElement("div");
   el.className = "nj-notice";
@@ -17,7 +17,7 @@ export function createNotices(i18n: I18n, parent: HTMLElement = document.body) {
     show(key: NoticeKey) {
       if (shown.has(key)) return;
       shown.add(key);
-      el.textContent = i18n.t(`notice.${key}`);
+      el.textContent = i18n().t(`notice.${key}`);
       el.hidden = false;
       clearTimeout(timer);
       timer = window.setTimeout(() => (el.hidden = true), SHOW_MS);
