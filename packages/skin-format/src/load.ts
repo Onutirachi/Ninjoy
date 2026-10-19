@@ -8,6 +8,19 @@ import { scanSvg } from "./validate/svg.ts";
 
 const decoder = new TextDecoder("utf-8", { fatal: false });
 
+/** Resolves `ref` relative to the folder of `from`; null when it would leave the package. */
+function joinPath(from: string, ref: string): string | null {
+  const parts = from.split("/").slice(0, -1);
+  for (const segment of ref.split("/")) {
+    if (segment === "" || segment === ".") continue;
+    if (segment === "..") {
+      if (parts.length === 0) return null;
+      parts.pop();
+    } else parts.push(segment);
+  }
+  return parts.join("/");
+}
+
 /** Loads, validates and resolves a skin package. Never executes skin content or fetches anything. */
 export async function loadSkin(files: SkinFiles): Promise<LoadResult> {
   const report = new ReportCollector();
@@ -65,6 +78,11 @@ export async function loadSkin(files: SkinFiles): Promise<LoadResult> {
     const text = decoder.decode(data);
     const scan = scanSvg(text, control.svg, report);
     if (!scan) continue;
+    for (const ref of scan.references) {
+      const target = joinPath(control.svg, ref);
+      if (target === null) report.error("unsafe-reference", { file: control.svg, element: "image", value: ref });
+      else if (!contents.has(target)) report.error("missing-file", { file: target, control: control.id });
+    }
     checkElements(control, scan, report);
     loaded.push({ control, text, scan });
   }

@@ -119,12 +119,12 @@ direction trigger) loads and resolves bindings, thumb roles and trigger directio
 
 ### Tests for User Story 4
 
-- [ ] T028 [P] [US4] Unsafe fixtures in `packages/skin-format/test/fixtures/unsafe/` — `script/`, `onclick/`, `foreign-object/`, `iframe/`, `external-href/` (`https://…`), `javascript-href/`, `data-svg-href/` (`data:image/svg+xml`), `root-path-href/` (`/x.png`), `css-import/`, `css-external-url/`, `style-attr-url/`, `doctype-entity/` — and test `packages/skin-format/test/unsafe.test.ts` asserting each is rejected with `unsafe-element`, `unsafe-attribute`, `unsafe-reference`, `unsafe-css` or `unsafe-doctype` naming file and element; plus `local-image/` (relative PNG inside the package) and `data-png/` (`data:image/png`) load fine
-- [ ] T029 [P] [US4] No-network/no-exec test in `packages/skin-format/test/unsafe.test.ts`: stub `globalThis.fetch` and `eval` to throw; loading every unsafe fixture never calls them
+- [X] T028 [P] [US4] Unsafe cases (implemented as an inline table in `packages/skin-format/test/unsafe.test.ts` instead of fixture folders, for readability) — `script/`, `onclick/`, `foreign-object/`, `iframe/`, `external-href/` (`https://…`), `javascript-href/`, `data-svg-href/` (`data:image/svg+xml`), `root-path-href/` (`/x.png`), `css-import/`, `css-external-url/`, `style-attr-url/`, `doctype-entity/` — and test `packages/skin-format/test/unsafe.test.ts` asserting each is rejected with `unsafe-element`, `unsafe-attribute`, `unsafe-reference`, `unsafe-css` or `unsafe-doctype` naming file and element; plus `local-image/` (relative PNG inside the package) and `data-png/` (`data:image/png`) load fine
+- [X] T029 [P] [US4] No-network/no-exec test in `packages/skin-format/test/unsafe.test.ts`: stub `globalThis.fetch` and `eval` to throw; loading every unsafe fixture never calls them
 
 ### Implementation for User Story 4
 
-- [ ] T030 [US4] Unsafe-content detection in `packages/skin-format/src/validate/svg.ts` following research R4 exactly (elements `script`, `foreignObject`, `iframe`, `object`, `embed`, `audio`, `video`, `animate`/`set` targeting `href`; attributes starting with `on`; `href`/`xlink:href` not `#fragment` or relative in-package path, allowing only `data:image/png|jpeg|webp|gif`; CSS `@import` and non-local `url()` in `<style>` and `style=""`; DOCTYPE with internal subset/entities); referenced local images must exist (`missing-file`); add codes to both catalogs
+- [X] T030 [US4] Unsafe-content detection in `packages/skin-format/src/validate/svg.ts` following research R4 exactly (elements `script`, `foreignObject`, `iframe`, `object`, `embed`, `audio`, `video`, `animate`/`set` targeting `href`; attributes starting with `on`; `href`/`xlink:href` not `#fragment` or relative in-package path, allowing only `data:image/png|jpeg|webp|gif`; CSS `@import` and non-local `url()` in `<style>` and `style=""`; DOCTYPE with internal subset/entities); referenced local images must exist (`missing-file`); add codes to both catalogs
 
 **Checkpoint**: Safety guarantees hold (SC-003).
 
