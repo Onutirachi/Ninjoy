@@ -3,26 +3,36 @@
 
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU16, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::time::Duration;
 
+use ninjoy_devices::{DeviceHub, PadStatus, Unavailable};
 use ninjoy_session::state::button;
 use ninjoy_session::{ControllerState, Feedback, Session, SessionConfig, StateSink};
 use tokio::io::{AsyncBufReadExt, BufReader};
 
-const HELP: &str = "commands: list | create [n] | remove <n> | kick <n> | watch <n|off> | phones <on|off> | rumble <n> <strong 0-1> <weak 0-1> | light <n> <#rrggbb> | quit";
+const HELP: &str = "commands: list | create [n] | remove <n> | kick <n> | watch <n|off> | feedback | phones <on|off> | rumble <n> <strong 0-1> <weak 0-1> | light <n> <#rrggbb> | quit";
 
-/// Prints the states of the watched slot.
-#[derive(Default)]
-struct PrintSink {
+/// Hands every state to the virtual pads and prints the watched slot's.
+struct DevSink {
     watched: AtomicU16,
+    hub: DeviceHub,
 }
 
-impl StateSink for PrintSink {
+impl StateSink for DevSink {
     fn on_state(&self, slot: u16, state: &ControllerState) {
+        self.hub.on_state(slot, state);
         if self.watched.load(Ordering::Relaxed) == slot {
             println!("[{slot}] {}", describe(state));
         }
+    }
+}
+
+fn pad_status(status: Option<PadStatus>) -> String {
+    match status {
+        Some(PadStatus::Plugged) => "DS4".into(),
+        Some(PadStatus::Failed(why)) => format!("no DS4 ({why})"),
+        Some(PadStatus::Unavailable) | None => "no DS4".into(),
     }
 }
 
@@ -58,8 +68,9 @@ fn describe(s: &ControllerState) -> String {
     line
 }
 
-fn parse_args() -> Result<SessionConfig, String> {
+fn parse_args() -> Result<(SessionConfig, bool), String> {
     let mut config = SessionConfig::default();
+    let mut devices = true;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         let mut value = || args.next().ok_or_else(|| format!("{arg} needs a value"));
@@ -73,16 +84,17 @@ fn parse_args() -> Result<SessionConfig, String> {
                 config.grace = Duration::from_secs(value()?.parse().map_err(|_| "invalid seconds")?)
             }
             "--web" => config.web_root = Some(PathBuf::from(value()?)),
+            "--no-devices" => devices = false,
             "--help" | "-h" => {
                 println!(
-                    "ninjoy-devhost [--port N] [--plain-port N] [--name NAME] [--grace SECONDS] [--web DIR]\n{HELP}"
+                    "ninjoy-devhost [--port N] [--plain-port N] [--name NAME] [--grace SECONDS] [--web DIR] [--no-devices]\n{HELP}"
                 );
                 std::process::exit(0);
             }
             other => return Err(format!("unknown option {other}")),
         }
     }
-    Ok(config)
+    Ok((config, devices))
 }
 
 fn parse_color(s: &str) -> Option<[u8; 3]> {
@@ -99,18 +111,39 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "ninjoy_session=info".into()),
+                .unwrap_or_else(|_| "ninjoy_session=info,ninjoy_devices=info".into()),
         )
         .with_target(false)
         .init();
-    let config = match parse_args() {
-        Ok(config) => config,
+    let (config, devices) = match parse_args() {
+        Ok(parsed) => parsed,
         Err(error) => {
             eprintln!("{error}\nrun with --help for options");
             std::process::exit(2);
         }
     };
-    let sink = Arc::new(PrintSink::default());
+    let hub = DeviceHub::new(if devices {
+        ninjoy_devices::open_default()
+    } else {
+        Err(Unavailable {
+            reason: "Virtual controllers are off (--no-devices)".into(),
+            fix: String::new(),
+        })
+    });
+    let printing_feedback = Arc::new(AtomicBool::new(false));
+    let print = printing_feedback.clone();
+    hub.on_feedback(move |slot, f| {
+        if print.load(Ordering::Relaxed) {
+            println!(
+                "[{slot}] game feedback: rumble {:?} lightbar {:?}",
+                f.rumble, f.lightbar
+            );
+        }
+    });
+    let sink = Arc::new(DevSink {
+        watched: AtomicU16::new(0),
+        hub: hub.clone(),
+    });
     let session = match Session::start(config, sink.clone()).await {
         Ok(session) => session,
         Err(error) => {
@@ -118,6 +151,8 @@ async fn main() {
             std::process::exit(1);
         }
     };
+
+    hub.attach(&session);
 
     let a = session.addresses();
     let port = |p: u16, default: u16| {
@@ -149,6 +184,11 @@ async fn main() {
     println!(
         "If phones cannot open it, allow this program through the PC firewall on private networks."
     );
+    match (hub.backend_name(), hub.unavailable()) {
+        (Some(name), _) => println!("Virtual DualShock 4 per controller ({name})."),
+        (None, Some(why)) => println!("! No virtual controllers: {why}"),
+        (None, None) => {}
+    }
     println!("{HELP}\n");
 
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
@@ -173,7 +213,11 @@ async fn main() {
                                 .rtt
                                 .map(|r| format!("  {:.1} ms", r.as_secs_f64() * 1000.0))
                                 .unwrap_or_default();
-                            format!("  {:>3}  {:<24?}  {device}{rtt}", s.number, s.status)
+                            let pad = pad_status(hub.status(s.number));
+                            format!(
+                                "  {:>3}  {:<24?}  {pad:<8}  {device}{rtt}",
+                                s.number, s.status
+                            )
                         })
                         .collect::<Vec<_>>()
                         .join("\n"))
@@ -212,6 +256,13 @@ async fn main() {
                 }
                 None => Err("usage: watch <n|off>".into()),
             },
+            ["feedback"] => {
+                let on = !printing_feedback.fetch_xor(true, Ordering::Relaxed);
+                Ok(format!(
+                    "printing the game's feedback: {}",
+                    if on { "on" } else { "off" }
+                ))
+            }
             ["phones", on @ ("on" | "off")] => {
                 session.set_phones_can_create(*on == "on");
                 Ok(format!("phones can create controllers: {on}"))
@@ -257,5 +308,6 @@ async fn main() {
         // no terminal input (started from another tool): keep serving until Ctrl+C
         let _ = tokio::signal::ctrl_c().await;
     }
+    hub.unplug_all();
     session.shutdown().await;
 }

@@ -274,11 +274,12 @@ impl Session {
 
     /// Sends rumble and/or lightbar to the device of `number`; ignored if none is connected.
     pub fn send_feedback(&self, number: u16, feedback: Feedback) {
-        let conn = lock(&self.shared.table).get(number).and_then(|s| s.conn);
-        if let Some(conn) = conn {
-            self.shared
-                .control(conn, Control::Send(feedback.to_message()));
-        }
+        self.feedback_handle().send(number, feedback);
+    }
+
+    /// A handle other threads (the device backend) use to send feedback.
+    pub fn feedback_handle(&self) -> FeedbackHandle {
+        FeedbackHandle(self.shared.clone())
     }
 
     pub fn events(&self) -> broadcast::Receiver<SessionEvent> {
@@ -290,6 +291,20 @@ impl Session {
         let _ = self.stop.send(true);
         for task in self.tasks {
             let _ = task.await;
+        }
+    }
+}
+
+/// Sends feedback to phones from any thread; see [`Session::feedback_handle`].
+#[derive(Clone)]
+pub struct FeedbackHandle(Arc<Shared>);
+
+impl FeedbackHandle {
+    /// Sends rumble and/or lightbar to the device of `number`; ignored if none is connected.
+    pub fn send(&self, number: u16, feedback: Feedback) {
+        let conn = lock(&self.0.table).get(number).and_then(|s| s.conn);
+        if let Some(conn) = conn {
+            self.0.control(conn, Control::Send(feedback.to_message()));
         }
     }
 }
