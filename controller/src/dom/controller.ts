@@ -76,7 +76,7 @@ export interface Controller {
   /** what this device can do, for the menu to explain what is unavailable */
   readonly support: { motion: MotionSupport; vibration: boolean };
   /**
-   * Draws the effective zones over every stick (hitbox, dead zone, 100% zone), every trigger
+   * Draws the effective zones over every stick (dead zone, 100% zone), every trigger
    * (100% zone, minimum force, in its own fill) until called with null; they follow setting
    * changes.
    */
@@ -179,8 +179,6 @@ export function createController(options: ControllerOptions): Controller {
         const cx = area.left + area.width / 2, cy = area.top + area.height / 2;
         const zones = stickZones(rc.control, settings, overrides[rc.control.id]);
         const ellipse = (k: number) => ({ left: cx - tx * k, top: cy - ty * k, width: 2 * tx * k, height: 2 * ty * k });
-        // where the finger is caught; the zones are measured on the thumb's travel inside it
-        shape("nj-zone-hitbox", area);
         // the 100% zone is the band between (1 - maxZone) and the edge of the travel
         shape("nj-zone-max", ellipse(1), { borderWidth: `${ty * zones.maxZone}px ${tx * zones.maxZone}px` });
         shape("nj-zone-dead", ellipse(zones.deadZone));

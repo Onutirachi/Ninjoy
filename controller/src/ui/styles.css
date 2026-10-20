@@ -747,6 +747,7 @@ body {
 
 /* ===== player menu: host UI style, a raised side list and a flat main area on the header surface ===== */
 .nj-menu {
+  isolation: isolate;
   --hue: 250;
   --m-bg-dark: oklch(0.13 0.008 var(--hue));
   --m-bg: oklch(0.19 0.01 var(--hue));
@@ -905,6 +906,8 @@ body {
 
 .nj-menu-main {
   position: relative;
+  z-index: 1;
+  overflow-x: hidden;
   margin: 0 6px 12px;
   padding: 4px 16px 16px 14px;
   overflow-y: auto;
@@ -914,6 +917,7 @@ body {
 
 .nj-menu-mark {
   position: absolute;
+  z-index: -1;
   right: -60px;
   bottom: -80px;
   width: 340px;
@@ -1389,11 +1393,6 @@ body {
   border: 3px solid #f2c94c;
   border-radius: 50%;
   background: rgb(242 201 76 / 0.45);
-}
-
-.nj-zone-hitbox {
-  border: 2px solid rgb(255 255 255 / 0.35);
-  border-radius: 50%;
 }
 
 .nj-finger-dot {

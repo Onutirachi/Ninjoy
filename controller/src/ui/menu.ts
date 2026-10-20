@@ -227,7 +227,9 @@ export function createMenu(o: MenuOptions) {
         close_,
       ]),
       el("nav", { className: "nj-rail", role: "tablist", ariaLabel: t("menu.title") }, tabs),
-      el("div", { className: "nj-menu-main" }, [el("div", { className: "nj-menu-mark", innerHTML: logoNinja, ariaHidden: "true" }), ...panels]),
+      el("div", { className: "nj-menu-main" }, panels),
+      // behind the panel, outside the scrolling area
+      el("div", { className: "nj-menu-mark", innerHTML: logoNinja, ariaHidden: "true" }),
     ]);
     overlay.replaceChildren(panel);
   };

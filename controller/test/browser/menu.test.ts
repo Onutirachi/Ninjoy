@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { page } from "vitest/browser";
 import { createController, type Controller } from "../../src/dom/controller.ts";
 import { createI18n, type I18n } from "../../src/i18n/index.ts";
 import { loadOfficialSkin } from "../../src/skins.ts";
@@ -231,6 +232,23 @@ describe("menu redesign", () => {
     expect([...shown().querySelectorAll<HTMLInputElement>("input")].every((i) => i.disabled)).toBe(true);
   });
 
+  it("scrolls only when a section really needs it", async () => {
+    for (const [w, h] of [[1180, 820], [844, 390]] as const) {
+      await page.viewport(w, h);
+      await start();
+      const main = overlay().querySelector<HTMLElement>(".nj-menu-main")!;
+      for (const name of ["Layout", "Touch", "Motion", "Vibration", "General"]) {
+        tab(name).click();
+        expect(main.scrollWidth, `${w}: ${name} width`).toBeLessThanOrEqual(main.clientWidth);
+        // a phone held sideways may need to scroll the longer sections
+        if (w > 1000 || name !== "Touch") expect(main.scrollHeight, `${w}: ${name} height`).toBeLessThanOrEqual(main.clientHeight);
+      }
+      menu.dispose();
+      controller.dispose();
+    }
+    await start(); // for afterEach
+  });
+
   it("adjusts size and height with vertical sliders", async () => {
     await start();
     for (const label of ["Controller size", "Controller height"]) {
@@ -274,7 +292,6 @@ describe("menu redesign", () => {
     const ratio = () => [...document.querySelectorAll<HTMLElement>(".nj-zones .nj-zone-dead")].map((d, i) =>
       d.getBoundingClientRect().width / document.querySelectorAll<HTMLElement>(".nj-zones .nj-zone-max")[i]!.getBoundingClientRect().width);
     expect(ratio()).toHaveLength(2);
-    expect(document.querySelectorAll(".nj-zones .nj-zone-hitbox")).toHaveLength(2);
     expect(ratio()[0]).toBeCloseTo(0.3, 2); // the override
     expect(ratio()[1]).toBeCloseTo(0.1, 2); // the skin default
     dead.value = "20";
