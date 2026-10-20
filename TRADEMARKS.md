@@ -5,7 +5,7 @@ permissions in [LICENSE-EXCEPTIONS.md](LICENSE-EXCEPTIONS.md).
 
 The following are **not** covered by the GPL:
 
-- The name "Ninjoy" and the Ninjoy logo.
+- The name "Ninjoy" and the Ninjoy logo (the files in `assets/brand/`).
 - The official skins and other official artwork distributed with Ninjoy.
 
 Their license terms will be published together with the assets. Until then, all rights are

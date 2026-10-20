@@ -347,7 +347,7 @@ body {
 
 .nj-screen-logo svg {
   display: block;
-  height: min(28vh, 150px);
+  height: min(42vh, 260px);
   width: auto;
   color: var(--s-text);
 }
@@ -544,6 +544,11 @@ body {
 /* landscape phones: keep everything on one screen */
 @media (max-height: 500px) {
   .nj-screen-logo svg {
+    height: 40vh;
+  }
+
+  /* the explanation has more text: a smaller logo keeps it on one screen */
+  .nj-screen-content:has(.nj-explain) .nj-screen-logo svg {
     height: 22vh;
   }
 
@@ -576,7 +581,7 @@ body {
 
 .nj-splash-logo svg {
   display: block;
-  height: min(32vh, 180px);
+  height: min(42vh, 260px);
   width: auto;
   color: oklch(0.96 0.005 250);
   animation: nj-splash-logo 1.5s cubic-bezier(0.6, 0, 0.9, 0.4) forwards;
