@@ -1,0 +1,27 @@
+[package]
+name = "ninjoy-session"
+description = "Ninjoy host network core: serves the controller page, allocates controller slots and exchanges controller states with phones on the LAN."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+tokio.workspace = true
+axum.workspace = true
+axum-server.workspace = true
+rustls.workspace = true
+rcgen.workspace = true
+mdns-sd.workspace = true
+if-addrs.workspace = true
+directories.workspace = true
+rust-embed.workspace = true
+mime_guess.workspace = true
+tracing.workspace = true
+futures-util.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+tokio-tungstenite.workspace = true
+serde_json.workspace = true

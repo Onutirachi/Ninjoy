@@ -1,0 +1,15 @@
+[package]
+name = "ninjoy-devhost"
+description = "Development host: runs the Ninjoy session core from a terminal."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+ninjoy-session.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
