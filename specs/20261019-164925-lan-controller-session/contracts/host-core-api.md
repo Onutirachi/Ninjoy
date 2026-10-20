@@ -27,6 +27,7 @@ impl Session {
     pub fn addresses(&self) -> Addresses;          // local name, IPs, ports actually bound
     pub fn slots(&self) -> Vec<SlotInfo>;           // snapshot, sorted by number
     pub fn create_slot(&self) -> u16;               // lowest free number, waiting for a device
+    pub fn create_slot_at(&self, number: u16) -> Result<(), SlotError>; // that number, if free
     pub fn remove_slot(&self, slot: u16) -> Result<(), SlotError>; // only waiting slots
     pub fn kick(&self, slot: u16) -> Result<(), SlotError>;
     pub fn send_feedback(&self, slot: u16, feedback: Feedback); // ignored if not connected

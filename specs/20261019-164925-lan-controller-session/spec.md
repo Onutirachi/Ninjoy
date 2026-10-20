@@ -257,8 +257,10 @@ use, stop the host) and turn a phone upright.
 
 - **FR-006**: Slots are numbered from 1 with no low upper limit; a player without a number gets
   the lowest free number; a freed number is reused.
-- **FR-006a**: The host MUST be able to create a slot ahead of time (the lowest free number,
-  "waiting for a device") and remove a waiting slot. A waiting slot is taken by the first device
+- **FR-006a**: The host MUST be able to create a slot ahead of time ("waiting for a device"),
+  either with the lowest free number or with a specific free number (so the desktop app can
+  recreate saved controllers at startup and automation can ask for a given number), and remove
+  a waiting slot. A waiting slot is taken by the first device
   that opens its address; a player without a number gets the lowest waiting slot first, else the
   lowest free number. A waiting slot stays until a device takes it or the host removes it.
 - **FR-007**: A slot is in use while a device holds it or during that device's grace period; a
@@ -378,6 +380,11 @@ use, stop the host) and turn a phone upright.
   can be tuned after testing.
 - The desktop app will reuse the same splash and notice look; it is specified with the desktop
   app.
+- Ninjoy runs as one desktop process (window + tray) that embeds this core; there is no
+  separate background service. The desktop app feature adds: start with the system (in the
+  tray), saved controllers recreated as waiting slots at startup, and command-line control of
+  the running instance (create, remove, kick, list) through a local, same-user channel, so
+  tools like a Stream Deck can automate it. This core already exposes what those need.
 - The logo and visual identity come from the maintainer's earlier Ninjoy prototype; the old
   fonts are replaced by an openly licensed font with a similar or better fit.
 - Vibration intensity is approximated with on/off pulses, since browsers can only switch

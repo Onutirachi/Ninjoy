@@ -191,7 +191,7 @@ Decisions for the open points of [plan.md](plan.md). Crate and package versions 
 
 - **Decision**: `ninjoy-devhost` starts the core with defaults, prints the addresses (local
   name and IPs, secure and plain), logs session events, and reads simple commands from stdin:
-  `list`, `create`, `remove <n>`, `kick <n>`, `watch <n>` (print states), `rumble <n> <strong>
+  `list`, `create [n]`, `remove <n>`, `kick <n>`, `watch <n>` (print states), `rumble <n> <strong>
   <weak>`, `light <n> <#rrggbb>`, `quit`. Options: `--port`, `--plain-port`, `--grace`,
   `--name`, `--web <dir>`.
 - **Rationale**: lets the whole path be tested with real phones before the desktop app; no CLI
