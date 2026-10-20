@@ -142,8 +142,8 @@ serves the page, the LAN filter and the page's basic session client.
 - [X] T053 [P] Performance test `host/session/tests/perf.rs` (`#[ignore]`): 32 clients × 120 states/s for 10 s, p95 decode-to-sink < 1 ms (SC-002, SC-007); run in release locally and record the result in the PR (2026-10-20, Windows: 38,400/38,400 states, send→sink p50 0.19 ms, p95 0.36 ms, p99 0.43 ms, max 0.65 ms)
 - [X] T054 [P] Update `README.md`: repository layout (`host/`, `assets/brand/`), `cargo run -p ninjoy-devhost`, firewall note
 - [X] T055 [P] Update `TRADEMARKS.md` to point to `assets/brand/` as the location of the logo files
-- [ ] T056 Run every scenario of [quickstart.md](quickstart.md), including the phone steps (Android and iPhone), and fix gaps
-- [ ] T057 Mark completed tasks here and set **Status** to "Implemented" in [spec.md](spec.md)
+- [X] T056 Run every scenario of [quickstart.md](quickstart.md), including the phone steps (Android and iPhone), and fix gaps (2026-10-20: done with one phone by the maintainer; the two-phone scenarios are covered by the integration tests)
+- [X] T057 Mark completed tasks here and set **Status** to "Implemented" in [spec.md](spec.md)
 
 ---
 
