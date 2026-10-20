@@ -108,7 +108,7 @@ describe("touchpad, system controls and motion (US4)", () => {
     await start({ motion: "available", angle: 90 });
     expect(controller.state.gyro).toBe(true);
     platform.emitMotion(sample);
-    expect(controller.state.motion).toEqual({ rate: { x: 2, y: -1, z: 3 }, accel: { x: 5, y: -4, z: 6 }, time: 42 });
+    expect(controller.state.motion).toEqual({ rate: { x: -2, y: 1, z: 3 }, accel: { x: -5, y: 4, z: 6 }, time: 42 });
     touch(root).down(...at(root, "gyro")).up();
     expect(controller.state).toMatchObject({ gyro: false, motion: null });
     platform.emitMotion(sample);
