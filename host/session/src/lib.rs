@@ -1,0 +1,267 @@
+//! Ninjoy host network core.
+//!
+//! Serves the controller page on the LAN, gives every phone a numbered controller slot and
+//! exchanges controller states and feedback with it (see `specs/20261019-164925-lan-controller-session`).
+
+mod connection;
+pub mod device;
+pub mod net;
+pub mod protocol;
+mod server;
+mod shared;
+pub mod slots;
+pub mod state;
+
+use std::net::{Ipv4Addr, SocketAddr};
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::{Duration, SystemTime};
+
+use tokio::net::TcpListener;
+use tokio::sync::{broadcast, watch};
+use tokio::task::JoinHandle;
+
+pub use device::DeviceSummary;
+pub use shared::{Feedback, SessionEvent, StateSink};
+pub use slots::{SlotError, SlotStatus};
+pub use state::ControllerState;
+
+use server::AppState;
+use shared::{Control, Shared, lock};
+
+#[derive(Clone, Debug)]
+pub struct SessionConfig {
+    /// ports to try for the plain (non-secure) server, in order; 0 = any free port
+    pub plain_ports: Vec<u16>,
+    pub grace: Duration,
+    pub loss_timeout: Duration,
+    /// serve the page from this folder instead of the copy built into the program
+    pub web_root: Option<PathBuf>,
+}
+
+impl Default for SessionConfig {
+    fn default() -> Self {
+        Self {
+            plain_ports: vec![80, 8080],
+            grace: Duration::from_secs(60),
+            loss_timeout: Duration::from_secs(1),
+            web_root: None,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum StartError {
+    /// none of the ports could be used
+    Bind {
+        ports: Vec<u16>,
+        source: std::io::Error,
+    },
+}
+
+impl std::fmt::Display for StartError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bind { ports, source } => write!(
+                f,
+                "could not listen on any of the ports {ports:?}: {source}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for StartError {}
+
+/// Where phones can reach this PC.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Addresses {
+    pub ips: Vec<Ipv4Addr>,
+    pub plain_port: u16,
+}
+
+#[derive(Clone, Debug)]
+pub struct SlotInfo {
+    pub number: u16,
+    pub status: SlotStatus,
+    pub device: Option<DeviceSummary>,
+    pub connected_since: Option<SystemTime>,
+    pub last_state: Option<ControllerState>,
+    pub rtt: Option<Duration>,
+}
+
+/// A running session: servers, slots and connections.
+pub struct Session {
+    shared: Arc<Shared>,
+    addresses: Addresses,
+    stop: watch::Sender<bool>,
+    tasks: Vec<JoinHandle<()>>,
+}
+
+impl Session {
+    pub async fn start(
+        config: SessionConfig,
+        sink: Arc<dyn StateSink>,
+    ) -> Result<Session, StartError> {
+        let shared = Arc::new(Shared::new(sink, config.grace, config.loss_timeout));
+        let (stop, stop_rx) = watch::channel(false);
+
+        let plain = bind(&config.plain_ports).await?;
+        let plain_port = plain.local_addr().map(|a| a.port()).unwrap_or_default();
+        let app = server::router(AppState {
+            shared: shared.clone(),
+            web_root: config.web_root.clone(),
+            plain: true,
+        });
+        let mut stop_plain = stop_rx.clone();
+        let serve_plain = tokio::spawn(async move {
+            let service = app.into_make_service_with_connect_info::<SocketAddr>();
+            let shutdown = async move {
+                let _ = stop_plain.wait_for(|stopped| *stopped).await;
+            };
+            if let Err(error) = axum::serve(plain, service)
+                .with_graceful_shutdown(shutdown)
+                .await
+            {
+                tracing::error!(%error, "plain server stopped");
+            }
+        });
+
+        let expiry = tokio::spawn(expire_held_slots(shared.clone(), stop_rx));
+        let addresses = Addresses {
+            ips: net::reachable_addresses(),
+            plain_port,
+        };
+        tracing::info!(?addresses, "session started");
+        Ok(Session {
+            shared,
+            addresses,
+            stop,
+            tasks: vec![serve_plain, expiry],
+        })
+    }
+
+    pub fn addresses(&self) -> &Addresses {
+        &self.addresses
+    }
+
+    /// Snapshot of every slot, sorted by number.
+    pub fn slots(&self) -> Vec<SlotInfo> {
+        let table = lock(&self.shared.table);
+        let live = lock(&self.shared.live);
+        table
+            .iter()
+            .map(|(number, slot)| {
+                let (last_state, rtt) = live
+                    .get(&number)
+                    .map(|l| {
+                        let l = lock(l);
+                        (l.last_state, l.rtt)
+                    })
+                    .unwrap_or_default();
+                SlotInfo {
+                    number,
+                    status: slot.status,
+                    device: slot.summary.clone(),
+                    connected_since: slot.connected_since,
+                    last_state,
+                    rtt,
+                }
+            })
+            .collect()
+    }
+
+    /// Creates a controller waiting for a device at the lowest free number.
+    pub fn create_slot(&self) -> u16 {
+        let n = self.shared.with_table(|t| t.create());
+        self.shared.emit(SessionEvent::SlotCreated(n));
+        n
+    }
+
+    /// Creates a controller waiting for a device at `number`, if that number is free.
+    pub fn create_slot_at(&self, number: u16) -> Result<(), SlotError> {
+        self.shared.with_table(|t| t.create_at(number))?;
+        self.shared.emit(SessionEvent::SlotCreated(number));
+        Ok(())
+    }
+
+    /// Removes a controller that is still waiting for a device.
+    pub fn remove_slot(&self, number: u16) -> Result<(), SlotError> {
+        self.shared.with_table(|t| t.remove(number))?;
+        self.shared.drop_live(number);
+        self.shared.emit(SessionEvent::Freed { slot: number });
+        Ok(())
+    }
+
+    /// Disconnects the player of `number` and frees the number at once.
+    pub fn kick(&self, number: u16) -> Result<(), SlotError> {
+        let conn = self.shared.with_table(|t| t.kick(number))?;
+        self.shared.neutralize(number);
+        self.shared.drop_live(number);
+        if let Some(conn) = conn {
+            self.shared.control(conn, Control::Kick);
+        }
+        self.shared.emit(SessionEvent::Kicked { slot: number });
+        self.shared.emit(SessionEvent::Freed { slot: number });
+        Ok(())
+    }
+
+    /// Whether phones may create controllers from the controller list (default: yes).
+    pub fn set_phones_can_create(&self, allowed: bool) {
+        self.shared.with_table(|t| t.set_phones_can_create(allowed));
+    }
+
+    /// Sends rumble and/or lightbar to the device of `number`; ignored if none is connected.
+    pub fn send_feedback(&self, number: u16, feedback: Feedback) {
+        let conn = lock(&self.shared.table).get(number).and_then(|s| s.conn);
+        if let Some(conn) = conn {
+            self.shared
+                .control(conn, Control::Send(feedback.to_message()));
+        }
+    }
+
+    pub fn events(&self) -> broadcast::Receiver<SessionEvent> {
+        self.shared.events.subscribe()
+    }
+
+    pub async fn shutdown(self) {
+        let _ = self.stop.send(true);
+        for task in self.tasks {
+            let _ = task.await;
+        }
+    }
+}
+
+async fn bind(ports: &[u16]) -> Result<TcpListener, StartError> {
+    let mut last_error = None;
+    for &port in ports {
+        match TcpListener::bind((Ipv4Addr::UNSPECIFIED, port)).await {
+            Ok(listener) => return Ok(listener),
+            Err(error) => {
+                tracing::warn!(port, %error, "port unavailable");
+                last_error = Some(error);
+            }
+        }
+    }
+    let source = last_error.unwrap_or_else(|| std::io::Error::other("no port configured"));
+    Err(StartError::Bind {
+        ports: ports.to_vec(),
+        source,
+    })
+}
+
+/// Frees held slots whose grace period is over.
+async fn expire_held_slots(shared: Arc<Shared>, mut stop: watch::Receiver<bool>) {
+    let mut tick = tokio::time::interval(Duration::from_millis(250));
+    loop {
+        tokio::select! {
+            _ = tick.tick() => {
+                let now = tokio::time::Instant::now();
+                for slot in shared.with_table(|t| t.expire(now)) {
+                    shared.drop_live(slot);
+                    shared.emit(SessionEvent::Freed { slot });
+                }
+            }
+            _ = stop.wait_for(|stopped| *stopped) => return,
+        }
+    }
+}
