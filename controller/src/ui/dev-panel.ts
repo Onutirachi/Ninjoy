@@ -15,7 +15,8 @@ export function attachDevPanel(controller: Controller, parent: HTMLElement = doc
       <div class="nj-dev-pad" title="right stick"><i data-dot="right"></i></div>
       <div class="nj-dev-pad nj-dev-touchpad" title="touchpad"><i data-touch="0"></i><i data-touch="1"></i></div>
     </div>
-    <pre class="nj-dev-text"></pre>`;
+    <pre class="nj-dev-text"></pre>
+    <div class="nj-dev-conn"><span data-conn>offline</span> <i data-lightbar></i></div>`;
   parent.append(panel);
 
   const q = <T extends Element>(s: string) => panel.querySelector(s) as T;
@@ -48,7 +49,23 @@ export function attachDevPanel(controller: Controller, parent: HTMLElement = doc
 
   show(controller.state);
   const unsubscribe = controller.subscribe(show);
+  const conn = { status: "offline", rtt: null as number | null };
+  const showConn = () => {
+    q<HTMLElement>("[data-conn]").textContent = conn.status + (conn.rtt === null ? "" : `  rtt ${conn.rtt.toFixed(1)} ms`);
+  };
   return {
+    /** connection status line, e.g. "controller 3" or "connecting" */
+    setConnection(status: string) {
+      conn.status = status;
+      showConn();
+    },
+    setRtt(ms: number) {
+      conn.rtt = ms;
+      showConn();
+    },
+    setLightbar(rgb: [number, number, number] | null) {
+      q<HTMLElement>("[data-lightbar]").style.background = rgb ? `rgb(${rgb.join(",")})` : "";
+    },
     dispose() {
       unsubscribe();
       panel.remove();
