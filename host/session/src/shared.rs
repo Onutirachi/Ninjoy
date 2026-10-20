@@ -87,7 +87,8 @@ pub(crate) struct Shared {
     /// table version, so listing pages refresh on changes
     pub list_version: watch::Sender<u64>,
     pub next_conn: AtomicU64,
-    pub grace: Duration,
+    /// how long a dropped device's slot is held, in ms (changed at run time by the app)
+    pub grace_ms: AtomicU64,
     pub loss_timeout: Duration,
 }
 
@@ -106,9 +107,13 @@ impl Shared {
             events: broadcast::channel(256).0,
             list_version: watch::channel(0).0,
             next_conn: AtomicU64::new(1),
-            grace,
+            grace_ms: AtomicU64::new(grace.as_millis() as u64),
             loss_timeout,
         }
+    }
+
+    pub fn grace(&self) -> Duration {
+        Duration::from_millis(self.grace_ms.load(Ordering::Relaxed))
     }
 
     pub fn next_conn(&self) -> ConnId {
