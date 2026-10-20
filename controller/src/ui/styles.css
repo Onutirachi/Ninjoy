@@ -321,14 +321,14 @@ body {
   rotate: -20deg;
   background: oklch(0.96 0.005 250 / 0.035);
   /* rows of NINJOY wordmarks, each tile already has room around the word */
-  mask: var(--nj-pattern) 0 0 / 200px auto repeat;
-  -webkit-mask: var(--nj-pattern) 0 0 / 200px auto repeat;
+  mask: var(--nj-pattern) 0 0 / 260px auto repeat;
+  -webkit-mask: var(--nj-pattern) 0 0 / 260px auto repeat;
   animation: nj-pattern 40s linear infinite;
 }
 
 @keyframes nj-pattern {
   to {
-    translate: 400px 0;
+    translate: 520px 0;
   }
 }
 

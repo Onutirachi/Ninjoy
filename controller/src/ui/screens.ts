@@ -4,11 +4,22 @@ import logoFull from "../../../assets/brand/logo-full.svg?raw";
 import logoWord from "../../../assets/brand/logo-word.svg?raw";
 import { el } from "./widgets.ts";
 
-/** The NINJOY wordmark with room around it, as a tile for the moving background. */
+/**
+ * Background tile: NINJOY wordmarks laid like bricks — two rows, the second shifted by half a
+ * word, with room around each word.
+ */
 const patternTile = (() => {
-  const [x, y, w, h] = (logoWord.match(/viewBox="([^"]+)"/)?.[1] ?? "0 0 693 202").split(/\s+/).map(Number) as [number, number, number, number];
-  const padX = w * 0.45, padY = h * 1.1;
-  const svg = logoWord.replace(/viewBox="[^"]+"/, `viewBox="${x - padX} ${y - padY} ${w + 2 * padX} ${h + 2 * padY}"`);
+  const [, , w, h] = (logoWord.match(/viewBox="([^"]+)"/)?.[1] ?? "0 0 693 202").split(/\s+/).map(Number) as [number, number, number, number];
+  const inner = logoWord.slice(logoWord.indexOf(">") + 1, logoWord.lastIndexOf("</svg>"));
+  const padX = w * 0.25, padY = h * 0.9;
+  const tileW = w + 2 * padX, rowH = h + 2 * padY;
+  const word = (x: number, y: number) => `<g transform="translate(${x} ${y})">${inner}</g>`;
+  // the shifted row crosses the tile edge, so it is drawn on both sides to tile seamlessly
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${tileW} ${2 * rowH}" fill="currentColor" fill-rule="evenodd">`
+    + word(padX, padY)
+    + word(padX + tileW / 2, rowH + padY)
+    + word(padX - tileW / 2, rowH + padY)
+    + "</svg>";
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 })();
 
