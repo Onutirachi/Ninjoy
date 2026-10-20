@@ -83,7 +83,7 @@ async fn answers_commands_from_the_command_line() {
     );
     assert!(core.snapshot().controllers.is_empty());
 
-    assert_eq!(send(&name, "show").await.unwrap().0, true);
+    assert!(send(&name, "show").await.unwrap().0);
     assert_eq!(shown.load(Ordering::Relaxed), 1);
     assert!(!send(&name, "dance").await.unwrap().0);
 }

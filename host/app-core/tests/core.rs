@@ -1,6 +1,6 @@
 //! The app core without a window: controllers, saved state and settings (desktop app T002).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
@@ -21,9 +21,9 @@ fn temp_dir() -> PathBuf {
     dir
 }
 
-fn config(dir: &PathBuf) -> CoreConfig {
+fn config(dir: &Path) -> CoreConfig {
     CoreConfig {
-        data_dir: dir.clone(),
+        data_dir: dir.to_path_buf(),
         session: SessionConfig {
             plain_ports: vec![0],
             secure_ports: vec![0],
@@ -37,7 +37,7 @@ fn config(dir: &PathBuf) -> CoreConfig {
     }
 }
 
-async fn start(dir: &PathBuf) -> Arc<AppCore> {
+async fn start(dir: &Path) -> Arc<AppCore> {
     AppCore::start(config(dir)).await.expect("core starts")
 }
 
