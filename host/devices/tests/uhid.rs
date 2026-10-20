@@ -73,6 +73,22 @@ fn events(path: PathBuf) -> mpsc::Receiver<(u16, u16, i32)> {
     rx
 }
 
+unsafe extern "C" {
+    fn ioctl(fd: i32, request: u64, ...) -> i32;
+}
+
+/// `HIDIOCGFEATURE(len)`: asks the device (our UHID reader) for feature report `id`.
+fn get_feature(hidraw: &fs::File, id: u8, len: usize) -> Vec<u8> {
+    use std::os::fd::AsRawFd;
+    let mut buf = vec![0u8; len];
+    buf[0] = id;
+    let request = (3u64 << 30) | ((len as u64) << 16) | (u64::from(b'H') << 8) | 0x07;
+    // SAFETY: the buffer is `len` bytes long, as the request says
+    let n = unsafe { ioctl(hidraw.as_raw_fd(), request, buf.as_mut_ptr()) };
+    assert_eq!(n, len as i32, "feature report {id:#04x}");
+    buf
+}
+
 fn expect_event(rx: &mpsc::Receiver<(u16, u16, i32)>, want: (u16, u16, i32), what: &str) {
     let deadline = Instant::now() + Duration::from_secs(3);
     while let Ok(got) = rx.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
@@ -130,6 +146,23 @@ fn the_kernel_sees_a_dualshock_4() {
         }
     };
     assert_eq!(rumble, (200.0 / 255.0, 10.0 / 255.0));
+
+    // feature reports, read through hidraw like Steam and the kernel driver do
+    let hidraw = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&raw)
+        .expect("hidraw opens");
+    let calibration = get_feature(&hidraw, 0x02, 37);
+    assert_eq!(
+        calibration,
+        ninjoy_devices::ds4::feature_report(0x02, SLOT).unwrap()
+    );
+    let pairing = get_feature(&hidraw, 0x12, 16);
+    assert_eq!(
+        pairing,
+        ninjoy_devices::ds4::feature_report(0x12, SLOT).unwrap()
+    );
 
     let gamepad = "Sony Interactive Entertainment Wireless Controller";
     let Some(pad_events) = (0..100).find_map(|_| {
