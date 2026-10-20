@@ -12,6 +12,8 @@ export interface MenuOptions {
   /** the language setting changed */
   onLanguage(language: Language): void;
   onEditLayout(): void;
+  /** "Controller 3" under the title while joined */
+  subtitle?(): string | null;
   parent?: HTMLElement;
 }
 
@@ -73,7 +75,10 @@ export function createMenu(o: MenuOptions) {
     });
 
     const panel = el("div", { className: "nj-panel", role: "dialog", ariaLabel: t("menu.title") }, [
-      el("div", { className: "nj-panel-head" }, [el("h2", { textContent: t("menu.title") }), button(t("menu.close"), close, "nj-close")]),
+      el("div", { className: "nj-panel-head" }, [
+        el("div", {}, [el("h2", { textContent: t("menu.title") }), ...(o.subtitle?.() ? [el("small", { className: "nj-menu-sub", textContent: o.subtitle() })] : [])]),
+        button(t("menu.close"), close, "nj-close"),
+      ]),
       size.el,
       slider({ label: t("menu.height"), min: 0, max: 100, value: pct(s.height), format: percent, onInput: (v) => controller.updateSettings({ height: v / 100 }) }).el,
       slider({ label: t("menu.finger"), min: 0, max: 40, value: s.finger, format: (v) => t("menu.px.value", { value: v }), onInput: (v) => controller.updateSettings({ finger: v }) }).el,
