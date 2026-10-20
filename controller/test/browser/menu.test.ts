@@ -111,9 +111,13 @@ describe("player menu (US6)", () => {
     i18n = createI18n("pt");
     menu.show();
     expect(panel().querySelector("h2")!.textContent).toBe("Menu do Ninjoy");
-    const select = panel().querySelector("select")!;
-    select.value = "en";
-    select.dispatchEvent(new Event("change"));
+    const [vibration, select] = panel().querySelectorAll("select");
+    expect([...vibration!.options].map((op) => op.textContent)).toEqual(["Jogo e botões", "Só do jogo", "Desligada"]);
+    vibration!.value = "game";
+    vibration!.dispatchEvent(new Event("change"));
+    expect(controller.settings.vibration).toBe("game");
+    select!.value = "en";
+    select!.dispatchEvent(new Event("change"));
     expect(panel().querySelector("h2")!.textContent).toBe("Ninjoy menu");
     expect(controller.settings.language).toBe("en");
   });

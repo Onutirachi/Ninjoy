@@ -66,6 +66,11 @@ export interface Controller {
    * on, and starts motion. Does nothing when gyro is off.
    */
   requestMotion(): void;
+  /**
+   * The game is rumbling: button taps do not vibrate meanwhile (the browser has one vibration,
+   * and a tap would replace the game's).
+   */
+  setGameRumble(on: boolean): void;
   readonly fullscreen: boolean;
   /** from a tap; shows the home-screen notice where unsupported */
   toggleFullscreen(): void;
@@ -137,6 +142,7 @@ export function createController(options: ControllerOptions): Controller {
     for (const listener of listeners) listener(state);
   };
 
+  let gameRumble = false;
   const update = (vibrateFor?: Finger) => {
     builder.reset();
     const now = platform.now();
@@ -173,7 +179,7 @@ export function createController(options: ControllerOptions): Controller {
       else active.delete(rc);
       looks.get(rc)!.apply({ active: isActive, on: toggleState(rc) });
     }
-    if (activated && vibrateFor?.pointerType === "touch") {
+    if (activated && vibrateFor?.pointerType === "touch" && settings.vibration === "all" && !gameRumble) {
       if (platform.vibration.supported()) platform.vibration.vibrate(12);
       else notify("noVibration");
     }
@@ -396,6 +402,9 @@ export function createController(options: ControllerOptions): Controller {
       store.saveSettings(settings);
       relayout();
       if (gyro !== undefined && gyro !== state.gyro) toggleGyro(gyro);
+    },
+    setGameRumble(on) {
+      gameRumble = on;
     },
     setEditMode(on) {
       editing = on;

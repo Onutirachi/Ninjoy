@@ -1,7 +1,7 @@
 import type { ResolvedSkin } from "@ninjoy/skin-format";
 import type { Controller } from "../dom/controller.ts";
 import { autoSize } from "../engine/layout.ts";
-import { stickZones, triggerZones, type Language } from "../engine/settings.ts";
+import { stickZones, triggerZones, type Language, type Vibration } from "../engine/settings.ts";
 import type { I18n } from "../i18n/index.ts";
 import { button, el, pct, slider, toggle } from "./widgets.ts";
 
@@ -11,6 +11,8 @@ export interface MenuOptions {
   i18n(): I18n;
   /** the language setting changed */
   onLanguage(language: Language): void;
+  /** the vibration setting changed */
+  onVibration?(vibration: Vibration): void;
   onEditLayout(): void;
   /** "Controller 3" under the title while joined */
   subtitle?(): string | null;
@@ -74,6 +76,13 @@ export function createMenu(o: MenuOptions) {
       render();
     });
 
+    const vibration = el("select", {}, (["all", "game", "off"] as const).map((v) => el("option", { value: v, textContent: t(`menu.vibration.${v}`) })));
+    vibration.value = s.vibration;
+    vibration.addEventListener("change", () => {
+      controller.updateSettings({ vibration: vibration.value as Vibration });
+      o.onVibration?.(vibration.value as Vibration);
+    });
+
     const panel = el("div", { className: "nj-panel", role: "dialog", ariaLabel: t("menu.title") }, [
       el("div", { className: "nj-panel-head" }, [
         el("div", {}, [el("h2", { textContent: t("menu.title") }), ...(o.subtitle?.() ? [el("small", { className: "nj-menu-sub", textContent: o.subtitle() })] : [])]),
@@ -92,6 +101,7 @@ export function createMenu(o: MenuOptions) {
         // permission may be refused: show the real state once it settles
         setTimeout(() => !overlay.hidden && render(), 300);
       }).el,
+      el("label", { className: "nj-row" }, [el("div", { className: "nj-row-head" }, [el("span", { textContent: t("menu.vibration") })]), vibration]),
       el("div", { className: "nj-buttons" }, [
         button(t("menu.fullscreen"), () => controller.toggleFullscreen()),
         button(t("menu.editLayout"), () => {
