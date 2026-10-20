@@ -76,10 +76,10 @@ serves the page, the LAN filter and the page's basic session client.
 
 **Independent Test**: hold a button, drop Wi-Fi, come back within 60 s.
 
-- [ ] T030 [P] [US2] Rust timer tests in `host/session/tests/session.rs` with `tokio::time::pause()`: no message for 1 s → sink gets NEUTRAL + `Disconnected`, slot Held; HELLO from the same device within 60 s → `Reconnected`, same slot; after 60 s → `Freed` and number reusable; HIDDEN → NEUTRAL immediately, next STATE resumes; close → NEUTRAL; out-of-order STATE dropped; 250 ms idle resends keep the slot alive
-- [ ] T031 [P] [US2] Browser test additions in `controller/test/browser/session.test.ts`: idle resend every 250 ms; `visibilitychange` hidden → HIDDEN; connection drop → reconnect 250 ms doubling to 4 s while visible, stops while hidden; reload keeps `/<n>` and rejoins the same slot
-- [ ] T032 [US2] Loss timeout, grace timer, HIDDEN, close handling and neutral-before-event ordering in `host/session/src/connection.rs` and `slots.rs`
-- [ ] T033 [US2] Keepalive, HIDDEN, reconnect backoff and "host not available, trying again" status in `controller/src/platform/session.ts`
+- [X] T030 [P] [US2] Rust timer tests in `host/session/tests/session.rs` with short timeouts in the config (real time is simpler than a paused clock with real sockets): no message for 1 s → sink gets NEUTRAL + `Disconnected`, slot Held; HELLO from the same device within 60 s → `Reconnected`, same slot; after 60 s → `Freed` and number reusable; HIDDEN → NEUTRAL immediately, next STATE resumes; close → NEUTRAL; out-of-order STATE dropped; 250 ms idle resends keep the slot alive
+- [X] T031 [P] [US2] Browser test additions in `controller/test/browser/session.test.ts`: idle resend every 250 ms; `visibilitychange` hidden → HIDDEN; connection drop → reconnect 250 ms doubling to 4 s while visible, stops while hidden; reload keeps `/<n>` and rejoins the same slot
+- [X] T032 [US2] Loss timeout, grace timer, HIDDEN, close handling and neutral-before-event ordering in `host/session/src/connection.rs` and `slots.rs`
+- [X] T033 [US2] Keepalive, HIDDEN, reconnect backoff and "host not available, trying again" status in `controller/src/platform/session.ts`
 
 ---
 
@@ -87,10 +87,10 @@ serves the page, the LAN filter and the page's basic session client.
 
 **Independent Test**: open `/1` on a second phone; kick a phone from the devhost.
 
-- [ ] T034 [P] [US3] Rust integration tests in `host/session/tests/session.rs`: another device asking for a connected or held slot → IN_USE, first device unaffected; same device second connection → older gets OPENED_ELSEWHERE and closes; `kick` → KICKED, NEUTRAL, `Kicked` + `Freed`, slot immediately reusable
-- [ ] T035 [P] [US3] Browser test additions: IN_USE → "controller in use" with "see controllers" (opens the list); OPENED_ELSEWHERE → notice with "use here"; KICKED → "disconnected by the host", no automatic reconnect, "join again" works
-- [ ] T036 [US3] IN_USE, OPENED_ELSEWHERE and `kick` in `host/session/src/connection.rs`, `slots.rs`, `lib.rs`; devhost command `kick <n>`
-- [ ] T037 [US3] Page handling of IN_USE, OPENED_ELSEWHERE, KICKED and VERSION_MISMATCH ("update needed") in `controller/src/platform/session.ts` and `controller/src/main.ts`
+- [X] T034 [P] [US3] Rust integration tests in `host/session/tests/session.rs`: another device asking for a connected or held slot → IN_USE, first device unaffected; same device second connection → older gets OPENED_ELSEWHERE and closes; `kick` → KICKED, NEUTRAL, `Kicked` + `Freed`, slot immediately reusable
+- [X] T035 [P] [US3] Browser test additions: IN_USE → "controller in use" with "see controllers" (opens the list); OPENED_ELSEWHERE → notice with "use here"; KICKED → "disconnected by the host", no automatic reconnect, "join again" works
+- [X] T036 [US3] IN_USE, OPENED_ELSEWHERE and `kick` in `host/session/src/connection.rs`, `slots.rs`, `lib.rs`; devhost command `kick <n>`
+- [X] T037 [US3] Page handling of IN_USE, OPENED_ELSEWHERE, KICKED and VERSION_MISMATCH ("update needed") in `controller/src/platform/session.ts` and `controller/src/main.ts`
 
 ---
 

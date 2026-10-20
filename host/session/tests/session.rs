@@ -202,3 +202,183 @@ async fn http_get(url: &str) -> (u16, String) {
     let status = response.split_whitespace().nth(1).unwrap().parse().unwrap();
     (status, response)
 }
+
+// ---------- US2: never stuck, always back ----------
+
+fn quick() -> SessionConfig {
+    SessionConfig {
+        loss_timeout: std::time::Duration::from_millis(200),
+        grace: std::time::Duration::from_millis(800),
+        ..SessionConfig::default()
+    }
+}
+
+#[tokio::test]
+async fn a_silent_device_is_released_and_its_slot_held() {
+    let host = start_host(quick()).await;
+    let mut events = host.session.events();
+    let (mut page, slot) = Page::join(host.port, 0, device(1)).await;
+    page.state(state(1)).await;
+    // the page goes quiet (no keepalive, no pong)
+    let e = event(&mut events, |e| {
+        matches!(e, SessionEvent::Disconnected { .. })
+    })
+    .await;
+    assert_eq!(e, SessionEvent::Disconnected { slot });
+    let states = host.sink.states(slot);
+    assert_eq!(
+        states.last().unwrap().buttons,
+        0,
+        "released before the event"
+    );
+    assert!(matches!(
+        host.session.slots()[0].status,
+        SlotStatus::Held { .. }
+    ));
+    drop(page);
+}
+
+#[tokio::test]
+async fn the_same_device_gets_its_slot_back_within_the_grace_period() {
+    let host = start_host(quick()).await;
+    let mut events = host.session.events();
+    let (page, slot) = Page::join(host.port, 0, device(1)).await;
+    page.close().await;
+    event(&mut events, |e| {
+        matches!(e, SessionEvent::Disconnected { .. })
+    })
+    .await;
+    // someone else cannot take it meanwhile
+    let mut other = Page::connect(host.port).await;
+    other.hello(slot, device(2)).await;
+    assert_eq!(
+        other.recv().await,
+        Some(HostMessage::InUse { requested: slot })
+    );
+    let (_back, again) = Page::join(host.port, slot, device(1)).await;
+    assert_eq!(again, slot);
+    event(&mut events, |e| *e == SessionEvent::Reconnected { slot }).await;
+}
+
+#[tokio::test]
+async fn a_held_slot_is_freed_after_the_grace_period() {
+    let host = start_host(quick()).await;
+    let mut events = host.session.events();
+    let (page, slot) = Page::join(host.port, 0, device(1)).await;
+    page.close().await;
+    event(&mut events, |e| *e == SessionEvent::Freed { slot }).await;
+    let (_other, taken) = Page::join(host.port, 0, device(2)).await;
+    assert_eq!(taken, slot, "the number is reused");
+}
+
+#[tokio::test]
+async fn keepalives_keep_the_slot_and_a_hidden_page_releases_at_once() {
+    let host = start_host(quick()).await;
+    let mut events = host.session.events();
+    let (mut page, slot) = Page::join(host.port, 0, device(1)).await;
+    for _ in 0..8 {
+        page.state(state(4)).await; // same state, resent like the page's 250 ms keepalive
+        tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+    }
+    assert!(matches!(
+        host.session.slots()[0].status,
+        SlotStatus::Connected
+    ));
+    page.send(PageMessage::Hidden).await;
+    eventually("released", || {
+        host.sink
+            .states(slot)
+            .last()
+            .is_some_and(|s| s.buttons == 0)
+    })
+    .await;
+    page.state(state(8)).await;
+    eventually("resumed", || {
+        host.sink
+            .states(slot)
+            .last()
+            .is_some_and(|s| s.buttons == 8)
+    })
+    .await;
+    while let Ok(e) = events.try_recv() {
+        assert!(
+            !matches!(e, SessionEvent::Disconnected { .. }),
+            "kept alive, never disconnected"
+        );
+    }
+}
+
+// ---------- US3: slot already in use and kicks ----------
+
+#[tokio::test]
+async fn another_device_gets_in_use_without_affecting_the_player() {
+    let host = start_host(SessionConfig::default()).await;
+    let (mut player, slot) = Page::join(host.port, 0, device(1)).await;
+    let mut other = Page::connect(host.port).await;
+    other.hello(slot, device(2)).await;
+    assert_eq!(
+        other.recv().await,
+        Some(HostMessage::InUse { requested: slot })
+    );
+    player.state(state(16)).await;
+    eventually("player still plays", || {
+        host.sink
+            .states(slot)
+            .last()
+            .is_some_and(|s| s.buttons == 16)
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn the_same_device_in_another_tab_takes_over() {
+    let host = start_host(SessionConfig::default()).await;
+    let mut events = host.session.events();
+    let (mut first, slot) = Page::join(host.port, 0, device(1)).await;
+    let (mut second, again) = Page::join(host.port, slot, device(1)).await;
+    assert_eq!(again, slot);
+    assert_eq!(first.recv().await, Some(HostMessage::OpenedElsewhere));
+    assert_eq!(first.recv().await, None, "the old tab is closed");
+    event(&mut events, |e| *e == SessionEvent::Reconnected { slot }).await;
+    second.state(state(32)).await;
+    eventually("new tab plays", || {
+        host.sink
+            .states(slot)
+            .last()
+            .is_some_and(|s| s.buttons == 32)
+    })
+    .await;
+    assert!(
+        matches!(host.session.slots()[0].status, SlotStatus::Connected),
+        "replacing is not a disconnect"
+    );
+}
+
+#[tokio::test]
+async fn a_kicked_player_is_told_released_and_the_number_freed_at_once() {
+    let host = start_host(SessionConfig::default()).await;
+    let mut events = host.session.events();
+    let (mut page, slot) = Page::join(host.port, 0, device(1)).await;
+    page.state(state(1)).await;
+    eventually("pressed", || {
+        host.sink
+            .states(slot)
+            .last()
+            .is_some_and(|s| s.buttons == 1)
+    })
+    .await;
+    host.session.kick(slot).unwrap();
+    assert_eq!(
+        host.sink.states(slot).last().unwrap().buttons,
+        0,
+        "released synchronously by kick()"
+    );
+    assert_eq!(page.recv().await, Some(HostMessage::Kicked));
+    assert_eq!(page.recv().await, None);
+    event(&mut events, |e| *e == SessionEvent::Kicked { slot }).await;
+    event(&mut events, |e| *e == SessionEvent::Freed { slot }).await;
+    assert!(host.session.slots().is_empty());
+    let (_next, taken) = Page::join(host.port, 0, device(2)).await;
+    assert_eq!(taken, slot);
+    assert!(host.session.kick(99).is_err());
+}
