@@ -3,7 +3,7 @@
   "format": 1,
   "name": "Ninjoy",
   "author": "Ninjoy",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "orientation": "landscape",
   "preview": "preview.png",
   "background": {
@@ -81,8 +81,7 @@
       "name": "ltouchpad",
       "anchor": "left",
       "controls": [
-        "touchpad-left",
-        "touchpad-click-left"
+        "touchpad-left"
       ]
     },
     {
@@ -98,8 +97,7 @@
       "name": "rtouchpad",
       "anchor": "right",
       "controls": [
-        "touchpad-right",
-        "touchpad-click-right"
+        "touchpad-right"
       ]
     },
     {
@@ -358,35 +356,13 @@
       }
     },
     {
-      "id": "touchpad-click-left",
-      "type": "button",
-      "bindings": [
-        "touchpad-left"
-      ],
-      "svg": "controls/touchpad-click-left.svg",
-      "box": {
-        "x": 612.6,
-        "y": 369.95,
-        "width": 183.81,
-        "height": 80.04
-      },
-      "elements": {
-        "base": {
-          "role": "base"
-        },
-        "label": {
-          "role": "label"
-        }
-      }
-    },
-    {
       "id": "fullscreen",
       "type": "system",
       "action": "fullscreen",
       "svg": "controls/fullscreen.svg",
       "box": {
         "x": 621.95,
-        "y": 469.98,
+        "y": 419.98,
         "width": 174.46,
         "height": 80.04
       },
@@ -411,7 +387,7 @@
       "svg": "controls/share.svg",
       "box": {
         "x": 631.37,
-        "y": 570,
+        "y": 520,
         "width": 165.04,
         "height": 79.95
       },
@@ -431,7 +407,7 @@
       "svg": "controls/gyro.svg",
       "box": {
         "x": 640.76,
-        "y": 670.03,
+        "y": 620.03,
         "width": 155.65,
         "height": 49.97
       },
@@ -462,28 +438,6 @@
       }
     },
     {
-      "id": "touchpad-click-right",
-      "type": "button",
-      "bindings": [
-        "touchpad-right"
-      ],
-      "svg": "controls/touchpad-click-right.svg",
-      "box": {
-        "x": 816.4,
-        "y": 369.95,
-        "width": 171.03,
-        "height": 80.04
-      },
-      "elements": {
-        "base": {
-          "role": "base"
-        },
-        "label": {
-          "role": "label"
-        }
-      }
-    },
-    {
       "id": "ps",
       "type": "button",
       "bindings": [
@@ -492,7 +446,7 @@
       "svg": "controls/ps.svg",
       "box": {
         "x": 816.4,
-        "y": 469.98,
+        "y": 419.98,
         "width": 161.65,
         "height": 80.04
       },
@@ -514,7 +468,7 @@
       "svg": "controls/options.svg",
       "box": {
         "x": 816.4,
-        "y": 570,
+        "y": 520,
         "width": 152.29,
         "height": 79.95
       },
@@ -534,7 +488,7 @@
       "svg": "controls/menu.svg",
       "box": {
         "x": 816.4,
-        "y": 670.03,
+        "y": 620.03,
         "width": 142.93,
         "height": 49.97
       },

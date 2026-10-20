@@ -20,7 +20,7 @@ describe("official Ninjoy skin", () => {
 
   it("covers every DS4 input plus the system controls", () => {
     const bindings = new Set(skin.controls.flatMap((c) => c.bindings ?? []));
-    for (const b of ["cross", "circle", "square", "triangle", "up", "down", "left", "right", "l1", "r1", "share", "options", "ps", "touchpad-left", "touchpad-right"]) {
+    for (const b of ["cross", "circle", "square", "triangle", "up", "down", "left", "right", "l1", "r1", "share", "options", "ps"]) {
       expect(bindings, b).toContain(b);
     }
     const count = (pred: (c: ResolvedSkin["controls"][number]) => boolean) => skin.controls.filter(pred).length;
@@ -29,6 +29,7 @@ describe("official Ninjoy skin", () => {
     expect(count((c) => c.trigger?.which === "l2")).toBe(2);
     expect(count((c) => c.trigger?.which === "r2")).toBe(2);
     expect(skin.controls.filter((c) => c.type === "stick").map((c) => c.side).sort()).toEqual(["left", "right"]);
+    // the touchpad click is a double tap on these areas (no separate click buttons)
     expect(skin.controls.filter((c) => c.type === "touchpad").map((c) => c.area).sort()).toEqual(["left", "right"]);
     expect(skin.controls.filter((c) => c.type === "system").map((c) => c.action).sort()).toEqual(["fullscreen", "gyro", "menu"]);
   });

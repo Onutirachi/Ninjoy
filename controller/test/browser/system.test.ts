@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createController, type Controller, type NoticeKey } from "../../src/dom/controller.ts";
 import { loadOfficialSkin } from "../../src/skins.ts";
-import { at, mount, pressed, stubPlatform, touch } from "./helpers.ts";
+import { at, inlineSkin, mount, pressed, stubPlatform, touch } from "./helpers.ts";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const sample = { rate: { x: 1, y: 2, z: 3 }, accel: { x: 4, y: 5, z: 6 }, time: 42 };
@@ -51,16 +51,26 @@ describe("touchpad, system controls and motion (US4)", () => {
     b.up();
   });
 
-  it("clicks the touchpad and touches the half from the click buttons", async () => {
-    await start();
-    const click = touch(root).down(...at(root, "touchpad-click-left"));
+  it("clicks the touchpad and touches the half from click buttons (skins may still have them)", async () => {
+    const rect = (id: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect id="${id}" width="100" height="100" fill="#123"/></svg>`;
+    const area = (id: string, side: "left" | "right", x: number) => ({ id, type: "touchpad", area: side, svg: `${id}.svg`, box: { x, y: 0, width: 200, height: 200 }, elements: { base: { role: "base" } } });
+    const click = (id: string, side: "left" | "right", x: number) => ({ id, type: "button", bindings: [`touchpad-${side}`], svg: `${id}.svg`, box: { x, y: 300, width: 100, height: 100 }, elements: { base: { role: "base" } } });
+    const skin = await inlineSkin(
+      { name: "Click buttons", controls: [area("tl", "left", 0), area("tr", "right", 300), click("cl", "left", 0), click("cr", "right", 300)] },
+      { "tl.svg": rect("base"), "tr.svg": rect("base"), "cl.svg": rect("base"), "cr.svg": rect("base") },
+    );
+    root = mount(1600, 720);
+    platform = stubPlatform();
+    controller = createController({ skin, root, storage: null, platform });
+    controller.updateSettings({ size: 1, finger: 0 });
+    const left = touch(root).down(...at(root, "cl"));
     expect(pressed(controller)).toEqual(["touchpad"]);
     expect(touches()).toEqual([[0.25, 0.5]]);
-    const finger = touch(root).down(...at(root, "touchpad-right", 0.2, 0.2));
+    const finger = touch(root).down(...at(root, "tr", 0.2, 0.2));
     expect(touches()).toEqual([[0.6, 0.2]]); // a finger on the touchpad: only it is reported
     finger.up();
-    click.up();
-    const right = touch(root).down(...at(root, "touchpad-click-right"));
+    left.up();
+    const right = touch(root).down(...at(root, "cr"));
     expect(touches()).toEqual([[0.75, 0.5]]);
     right.up();
     expect(pressed(controller)).toEqual([]);
@@ -122,5 +132,73 @@ describe("touchpad, system controls and motion (US4)", () => {
     expect(controller.state.gyro).toBe(false);
     touch(root).down(...at(root, "gyro")).up();
     expect(notices).toEqual(["motionInsecure"]);
+  });
+});
+
+describe("touchpad click by double tap (polish US2)", () => {
+  let controller: Controller;
+  let root: HTMLElement;
+  let time = 0;
+  afterEach(() => controller.dispose());
+
+  const start = async () => {
+    root = mount(1600, 720);
+    controller = createController({ skin: await loadOfficialSkin(), root, storage: null, platform: { ...stubPlatform(), now: () => time } });
+    controller.updateSettings({ size: 1, finger: 0 });
+  };
+
+  for (const side of ["left", "right"] as const) {
+    it(`double tap and hold on the ${side} touchpad clicks at the finger`, async () => {
+      await start();
+      time = 1000;
+      const tap = touch(root).down(...at(root, `touchpad-${side}`, 0.3, 0.5));
+      time = 1100;
+      tap.up();
+      time = 1300;
+      const hold = touch(root).down(...at(root, `touchpad-${side}`, 0.3, 0.5));
+      expect(pressed(controller)).toEqual(["touchpad"]);
+      const [t] = controller.state.touchpad.touches;
+      expect(t!.x).toBeCloseTo(side === "left" ? 0.15 : 0.65, 1); // reported on that half
+      // dragging with the click held, like a laptop touchpad
+      time = 1500;
+      hold.move(...at(root, `touchpad-${side}`, 0.9, 0.2));
+      expect(pressed(controller)).toEqual(["touchpad"]);
+      expect(controller.state.touchpad.touches[0]!.x).toBeCloseTo(side === "left" ? 0.45 : 0.95, 1);
+      // sliding out lets go of the click and presses nothing else
+      hold.move(...at(root, "share"));
+      expect(pressed(controller)).toEqual([]);
+      hold.move(...at(root, `touchpad-${side}`, 0.5, 0.5)); // back in: no click until a new double tap
+      expect(pressed(controller)).toEqual([]);
+      time = 2000;
+      hold.up();
+      expect(pressed(controller)).toEqual([]);
+    });
+  }
+
+  it("a plain touch or drag does not click", async () => {
+    await start();
+    time = 1000;
+    const drag = touch(root).down(...at(root, "touchpad-left", 0.2, 0.5));
+    drag.move(...at(root, "touchpad-left", 0.8, 0.5));
+    expect(pressed(controller)).toEqual([]);
+    time = 1600;
+    drag.up();
+    time = 1700;
+    const again = touch(root).down(...at(root, "touchpad-left", 0.5, 0.5));
+    expect(pressed(controller)).toEqual([]);
+    again.up();
+  });
+
+  it("quick flicks across the touchpad do not click", async () => {
+    await start();
+    for (let i = 0; i < 3; i++) {
+      time = 1000 + i * 150;
+      const flick = touch(root).down(...at(root, "touchpad-left", 0.3, 0.5));
+      time += 40;
+      flick.move(...at(root, "touchpad-left", 0.5, 0.5));
+      expect(pressed(controller)).toEqual([]);
+      time += 40;
+      flick.up();
+    }
   });
 });

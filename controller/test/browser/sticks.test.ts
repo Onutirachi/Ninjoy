@@ -40,8 +40,8 @@ describe("sticks (US2)", () => {
   it("lets the stick finger press a button it passes", async () => {
     await official();
     const finger = touch(root).down(C.x, C.y);
-    finger.move(700, 410); // touchpad click button, outside the stick
-    expect(pressed(controller)).toEqual(["touchpad"]);
+    finger.move(700, 560); // Share, outside the stick
+    expect(pressed(controller)).toEqual(["share"]);
     const { x, y } = controller.state.sticks.left;
     expect(Math.hypot(x, y)).toBeCloseTo(1, 5);
     finger.up();

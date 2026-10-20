@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EntryOrder, StickFingers } from "../../src/engine/fingers.ts";
+import { EntryOrder, StickFingers, TapClick } from "../../src/engine/fingers.ts";
 
 describe("StickFingers", () => {
   it("keeps a finger until it is released", () => {
@@ -55,5 +55,62 @@ describe("EntryOrder", () => {
     expect(o.last()).toBe(1);
     o.track([1, 3, 4]);
     expect(o.recent(2)).toEqual([3, 4]);
+  });
+});
+
+describe("TapClick", () => {
+  it("clicks on a double tap and hold on the same area", () => {
+    const t = new TapClick<string>();
+    t.touch(1, "left", 0, 100, 100);
+    t.touch(1, "left", 60, 104, 103); // a few px of jitter
+    t.release(1, 120); // 120 ms tap
+    t.touch(2, "left", 300, 130, 90); // 180 ms later, near the tap
+    expect(t.clicking).toBe(true);
+    t.release(2, 900);
+    expect(t.clicking).toBe(false);
+  });
+
+  it("does not click after a long touch, a late touch or a tap on the other area", () => {
+    const t = new TapClick<string>();
+    t.touch(1, "left", 0, 100, 100);
+    t.release(1, 400); // a drag, not a tap
+    t.touch(2, "left", 450, 100, 100);
+    expect(t.clicking).toBe(false);
+    t.release(2, 500);
+    t.touch(3, "left", 1000, 100, 100); // 500 ms gap
+    expect(t.clicking).toBe(false);
+    t.release(3, 1050);
+    t.touch(4, "right", 1100, 100, 100); // tap was on the left area
+    expect(t.clicking).toBe(false);
+  });
+
+  it("lets go of the click when the finger leaves the touchpad", () => {
+    const t = new TapClick<string>();
+    t.touch(1, "left", 0, 100, 100);
+    t.release(1, 100);
+    t.touch(2, "left", 200, 100, 100);
+    t.onTouchpad(new Set([2]));
+    expect(t.clicking).toBe(true);
+    t.onTouchpad(new Set());
+    expect(t.clicking).toBe(false);
+    expect(t.holds(2)).toBe(true); // still the touchpad's finger
+    t.release(2, 900);
+    expect(t.holds(2)).toBe(false);
+  });
+
+  it("does not click after quick flicks or a second touch far from the tap", () => {
+    const t = new TapClick<string>();
+    // moving the cursor with quick short flicks
+    for (let i = 0; i < 4; i++) {
+      t.touch(i, "left", i * 150, 100, 100);
+      t.touch(i, "left", i * 150 + 40, 160, 100);
+      expect(t.clicking).toBe(false);
+      t.release(i, i * 150 + 80);
+    }
+    const u = new TapClick<string>();
+    u.touch(1, "left", 0, 100, 100);
+    u.release(1, 100);
+    u.touch(2, "left", 200, 300, 100); // a real tap, but the next touch is 200 px away
+    expect(u.clicking).toBe(false);
   });
 });

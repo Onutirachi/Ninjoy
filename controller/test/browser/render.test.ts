@@ -13,7 +13,7 @@ describe("rendering the official skin", () => {
     controller = createController({ skin, root, storage: null });
     controller.updateSettings({ size: 1 });
     const rect = root.getBoundingClientRect();
-    expect(root.querySelectorAll("svg[data-control]")).toHaveLength(28);
+    expect(root.querySelectorAll("svg[data-control]")).toHaveLength(26);
     for (const control of skin.controls) {
       const el = root.querySelector(`svg[data-control="${control.id}"]`) as SVGSVGElement;
       const r = el.getBoundingClientRect();
