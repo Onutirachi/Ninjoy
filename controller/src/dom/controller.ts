@@ -148,7 +148,10 @@ export function createController(options: ControllerOptions): Controller {
         const stick = sticks.find((rc) => hitTester.hits(rc, finger.x, finger.y, settings.finger));
         if (stick) stickFingers.grab(stick.control.id, finger.id, now);
       }
+      // a finger holding the touchpad click stays on the touchpad: sliding out presses nothing else
+      const holdsClick = touchpadClick.holds(finger.id);
       for (const rc of rendered.controls) {
+        if (holdsClick && rc.control.type !== "touchpad") continue;
         if (rc.control.type !== "stick" && hitTester.hits(rc, finger.x, finger.y, settings.finger)) {
           touched.set(rc, [...(touched.get(rc) ?? []), finger]);
         }

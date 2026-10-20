@@ -109,6 +109,11 @@ export class TapClick<Area> {
     else this.lastTap.delete(touch.area);
   }
 
+  /** True while `finger` holds the click (it belongs to the touchpad until released). */
+  holds(finger: number): boolean {
+    return this.touches.get(finger)?.click === true;
+  }
+
   /** True while a double-tapping finger is down. */
   get clicking(): boolean {
     for (const t of this.touches.values()) if (t.click) return true;
