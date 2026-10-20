@@ -39,6 +39,21 @@ describe("notice screens", () => {
     expect(Number(style.zIndex)).toBeGreaterThan(20);
   });
 
+  it("shows the controller list still, with the wordmark and the ninja watermark", () => {
+    const screens = mount();
+    screens.show({ variant: "still", body: document.createElement("div") });
+    const screen = parent.querySelector<HTMLElement>(".nj-screen")!;
+    expect(screen.classList.contains("still")).toBe(true);
+    expect(screen.querySelector(".nj-screen-word svg")).not.toBeNull();
+    expect(screen.querySelector(".nj-screen-logo")).toBeNull();
+    expect(getComputedStyle(screen.querySelector(".nj-screen-pattern")!).display).toBe("none");
+    expect(getComputedStyle(screen.querySelector(".nj-screen-watermark")!).display).toBe("block");
+    // other notices go back to the moving pattern
+    screens.show({ message: "Connecting…" });
+    expect(screen.classList.contains("still")).toBe(false);
+    expect(getComputedStyle(screen.querySelector(".nj-screen-watermark")!).display).toBe("none");
+  });
+
   it("shows a short toast with the controller number", async () => {
     const screens = mount();
     screens.toast("Controller 3", 50);

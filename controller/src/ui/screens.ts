@@ -1,6 +1,7 @@
 import "@fontsource-variable/manrope";
 import "@fontsource/chakra-petch/600.css";
 import logoFull from "../../../assets/brand/logo-full.svg?raw";
+import logoNinja from "../../../assets/brand/logo-ninja.svg?raw";
 import logoWord from "../../../assets/brand/logo-word.svg?raw";
 import { el } from "./widgets.ts";
 
@@ -36,6 +37,11 @@ export interface ScreenContent {
   buttons?: ScreenButton[];
   /** extra content under the message (the controller list) */
   body?: HTMLElement;
+  /**
+   * "still": no moving pattern, the wordmark on top and a large ninja watermark (the controller
+   * list, like the desktop app); default: the full logo over the moving wordmarks.
+   */
+  variant?: "still";
 }
 
 /**
@@ -47,7 +53,8 @@ export function createScreens(parent: HTMLElement = document.body) {
   root.style.setProperty("--nj-pattern", patternTile);
   root.hidden = true;
   const content = el("div", { className: "nj-screen-content" });
-  root.append(el("div", { className: "nj-screen-pattern" }), content);
+  const watermark = el("div", { className: "nj-screen-watermark", innerHTML: logoNinja });
+  root.append(el("div", { className: "nj-screen-pattern" }), watermark, content);
   parent.append(root);
 
   const toast = el("div", { className: "nj-toast" });
@@ -58,7 +65,10 @@ export function createScreens(parent: HTMLElement = document.body) {
   return {
     get visible() { return !root.hidden; },
     show(c: ScreenContent) {
-      const logo = el("div", { className: "nj-screen-logo", innerHTML: logoFull });
+      root.classList.toggle("still", c.variant === "still");
+      const logo = c.variant === "still"
+        ? el("div", { className: "nj-screen-word", innerHTML: logoWord })
+        : el("div", { className: "nj-screen-logo", innerHTML: logoFull });
       const children: HTMLElement[] = [logo];
       if (c.message) children.push(el("p", { className: c.pulse ? "nj-screen-message pulse" : "nj-screen-message", textContent: c.message }));
       if (c.body) children.push(c.body);
