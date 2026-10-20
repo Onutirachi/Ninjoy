@@ -98,11 +98,11 @@ serves the page, the LAN filter and the page's basic session client.
 
 **Independent Test**: `rumble 1 1 0` / `light 1 #ff0000` from the devhost.
 
-- [ ] T038 [P] [US4] Rust integration tests: `send_feedback` reaches the connected page as FEEDBACK (rumble only, lightbar only, both); ignored for waiting/held slots; PING every 1 s, PONG → `SlotInfo.rtt`, next PING carries the last RTT
-- [ ] T039 [P] [US4] TS unit test `controller/test/unit/rumble.test.ts`: intensity → pulse pattern (`max(strong, weak) × 100` ms per 100 ms cycle), zero → stop
-- [ ] T040 [P] [US4] Browser test additions: FEEDBACK rumble → vibration stub called with the pulse pattern and stopped on zero, on hidden and on disconnect; no vibration support → one notice; lightbar → `--ninjoy-lightbar` on the root and shown in the dev panel; PONG answered; RTT shown in the dev panel
-- [ ] T041 [US4] Feedback channel per connection (bounded mpsc), `send_feedback`, PING/PONG and RTT in `host/session/src/connection.rs` and `lib.rs`; devhost commands `rumble <n> <strong> <weak>`, `light <n> <#rrggbb>`
-- [ ] T042 [US4] Rumble pulses, lightbar property, PONG and RTT display in `controller/src/platform/session.ts`, `controller/src/platform/vibration.ts`, `controller/src/ui/dev-panel.ts`
+- [X] T038 [P] [US4] Rust integration tests: `send_feedback` reaches the connected page as FEEDBACK (rumble only, lightbar only, both); ignored for waiting/held slots; PING every 1 s, PONG → `SlotInfo.rtt`, next PING carries the last RTT
+- [X] T039 [P] [US4] TS unit test `controller/test/unit/rumble.test.ts`: intensity → pulse pattern (`max(strong, weak) × 100` ms per 100 ms cycle), zero → stop
+- [X] T040 [P] [US4] Browser test additions: FEEDBACK rumble → vibration stub called with the pulse pattern and stopped on zero, on hidden and on disconnect; no vibration support → one notice; lightbar → `--ninjoy-lightbar` on the root and shown in the dev panel; PONG answered; RTT shown in the dev panel
+- [X] T041 [US4] Feedback channel per connection (bounded mpsc), `send_feedback`, PING/PONG and RTT in `host/session/src/connection.rs` and `lib.rs`; devhost commands `rumble <n> <strong> <weak>`, `light <n> <#rrggbb>`
+- [X] T042 [US4] Rumble pulses, lightbar property, PONG and RTT display in `controller/src/platform/session.ts`, `controller/src/platform/vibration.ts`, `controller/src/ui/dev-panel.ts`
 
 ---
 

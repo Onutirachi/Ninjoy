@@ -382,3 +382,81 @@ async fn a_kicked_player_is_told_released_and_the_number_freed_at_once() {
     assert_eq!(taken, slot);
     assert!(host.session.kick(99).is_err());
 }
+
+// ---------- US4: feedback from the game ----------
+
+#[tokio::test]
+async fn feedback_reaches_the_connected_page_only() {
+    use ninjoy_session::Feedback;
+    let host = start_host(SessionConfig::default()).await;
+    let (mut page, slot) = Page::join(host.port, 0, device(1)).await;
+    host.session.send_feedback(
+        slot,
+        Feedback {
+            rumble: Some((1.0, 0.25)),
+            lightbar: None,
+        },
+    );
+    assert_eq!(
+        page.recv().await,
+        Some(HostMessage::Feedback {
+            rumble: Some([255, 64]),
+            lightbar: None
+        })
+    );
+    host.session.send_feedback(
+        slot,
+        Feedback {
+            rumble: None,
+            lightbar: Some([255, 0, 128]),
+        },
+    );
+    assert_eq!(
+        page.recv().await,
+        Some(HostMessage::Feedback {
+            rumble: None,
+            lightbar: Some([255, 0, 128])
+        })
+    );
+    host.session.send_feedback(
+        slot,
+        Feedback {
+            rumble: Some((0.0, 0.0)),
+            lightbar: Some([1, 2, 3]),
+        },
+    );
+    assert_eq!(
+        page.recv().await,
+        Some(HostMessage::Feedback {
+            rumble: Some([0, 0]),
+            lightbar: Some([1, 2, 3])
+        })
+    );
+    // waiting slots and unknown numbers are ignored without errors
+    let waiting = host.session.create_slot();
+    host.session.send_feedback(
+        waiting,
+        Feedback {
+            rumble: Some((1.0, 1.0)),
+            lightbar: None,
+        },
+    );
+    host.session.send_feedback(99, Feedback::default());
+}
+
+#[tokio::test]
+async fn the_host_measures_the_round_trip_and_tells_the_page() {
+    let host = start_host(SessionConfig::default()).await;
+    let (mut page, _) = Page::join(host.port, 0, device(1)).await;
+    let Some(HostMessage::Ping { nonce, last_rtt: 0 }) = page.recv_any().await else {
+        panic!("first ping without a measurement");
+    };
+    page.send(PageMessage::Pong { nonce }).await;
+    eventually("rtt measured", || host.session.slots()[0].rtt.is_some()).await;
+    match page.recv_any().await {
+        Some(HostMessage::Ping { last_rtt, .. }) => {
+            assert!(last_rtt > 0, "the next ping carries the measurement")
+        }
+        other => panic!("expected a ping, got {other:?}"),
+    }
+}
