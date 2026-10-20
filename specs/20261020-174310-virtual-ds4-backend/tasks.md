@@ -33,4 +33,4 @@
 
 ## Polish
 
-- [ ] T012 Run on Windows with a phone in Steam (inputs, motion, rumble path), update `docs/research/virtual-ds4-prototype.md`, mark the spec Implemented
+- [X] T012 Run on Windows with a phone in Steam (inputs, motion, rumble path), update `docs/research/virtual-ds4-prototype.md`, mark the spec Implemented

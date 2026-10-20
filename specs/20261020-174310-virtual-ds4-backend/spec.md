@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-20
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: Turn every controller slot of the LAN session into a virtual DualShock 4 that the
 operating system, Steam and games see as a real controller, on Windows and Linux, building on the
