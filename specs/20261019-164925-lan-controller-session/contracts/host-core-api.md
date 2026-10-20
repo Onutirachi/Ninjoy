@@ -30,6 +30,7 @@ impl Session {
     pub fn create_slot_at(&self, number: u16) -> Result<(), SlotError>; // that number, if free
     pub fn remove_slot(&self, slot: u16) -> Result<(), SlotError>; // only waiting slots
     pub fn kick(&self, slot: u16) -> Result<(), SlotError>;
+    pub fn set_phones_can_create(&self, allowed: bool); // controller list "new controller"; default true
     pub fn send_feedback(&self, slot: u16, feedback: Feedback); // ignored if not connected
     pub fn events(&self) -> broadcast::Receiver<SessionEvent>;
     pub async fn shutdown(self);

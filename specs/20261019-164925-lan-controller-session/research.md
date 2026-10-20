@@ -122,8 +122,10 @@ Decisions for the open points of [plan.md](plan.md). Crate and package versions 
     message, close, neutral state, free at once. A HELLO from the same device for its held
     slot resumes it; a newer connection from the same device replaces the older one
     (OPENED_ELSEWHERE to the old one).
-  - Waiting slots (FR-006a) are created/removed through the core API; `/` (slot 0 in HELLO)
-    takes the lowest waiting slot, else the lowest free number.
+  - Waiting slots (FR-006a) are created/removed through the core API. The bare address `/`
+    opens the controller list (FR-006b): the page sends LIST and receives SLOT_LIST on every
+    change (a broadcast of the slot table version wakes listing connections); tapping a
+    controller sends HELLO with its number, "new controller" sends HELLO with 0.
 - **Rationale**: a single lock is simpler than actors at this scale (≤ dozens of slots); the
   state hot path does not take the lock (each connection owns its own state and sink call).
 

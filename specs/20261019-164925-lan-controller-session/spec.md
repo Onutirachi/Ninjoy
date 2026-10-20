@@ -45,13 +45,20 @@ buttons and watch the host print each slot's state in real time.
 
 **Acceptance Scenarios**:
 
-1. **Given** the host is running and no one is connected, **When** a player opens the host's
-   address without a number, **Then** the page loads, shows the controller, and the host
-   reports slot 1 as connected.
-2. **Given** slot 1 is in use, **When** a second player opens the address without a number,
-   **Then** they get slot 2.
-3. **Given** slots 1 and 3 are in use, **When** a player opens the address without a number,
-   **Then** they get slot 2 (the lowest free number).
+1. **Given** the host is running, **When** a player opens the host's address without a
+   number (`ninjoy.local`), **Then** the page shows the **controller list**: controllers waiting
+   for a device (tap to join), controllers in use (shown, not selectable) and a "new controller"
+   button.
+2. **Given** no controller exists, **When** a player taps "new controller", **Then** they get
+   slot 1 and the host reports it as connected; a second player doing the same gets slot 2.
+3. **Given** slots 1 and 3 are in use, **When** a player taps "new controller", **Then** they get
+   slot 2 (the lowest free number).
+3a. **Given** the controller list is open, **When** another player joins or the host creates or
+   removes a controller, **Then** the list updates within a second.
+3b. **Given** this device's slot is held during its grace period, **Then** the list highlights
+   "back to controller N" at the top.
+3c. **Given** the host turned off "phones can create controllers", **Then** the list has no "new
+   controller" button and players can only join controllers the host created.
 4. **Given** a connected player, **When** they press and release ✕, move a stick, pull a
    trigger, touch the touchpad or tilt the device with gyro on, **Then** the host receives the
    matching state for that slot, every change, in order.
@@ -60,8 +67,8 @@ buttons and watch the host print each slot's state in real time.
 6. **Given** a connected player, **Then** the page shows their controller number when it
    connects and in the player menu.
 7. **Given** slots 1 and 2 are in use, **When** the host creates a controller, **Then** slot 3
-   appears as waiting for a device; **When** a player opens `/3` (e.g. by its QR code) or the
-   address without a number, **Then** they take slot 3.
+   appears as waiting for a device; **When** a player opens `/3` (e.g. by its QR code) or taps
+   controller 3 in the list, **Then** they take slot 3.
 8. **Given** a waiting slot, **When** the host removes it, **Then** its number is free again.
 
 ---
@@ -242,8 +249,8 @@ use, stop the host) and turn a phone upright.
 - **FR-001**: The host MUST serve the controller page and the official skin to devices on the
   same local network, with no install and no internet access.
 - **FR-002**: The page of a slot MUST be reachable at `/<n>` on the host's local name
-  (`ninjoy.local` by default) and on each of the host's reachable IP addresses; `/` gives the
-  lowest free slot.
+  (`ninjoy.local` by default) and on each of the host's reachable IP addresses; `/` shows the
+  controller list (FR-006b).
 - **FR-003**: The host MUST announce its local name on the network; if the name is taken by
   another host it MUST pick a free variant and report it.
 - **FR-004**: The host MUST serve the page securely using a certificate it generates on first
@@ -255,17 +262,22 @@ use, stop the host) and turn a phone upright.
 
 **Slots**
 
-- **FR-006**: Slots are numbered from 1 with no low upper limit; a player without a number gets
-  the lowest free number; a freed number is reused.
+- **FR-006**: Slots are numbered from 1 with no low upper limit; a new controller gets the
+  lowest free number; a freed number is reused.
 - **FR-006a**: The host MUST be able to create a slot ahead of time ("waiting for a device"),
   either with the lowest free number or with a specific free number (so the desktop app can
   recreate saved controllers at startup and automation can ask for a given number), and remove
   a waiting slot. A waiting slot is taken by the first device
-  that opens its address; a player without a number gets the lowest waiting slot first, else the
-  lowest free number. A waiting slot stays until a device takes it or the host removes it.
+  that opens its address or picks it in the controller list. A waiting slot stays until a device
+  takes it or the host removes it.
+- **FR-006b**: The address without a number MUST show a controller list in the page's look
+  (FR-018): waiting controllers to join, controllers in use (not selectable), this device's held
+  controller highlighted as "back to controller N", and a "new controller" button (lowest free
+  number) unless the host turned off "phones can create controllers" (on by default). The list
+  MUST update live while it is open. QR codes and `/<n>` addresses skip the list.
 - **FR-007**: A slot is in use while a device holds it or during that device's grace period; a
   device asking for a slot in use by another device MUST get a "controller in use" answer with
-  the lowest free number to join instead.
+  a button to open the controller list.
 - **FR-008**: Each page MUST keep a device identity (created on first visit, kept on the device)
   so the host recognizes the same device on reconnect; the newest connection from the same
   device for the same slot replaces the older one, which is told it was opened elsewhere.
@@ -318,7 +330,7 @@ use, stop the host) and turn a phone upright.
   panel shows connection status, slot number, round-trip time and the last lightbar color.
 - **FR-020**: The host core MUST offer later features: the list of slots (number, waiting,
   connected or held, device summary from the browser, connected since, last state, round-trip
-  time), create and remove a waiting slot, kick, sending feedback, events (slot created,
+  time), create and remove a waiting slot, turn "phones can create controllers" on or off, kick, sending feedback, events (slot created,
   connected, reconnected, disconnected, freed, state received) and a pluggable receiver for
   states.
 - **FR-021**: A development host program MUST start the core with defaults, print the addresses

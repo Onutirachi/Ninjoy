@@ -30,10 +30,11 @@
 ```
 
 - Entering **Held** (loss, close) or receiving HIDDEN/kick → the sink gets `NEUTRAL` first.
-- A HELLO for a slot in **Connected** or **Held** by another device → IN_USE with an offer;
+- A HELLO for a slot in **Connected** or **Held** by another device → IN_USE (the page offers the controller list);
   by the same device → resume (Held) or replace the older connection (Connected, older gets
   OPENED_ELSEWHERE).
-- HELLO with slot 0 → lowest **Waiting** slot, else lowest free number.
+- HELLO with slot 0 → new controller at the lowest free number (refused when phones may not
+  create controllers). LIST → SLOT_LIST now and on every change.
 
 ## DeviceId (page + host)
 
@@ -62,9 +63,10 @@ See [contracts/protocol.md](contracts/protocol.md) (STATE). Neutral state: butto
 
 | Status | Screen (FR-018) |
 |---|---|
+| list | controller list at `/` (FR-006b): waiting, in use, "back to controller N", new controller |
 | connecting | splash, then "connecting" notice if still not joined |
 | joined | controller (slot number shown briefly) |
-| in-use | "controller in use" + button "join as controller N" |
+| in-use | "controller in use" + button "see controllers" (opens the list) |
 | opened-elsewhere | notice, button "use here" (sends HELLO again) |
 | kicked | "disconnected by the host" + button "join again" |
 | unavailable | "host not available, trying again…" (automatic retries) |

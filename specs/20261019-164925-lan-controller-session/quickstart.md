@@ -19,7 +19,7 @@ cargo test --release -p ninjoy-session -- --ignored perf   # SC-002 / SC-007 ben
 | Group | Proves |
 |---|---|
 | Rust codec + `vectors.json`, TS codec | the wire layout of [contracts/protocol.md](contracts/protocol.md) is identical on both sides |
-| Rust slots | lowest free number, waiting slots, held slots, reuse, in-use offers (US1, US3, FR-006/006a/007) |
+| Rust slots | lowest free number, waiting slots, held slots, reuse, in-use answers, controller list updates (US1, US3, FR-006/006a/006b/007) |
 | Rust timers (paused clock) | loss 1 s → neutral, grace 60 s → freed, kick → neutral + freed (US2, SC-004/005) |
 | Rust integration (real WebSocket, TLS) | join, reconnect, opened elsewhere, kick, feedback, HIDDEN, out-of-order states dropped |
 | Rust LAN filter | public peer addresses refused (FR-005) |
@@ -40,14 +40,14 @@ Ninjoy session — secure https://ninjoy.local/  https://192.168.0.10/
 commands: list | create | remove <n> | kick <n> | watch <n> | rumble <n> <strong> <weak> | light <n> <#rrggbb> | quit
 ```
 
-1. On a phone open `http://192.168.0.10/` → explanation page → "Open controller" → accept the
+1. On a phone open `http://192.168.0.10/1` → explanation page → "Open controller" → accept the
    certificate warning once → splash → controller 1. Add `?dev` to see slot, RTT and lightbar.
 2. Second phone → controller 2. `create` on the host → controller 3 waiting; scan or open
    `/3` → it joins slot 3.
 3. `watch 1` and press buttons: states print in order. Turn gyro on: motion appears.
 4. Hold a button, turn the phone's Wi-Fi off: within about 1 s the host prints a neutral state;
    turn it on within 60 s: the phone comes back as the same number.
-5. Open `/1` on another phone: "controller in use" with the offer.
+5. Open `/1` on another phone: "controller in use" with "see controllers". Open `http://ninjoy.local/` on a third phone: the controller list shows 1–3 and updates when someone joins.
 6. `rumble 1 1 0` then `rumble 1 0 0`: the Android phone vibrates and stops; `light 1
    #ff0000`: the development panel shows red.
 7. `kick 2`: phone 2 shows "disconnected by the host" and stays disconnected until "join

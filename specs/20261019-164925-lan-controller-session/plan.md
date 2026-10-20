@@ -10,7 +10,7 @@ Connect the controller page to the PC. A new Rust library, `ninjoy-session`, run
 network core: it serves the built controller page over HTTPS (per-install self-signed
 certificate) and plain HTTP (explanation page and a no-motion fallback), announces
 `ninjoy.local`, allocates numbered slots (lowest free, waiting slots, grace period,
-kick), and exchanges compact binary WebSocket messages with each page: full controller
+kick), shows a live controller list at the bare address, and exchanges compact binary WebSocket messages with each page: full controller
 states from the page (on every change plus a 250 ms keepalive) and rumble/lightbar feedback
 from the host. Decoded states go synchronously to a pluggable `StateSink`, the boundary the
 virtual device backend will implement next. A development binary, `ninjoy-devhost`, runs the
@@ -119,6 +119,7 @@ controller/
 │   ├── platform/session.ts    # WebSocket client, reconnect, keepalive, HIDDEN, rumble
 │   ├── platform/device-id.ts  # localStorage identity
 │   ├── ui/screens.ts          # splash + notice screens (+ portrait-phone notice)
+│   ├── ui/lobby.ts            # controller list at `/` (FR-006b), live updates
 │   ├── ui/explain.ts          # explanation page script
 │   ├── ui/dev-panel.ts        # + connection status, slot, RTT, lightbar
 │   ├── i18n/{en,pt}.json      # + screen texts

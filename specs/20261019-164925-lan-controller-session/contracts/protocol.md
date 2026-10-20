@@ -14,7 +14,7 @@ with close code 1007.
 page                                   host
  │── HELLO(version, slot, device) ───────▶│
  │◀────────────── WELCOME(version, slot) ──│   joined (or resumed) the slot
- │◀──── IN_USE(requested, offer) ──────────│   slot taken by another device → page shows notice
+ │◀──── IN_USE(requested) ─────────────────│   slot taken by another device → page shows notice
  │◀──── VERSION_MISMATCH(host_version) ────│   then the host closes
  │── STATE … (on every change, 250 ms idle) ─▶│
  │◀──────────── PING(nonce, last_rtt) ─────│   every 1 s
@@ -35,7 +35,7 @@ ignores STATE before WELCOME. A connection that sends no HELLO within 5 s is clo
 |---|---|---|
 | 0 | u8 | type = 0x01 |
 | 1 | u8 | protocol version |
-| 2 | u16 | requested slot (0 = any: lowest waiting slot, else lowest free) |
+| 2 | u16 | requested slot (0 = new controller: lowest free number; refused with IN_USE(0) when phones may not create controllers) |
 | 4 | u8[16] | device identity (random, kept in `localStorage['ninjoy.v1.device']`) |
 
 The device summary shown on the host (e.g. "Galaxy S23 · Chrome") comes from the HTTP
@@ -65,6 +65,12 @@ exists.
 The page went to the background. The host reports a neutral state for the slot at once and
 keeps the connection; the next STATE resumes input.
 
+### 0x05 LIST (1 byte)
+
+Sent instead of HELLO by the controller list page (`/`). The host answers with SLOT_LIST and
+sends a new SLOT_LIST whenever a slot changes, until the connection closes or a HELLO follows
+on the same connection (the page then joins the chosen slot).
+
 ### 0x04 PONG (5 bytes)
 
 | Offset | Type | Field |
@@ -79,12 +85,12 @@ keeps the connection; the next STATE resumes input.
 | 0 | u8 | type = 0x81 | 1 | u8 | protocol version | 2 | u16 | slot number |
 |---|---|---|---|---|---|---|---|---|
 
-### 0x82 IN_USE (5 bytes)
+### 0x82 IN_USE (3 bytes)
 
-| 0 | u8 | type = 0x82 | 1 | u16 | requested slot | 3 | u16 | offered slot (lowest waiting, else lowest free) |
-|---|---|---|---|---|---|---|---|---|
+| 0 | u8 | type = 0x82 | 1 | u16 | requested slot (0 = new controllers are not allowed) |
+|---|---|---|---|---|---|
 
-The connection stays open; the page may send a new HELLO with the offered slot.
+The connection stays open; the page offers the controller list (it may send LIST).
 
 ### 0x83 OPENED_ELSEWHERE (1 byte)
 
@@ -109,6 +115,17 @@ reconnect by itself.
 | 2 | u8 | rumble strong motor (0…255) |
 | 3 | u8 | rumble weak motor (0…255) |
 | 4 | u8 ×3 | lightbar r, g, b |
+
+### 0x88 SLOT_LIST (3 + 3·n bytes)
+
+| Offset | Type | Field |
+|---|---|---|
+| 0 | u8 | type = 0x88 |
+| 1 | u8 | flags: bit0 phones may create controllers |
+| 2 | u8 | n = number of entries (if more than 255 slots exist, the first 255 by number) |
+| 3 | entries | per slot: number u16, status u8 (0 waiting, 1 connected, 2 held, 3 held for this device) |
+
+Device names are not sent to other players.
 
 ### 0x87 PING (7 bytes)
 
