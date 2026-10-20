@@ -14,17 +14,20 @@ network. Each player scans a QR code, opens the page in their browser, and plays
 
 | Path | What it is |
 |---|---|
-| `controller/` | The touch controller page (TypeScript + Vite): renders a skin and turns touches into a DS4 state |
+| `controller/` | The touch controller page (TypeScript + Vite): renders a skin, turns touches into a DS4 state and sends it to the host |
+| `host/session/` | `ninjoy-session` (Rust): the host's network core — serves the page over HTTPS, announces `ninjoy.local`, numbers the controllers and receives their states |
+| `host/devhost/` | `ninjoy-devhost`: runs the network core from a terminal, for testing with real phones |
+| `assets/brand/` | Ninjoy logo files (not GPL, see `TRADEMARKS.md`) |
 | `packages/skin-format/` | `@ninjoy/skin-format`: skin manifest schema, loader, validator and resolver |
 | `skins/ninjoy/` | The official Ninjoy skin (not GPL, see its `LICENSE.md`) |
 | `docs/skins/format.md` | How to create a skin |
 | `specs/` | Feature specifications, plans and task lists |
 
-The desktop host and the controller↔host connection will be added by upcoming features.
+The virtual DualShock 4 device and the desktop app will be added by upcoming features.
 
 ## Development
 
-Requires Node.js 26.
+Requires Node.js 26 and Rust 1.88 or newer.
 
 ```bash
 npm install          # install workspace dependencies
@@ -34,9 +37,18 @@ npm test             # all tests (controller browser tests need: npx playwright 
 # run the controller page; add ?dev to the URL to see the live controller state
 npm run dev --workspace @ninjoy/controller
 
+# run the host from a terminal: phones on the same network open the printed address
+npm run build --workspace @ninjoy/controller   # the host serves this build
+cargo run -p ninjoy-devhost                    # then type commands: list, watch 1, kick 2, create, quit
+cargo test --workspace                         # Rust tests
+
 # validate a skin folder or .ninjoyskin file (add --lang pt for Portuguese)
 npm run validate --workspace @ninjoy/skin-format -- ../../skins/ninjoy
 ```
+
+If phones cannot open the page, allow `ninjoy-devhost` through the PC firewall on private
+networks. On Linux, ports 80/443 need permission; the host falls back to 8080/8443 and prints
+the addresses with the port.
 
 ## License
 
