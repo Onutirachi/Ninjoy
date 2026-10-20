@@ -102,6 +102,10 @@ export function createMenu(o: MenuOptions) {
         setTimeout(() => !overlay.hidden && render(), 300);
       }).el,
       el("label", { className: "nj-row" }, [el("div", { className: "nj-row-head" }, [el("span", { textContent: t("menu.vibration") })]), vibration]),
+      slider({ label: t("menu.tapStrength"), min: 0, max: 100, value: pct(s.tapStrength), format: percent, onInput: (v) => {
+        controller.updateSettings({ tapStrength: v / 100 });
+        controller.previewTap();
+      } }).el,
       el("div", { className: "nj-buttons" }, [
         button(t("menu.fullscreen"), () => controller.toggleFullscreen()),
         button(t("menu.editLayout"), () => {

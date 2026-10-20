@@ -85,9 +85,9 @@ describe("visual feedback (US7)", () => {
   it("vibrates once each time a control becomes active", async () => {
     await start();
     const a = touch(root).down(...at(root, "cross"));
-    expect(platform.calls.vibrate).toEqual([12]);
+    expect(platform.calls.vibrate).toEqual([35]);
     a.move(...at(root, "circle"));
-    expect(platform.calls.vibrate).toEqual([12, 12]);
+    expect(platform.calls.vibrate).toEqual([35, 35]);
     const b = touch(root).down(...at(root, "circle", 0.6));
     expect(platform.calls.vibrate).toHaveLength(2); // already active
     a.up();
@@ -96,13 +96,17 @@ describe("visual feedback (US7)", () => {
 
   it("does not vibrate on taps with game-only or no vibration, nor while the game rumbles", async () => {
     await start();
-    controller.updateSettings({ vibration: "game" });
+    controller.updateSettings({ tapStrength: 1 });
+    controller.previewTap();
+    expect(platform.calls.vibrate).toEqual([60]); // stronger = longer
+    platform.calls.vibrate.length = 0;
+    controller.updateSettings({ tapStrength: 0.5, vibration: "game" });
     touch(root).down(...at(root, "cross")).up();
     controller.updateSettings({ vibration: "off" });
     touch(root).down(...at(root, "cross")).up();
     controller.updateSettings({ vibration: "buttons" });
     touch(root).down(...at(root, "cross")).up();
-    expect(platform.calls.vibrate).toEqual([12]); // buttons only still taps
+    expect(platform.calls.vibrate).toEqual([35]); // buttons only still taps
     platform.calls.vibrate.length = 0;
     controller.updateSettings({ vibration: "all" });
     controller.setGameRumble(true); // a tap would replace the game's vibration
@@ -110,6 +114,6 @@ describe("visual feedback (US7)", () => {
     expect(platform.calls.vibrate).toEqual([]);
     controller.setGameRumble(false);
     touch(root).down(...at(root, "cross")).up();
-    expect(platform.calls.vibrate).toEqual([12]);
+    expect(platform.calls.vibrate).toEqual([35]);
   });
 });

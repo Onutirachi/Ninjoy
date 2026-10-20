@@ -2,7 +2,7 @@ import type { Binding, ResolvedSkin } from "@ninjoy/skin-format";
 import { EntryOrder, StickFingers, TapClick } from "../engine/fingers.ts";
 import { autoSize, type LayoutEdit } from "../engine/layout.ts";
 import { toControllerFrame } from "../engine/motion.ts";
-import { tapsVibrate, clampSettings, settingsFromStorage, stickZones, triggerZones, type ControlOverride, type PlayerSettings } from "../engine/settings.ts";
+import { tapMs, tapsVibrate, clampSettings, settingsFromStorage, stickZones, triggerZones, type ControlOverride, type PlayerSettings } from "../engine/settings.ts";
 import { StateBuilder, type ControllerState, type DS4Button, type Touch } from "../engine/state.ts";
 import { stickValue } from "../engine/stick.ts";
 import { CLICK_POINT, MAX_TOUCHES, touchpadPoint } from "../engine/touchpad.ts";
@@ -71,6 +71,8 @@ export interface Controller {
    * and a tap would replace the game's).
    */
   setGameRumble(on: boolean): void;
+  /** one button tap at the current strength, to feel it while adjusting */
+  previewTap(): void;
   readonly fullscreen: boolean;
   /** from a tap; shows the home-screen notice where unsupported */
   toggleFullscreen(): void;
@@ -180,7 +182,7 @@ export function createController(options: ControllerOptions): Controller {
       looks.get(rc)!.apply({ active: isActive, on: toggleState(rc) });
     }
     if (activated && vibrateFor?.pointerType === "touch" && tapsVibrate(settings.vibration) && !gameRumble) {
-      if (platform.vibration.supported()) platform.vibration.vibrate(12);
+      if (platform.vibration.supported()) platform.vibration.vibrate(tapMs(settings.tapStrength));
       else notify("noVibration");
     }
     publish(now);
@@ -405,6 +407,9 @@ export function createController(options: ControllerOptions): Controller {
     },
     setGameRumble(on) {
       gameRumble = on;
+    },
+    previewTap() {
+      if (!gameRumble && platform.vibration.supported()) platform.vibration.vibrate(tapMs(settings.tapStrength));
     },
     setEditMode(on) {
       editing = on;

@@ -17,6 +17,7 @@
   "menu.vibration.game": "Só do jogo (experimental)",
   "menu.vibration.buttons": "Só dos botões",
   "menu.vibration.off": "Desligada",
+  "menu.tapStrength": "Força da vibração dos botões",
   "menu.fullscreen": "Tela cheia",
   "menu.editLayout": "Editar layout",
   "menu.resetLayout": "Restaurar layout",
