@@ -145,8 +145,9 @@ sideways: Chrome reports `rotationRate.alpha` around the device's x axis, `beta`
   rumble MUST be felt (pulses of at least 30 ms per 100 ms cycle), and a repeated rumble of the same
   strength MUST NOT restart the vibration. After the game stops rumbling the phone MUST keep
   vibrating 150 ms (a motor spinning down), so quick on/off bursts (a machine gun) feel continuous.
-- **FR-009**: The menu MUST offer vibration "game and buttons" (default), "game only", "buttons
-  only" and "off", with game rumble labeled experimental;
+- **FR-009**: The menu MUST offer vibration "game and buttons", "game only", "buttons only"
+  (default) and "off", with game rumble labeled experimental, and a button vibration strength
+  slider (tap length 10–60 ms, default 35 ms, felt while adjusting);
   button taps MUST NOT vibrate while the game rumbles (the browser keeps one vibration, so a tap
   would cut the game's).
 - **FR-008**: Motion MUST be reported in the screen frame (x right, y up the screen, z toward the

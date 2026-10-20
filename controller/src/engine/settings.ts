@@ -5,6 +5,11 @@ export type Vibration = "all" | "game" | "buttons" | "off";
 export const gameVibrates = (v: Vibration) => v === "all" || v === "game";
 /** button taps vibrate */
 export const tapsVibrate = (v: Vibration) => v === "all" || v === "buttons";
+/**
+ * Button tap length for a strength 0…1: browsers cannot set the motor's force, so a stronger tap
+ * is a longer one (10–60 ms).
+ */
+export const tapMs = (strength: number) => Math.round(10 + strength * 50);
 
 /** Per-device player settings. Zone fields are absent until the player changes them. */
 export interface PlayerSettings {
@@ -18,6 +23,8 @@ export interface PlayerSettings {
   triggerMaxZone?: number;
   gyro: boolean;
   vibration: Vibration;
+  /** button tap strength 0…1 (see tapMs) */
+  tapStrength: number;
   language: Language;
 }
 
@@ -30,7 +37,7 @@ export interface ControlOverride {
   triggerMaxZone?: number;
 }
 
-export const DEFAULT_SETTINGS: PlayerSettings = { size: "auto", height: 0, finger: 14, gyro: true, vibration: "all", language: "auto" };
+export const DEFAULT_SETTINGS: PlayerSettings = { size: "auto", height: 0, finger: 14, gyro: true, vibration: "buttons", tapStrength: 0.5, language: "auto" };
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
@@ -39,6 +46,7 @@ const RANGES = {
   stickMaxZone: [0, 0.3],
   triggerMinForce: [0, 0.5],
   triggerMaxZone: [0, 0.5],
+  tapStrength: [0, 1],
 } as const;
 
 export function clampSettings(s: PlayerSettings): PlayerSettings {

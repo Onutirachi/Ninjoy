@@ -17,6 +17,7 @@
   "menu.vibration.game": "Game only (experimental)",
   "menu.vibration.buttons": "Buttons only",
   "menu.vibration.off": "Off",
+  "menu.tapStrength": "Button vibration strength",
   "menu.fullscreen": "Fullscreen",
   "menu.editLayout": "Edit layout",
   "menu.resetLayout": "Reset layout",

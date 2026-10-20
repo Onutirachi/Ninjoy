@@ -6,7 +6,7 @@ const trigger = { trigger: { tuning: { maxZone: 0.3, minForce: 0.05 } } };
 
 describe("player settings", () => {
   it("has the documented defaults", () => {
-    expect(DEFAULT_SETTINGS).toEqual({ size: "auto", height: 0, finger: 14, gyro: true, vibration: "all", language: "auto" });
+    expect(DEFAULT_SETTINGS).toEqual({ size: "auto", height: 0, finger: 14, gyro: true, vibration: "buttons", tapStrength: 0.5, language: "auto" });
   });
 
   it("clamps every value to its range", () => {
