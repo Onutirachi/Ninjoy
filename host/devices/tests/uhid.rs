@@ -95,7 +95,12 @@ fn the_kernel_sees_a_dualshock_4() {
     let (tx, feedback) = mpsc::channel::<Feedback>();
     let tx = std::sync::Mutex::new(tx);
     let mut pad = backend
-        .plug(SLOT, Arc::new(move |f| drop(tx.lock().unwrap().send(f))))
+        .plug(
+            SLOT,
+            Arc::new(move |f| {
+                let _ = tx.lock().unwrap().send(f);
+            }),
+        )
         .expect("pad plugged");
     let mut ds4 = Ds4Pad::new();
     pad.submit(&ds4.report(&ControllerState::NEUTRAL, 0))
