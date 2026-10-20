@@ -13,11 +13,26 @@ describe("rumble on the phone", () => {
     const rumble = createRumble({ vibration });
     rumble.set(128, 0);
     const pattern = calls.at(-1) as number[];
-    expect(pattern.slice(0, 4)).toEqual([50, 50, 50, 50]);
+    expect(pattern.slice(0, 4)).toEqual([65, 35, 65, 35]);
     rumble.set(255, 255);
     expect(calls.at(-1)).toBe(1200); // full rumble: one continuous vibration
     rumble.set(0, 0);
     expect(calls.at(-1)).toBe(0);
+  });
+
+  it("does not restart the motor when the game repeats the same rumble", () => {
+    const { calls, vibration } = stub();
+    const rumble = createRumble({ vibration });
+    rumble.set(128, 0);
+    rumble.set(128, 0);
+    rumble.set(129, 0); // same pulse length
+    expect(calls).toHaveLength(1);
+    rumble.set(255, 0);
+    expect(calls).toHaveLength(2);
+    rumble.set(0, 0);
+    rumble.set(128, 0); // starts again after stopping
+    expect(calls).toHaveLength(4);
+    rumble.stop();
   });
 
   it("stops when the page is hidden or disconnected", () => {

@@ -141,7 +141,9 @@ sideways: Chrome reports `rotationRate.alpha` around the device's x axis, `beta`
 - **FR-005**: The "turn sideways" notice MUST show only while a joined controller is on screen.
 - **FR-006**: The controller list MUST use large cards readable upright and sideways, a still
   background and a large ninja watermark; texts stay in the en/pt catalogs.
-- **FR-007**: The page MUST NOT call the vibration API before it has vibrated at least once.
+- **FR-007**: The page MUST NOT call the vibration API before it has vibrated at least once. Any
+  rumble MUST be felt (pulses of at least 30 ms per 100 ms cycle), and a repeated rumble of the same
+  strength MUST NOT restart the vibration.
 - **FR-008**: Motion MUST be reported in the screen frame (x right, y up the screen, z toward the
   player) in every landscape direction; a phone held upright toward the player maps one to one to
   a DualShock 4 lying flat.
