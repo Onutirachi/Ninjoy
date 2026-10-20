@@ -25,6 +25,10 @@
 
 - [X] T011 [US4] `controller/src/platform/rumble.ts`: no `vibrate(0)` before the first vibration; test in `controller/test/browser/feedback.test.ts`
 
+## US5 - Motion frame (P2)
+
+- [X] T013 [US5] `controller/src/platform/motion.ts` (`deviceRate`: alpha/beta/gamma around device x/y/z) and the rotation direction in `controller/src/engine/motion.ts`; unit tests with the poses measured on a phone in `controller/test/unit/motion.test.ts`
+
 ## Polish
 
 - [ ] T012 Run the page on a phone with the spike host (tap to play, touchpad clicks in Steam, list upright) and mark the spec Implemented

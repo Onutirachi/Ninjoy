@@ -98,6 +98,20 @@ controller upright.
    **Then** the page does not call the vibration API (browsers report that as an error before
    the first tap).
 
+### User Story 5 - Motion in the right frame (Priority: P2)
+
+Found while testing the virtual DS4 prototype in Steam: turning the phone like a steering wheel
+moved the camera up and down, and gravity read upside down. Measured on an Android phone held
+sideways: Chrome reports `rotationRate.alpha` around the device's x axis, `beta` around y and
+`gamma` around z, and the page rotated x/y by the screen angle in the wrong direction.
+
+**Acceptance Scenarios**:
+
+1. **Given** a phone held sideways and upright with the screen toward the player, **When** it is
+   still, **Then** the page reports gravity as +9.8 m/s² up the screen (y).
+2. **Given** the same phone, **When** it turns like a door, tilts its top away or turns like a
+   steering wheel, **Then** the rotation is reported around the screen's y, x and z axes.
+
 ### Edge Cases
 
 - Screen wake lock unsupported or refused: the controller works; no notice (the screen may turn
@@ -125,6 +139,9 @@ controller upright.
 - **FR-006**: The controller list MUST use large cards readable upright and sideways, a still
   background and a large ninja watermark; texts stay in the en/pt catalogs.
 - **FR-007**: The page MUST NOT call the vibration API before it has vibrated at least once.
+- **FR-008**: Motion MUST be reported in the screen frame (x right, y up the screen, z toward the
+  player) in every landscape direction; a phone held upright toward the player maps one to one to
+  a DualShock 4 lying flat.
 
 ## Success Criteria *(mandatory)*
 

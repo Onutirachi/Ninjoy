@@ -15,6 +15,15 @@ export interface MotionAdapter {
 
 type PermissionEvent = typeof DeviceMotionEvent & { requestPermission?: () => Promise<"granted" | "denied"> };
 
+/**
+ * Rotation rate (°/s) around the device's x, y and z axes. Chrome on Android reports alpha around
+ * x, beta around y and gamma around z (measured on a phone: turning it like a steering wheel moves
+ * gamma), not alpha around z as the spec text reads.
+ */
+export function deviceRate(r: { alpha: number | null; beta: number | null; gamma: number | null } | null): Vec3 {
+  return { x: r?.alpha ?? 0, y: r?.beta ?? 0, z: r?.gamma ?? 0 };
+}
+
 export const browserMotion: MotionAdapter = {
   support() {
     if (typeof DeviceMotionEvent === "undefined") return "none";
@@ -34,8 +43,8 @@ export const browserMotion: MotionAdapter = {
     const onMotion = (e: DeviceMotionEvent) => {
       const r = e.rotationRate, a = e.accelerationIncludingGravity;
       listener({
-        // rotation rate: beta around x, gamma around y, alpha around z (°/s); acceleration in m/s²
-        rate: { x: r?.beta ?? 0, y: r?.gamma ?? 0, z: r?.alpha ?? 0 },
+        // acceleration in m/s², +9.8 on the axis pointing up when still
+        rate: deviceRate(r),
         accel: { x: a?.x ?? 0, y: a?.y ?? 0, z: a?.z ?? 0 },
         time: e.timeStamp,
       });
