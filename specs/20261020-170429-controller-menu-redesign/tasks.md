@@ -24,4 +24,4 @@
 
 ## Polish
 
-- [ ] T009 Screenshots on a phone held sideways and a tablet (`drafts/`, not published), run on a phone with the host, and mark the spec Implemented
+- [X] T009 Screenshots on a phone held sideways and a tablet (`drafts/`, not published), run on a phone with the host, and mark the spec Implemented
