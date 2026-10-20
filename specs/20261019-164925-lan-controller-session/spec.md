@@ -59,6 +59,10 @@ buttons and watch the host print each slot's state in real time.
    exactly that slot, even if lower numbers are free.
 6. **Given** a connected player, **Then** the page shows their controller number when it
    connects and in the player menu.
+7. **Given** slots 1 and 2 are in use, **When** the host creates a controller, **Then** slot 3
+   appears as waiting for a device; **When** a player opens `/3` (e.g. by its QR code) or the
+   address without a number, **Then** they take slot 3.
+8. **Given** a waiting slot, **When** the host removes it, **Then** its number is free again.
 
 ---
 
@@ -251,6 +255,10 @@ use, stop the host) and turn a phone upright.
 
 - **FR-006**: Slots are numbered from 1 with no low upper limit; a player without a number gets
   the lowest free number; a freed number is reused.
+- **FR-006a**: The host MUST be able to create a slot ahead of time (the lowest free number,
+  "waiting for a device") and remove a waiting slot. A waiting slot is taken by the first device
+  that opens its address; a player without a number gets the lowest waiting slot first, else the
+  lowest free number. A waiting slot stays until a device takes it or the host removes it.
 - **FR-007**: A slot is in use while a device holds it or during that device's grace period; a
   device asking for a slot in use by another device MUST get a "controller in use" answer with
   the lowest free number to join instead.
@@ -304,10 +312,11 @@ use, stop the host) and turn a phone upright.
   every font MUST have a license that allows bundling it with Ninjoy.
 - **FR-019**: The page and host MUST measure the round-trip time periodically; the development
   panel shows connection status, slot number, round-trip time and the last lightbar color.
-- **FR-020**: The host core MUST offer later features: the list of slots (number, connected or
-  held, device summary from the browser, connected since, last state, round-trip time), kick,
-  sending feedback, events (slot connected, reconnected, disconnected, freed, state received)
-  and a pluggable receiver for states.
+- **FR-020**: The host core MUST offer later features: the list of slots (number, waiting,
+  connected or held, device summary from the browser, connected since, last state, round-trip
+  time), create and remove a waiting slot, kick, sending feedback, events (slot created,
+  connected, reconnected, disconnected, freed, state received) and a pluggable receiver for
+  states.
 - **FR-021**: A development host program MUST start the core with defaults, print the addresses
   (local name and IPs, secure and plain), print slot events and, on request, the live states of a
   slot, and let the developer kick a slot and send test rumble and lightbar colors.
