@@ -74,3 +74,33 @@ export class EntryOrder<K> {
     return this.order.slice(-n);
   }
 }
+
+/**
+ * Double tap and hold on an area (a touchpad half) presses a click while that finger stays down:
+ * a tap shorter than TAP_MAX_MS, then a new touch on the same area within DOUBLE_TAP_MS.
+ */
+export class TapClick<Area> {
+  private touches = new Map<number, { area: Area; at: number; click: boolean }>();
+  private lastTapUp = new Map<Area, number>();
+
+  /** A finger reached `area` (only its first area counts). */
+  touch(finger: number, area: Area, now: number): void {
+    if (this.touches.has(finger)) return;
+    const tapUp = this.lastTapUp.get(area);
+    this.touches.set(finger, { area, at: now, click: tapUp !== undefined && now - tapUp <= DOUBLE_TAP_MS });
+  }
+
+  release(finger: number, now: number): void {
+    const touch = this.touches.get(finger);
+    if (!touch) return;
+    this.touches.delete(finger);
+    if (!touch.click && now - touch.at < TAP_MAX_MS) this.lastTapUp.set(touch.area, now);
+    else this.lastTapUp.delete(touch.area);
+  }
+
+  /** True while a double-tapping finger is down. */
+  get clicking(): boolean {
+    for (const t of this.touches.values()) if (t.click) return true;
+    return false;
+  }
+}

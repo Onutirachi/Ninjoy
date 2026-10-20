@@ -1,5 +1,5 @@
 import type { Binding, ResolvedSkin } from "@ninjoy/skin-format";
-import { EntryOrder, StickFingers } from "../engine/fingers.ts";
+import { EntryOrder, StickFingers, TapClick } from "../engine/fingers.ts";
 import { autoSize, type LayoutEdit } from "../engine/layout.ts";
 import { toControllerFrame } from "../engine/motion.ts";
 import { clampSettings, settingsFromStorage, stickZones, triggerZones, type ControlOverride, type PlayerSettings } from "../engine/settings.ts";
@@ -122,6 +122,8 @@ export function createController(options: ControllerOptions): Controller {
 
   const touchpads = ofType("touchpad");
   const touchOrder = new EntryOrder<number>();
+  /** double tap and hold on a touchpad area = the DS4 touchpad click at that finger */
+  const touchpadClick = new TapClick<string>();
   const systems = ofType("system");
 
   const builder = new StateBuilder();
@@ -223,6 +225,7 @@ export function createController(options: ControllerOptions): Controller {
     for (const rc of touchpads) {
       const box = hitTester.box(rc);
       for (const finger of touched.get(rc) ?? []) {
+        touchpadClick.touch(finger.id, rc.control.id, platform.now());
         if (points.has(finger.id)) continue;
         const local = { x: (finger.x - box.left) / box.width, y: (finger.y - box.top) / box.height };
         points.set(finger.id, { id: finger.id, ...touchpadPoint(local, rc.control.area ?? "full") });
@@ -238,6 +241,7 @@ export function createController(options: ControllerOptions): Controller {
       }
     }
     builder.setTouches(touches.slice(0, MAX_TOUCHES));
+    if (touchpadClick.clicking) builder.press("touchpad");
   };
 
   const toggleState = (rc: RenderedControl): boolean | null => {
@@ -326,6 +330,7 @@ export function createController(options: ControllerOptions): Controller {
     move: (finger) => update(finger),
     up: (finger, completed) => {
       stickFingers.release(finger.id, platform.now());
+      touchpadClick.release(finger.id, platform.now());
       update();
       if (completed) runSystem(finger);
     },

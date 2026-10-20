@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EntryOrder, StickFingers } from "../../src/engine/fingers.ts";
+import { EntryOrder, StickFingers, TapClick } from "../../src/engine/fingers.ts";
 
 describe("StickFingers", () => {
   it("keeps a finger until it is released", () => {
@@ -55,5 +55,31 @@ describe("EntryOrder", () => {
     expect(o.last()).toBe(1);
     o.track([1, 3, 4]);
     expect(o.recent(2)).toEqual([3, 4]);
+  });
+});
+
+describe("TapClick", () => {
+  it("clicks on a double tap and hold on the same area", () => {
+    const t = new TapClick<string>();
+    t.touch(1, "left", 0);
+    t.release(1, 120); // 120 ms tap
+    t.touch(2, "left", 300); // 180 ms later
+    expect(t.clicking).toBe(true);
+    t.release(2, 900);
+    expect(t.clicking).toBe(false);
+  });
+
+  it("does not click after a long touch, a late touch or a tap on the other area", () => {
+    const t = new TapClick<string>();
+    t.touch(1, "left", 0);
+    t.release(1, 400); // a drag, not a tap
+    t.touch(2, "left", 450);
+    expect(t.clicking).toBe(false);
+    t.release(2, 500);
+    t.touch(3, "left", 1000); // 500 ms gap
+    expect(t.clicking).toBe(false);
+    t.release(3, 1050);
+    t.touch(4, "right", 1100); // tap was on the left area
+    expect(t.clicking).toBe(false);
   });
 });

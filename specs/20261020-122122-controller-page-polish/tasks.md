@@ -10,10 +10,10 @@
 
 ## US2 - Touchpad click (P1)
 
-- [ ] T004 [P] [US2] Unit test in `controller/test/unit/fingers.test.ts`: `TapClick` — tap < 250 ms then a touch within 300 ms clicks; long taps and late touches do not
-- [ ] T005 [P] [US2] Browser test `controller/test/browser/system.test.ts`: double tap and hold on each touchpad half presses `touchpad` with the finger's touch reported on that half; a plain touch/drag does not click
-- [ ] T006 [US2] `TapClick` in `controller/src/engine/fingers.ts`; touchpad click handling in `controller/src/dom/controller.ts`
-- [ ] T007 [US2] Official skin: remove the click buttons, move the center controls up 50 units, update the reference boxes fixture, tests counting controls and `skins/ninjoy/preview.png`
+- [X] T004 [P] [US2] Unit test in `controller/test/unit/fingers.test.ts`: `TapClick` — tap < 250 ms then a touch within 300 ms clicks; long taps and late touches do not
+- [X] T005 [P] [US2] Browser test `controller/test/browser/system.test.ts`: double tap and hold on each touchpad half presses `touchpad` with the finger's touch reported on that half; a plain touch/drag does not click
+- [X] T006 [US2] `TapClick` in `controller/src/engine/fingers.ts`; touchpad click handling in `controller/src/dom/controller.ts`
+- [X] T007 [US2] Official skin: remove the click buttons, move the center controls up 50 units, update the reference boxes fixture, tests counting controls and `skins/ninjoy/preview.png`
 
 ## US3 - Controller list and notices (P2)
 
