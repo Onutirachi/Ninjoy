@@ -171,7 +171,7 @@ pub(crate) async fn run(shared: Arc<Shared>, socket: WebSocket, user_agent: Stri
         if shared.deliver(j.slot, conn, &j.live, &j.last_state.released()) {
             lock(&j.live).owner = 0;
         }
-        let until = Instant::now() + shared.grace;
+        let until = Instant::now() + shared.grace();
         if shared.with_table(|t| t.leave(j.slot, conn, until)) {
             shared.emit(SessionEvent::Disconnected { slot: j.slot });
         }

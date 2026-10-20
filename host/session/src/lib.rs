@@ -267,6 +267,14 @@ impl Session {
         Ok(())
     }
 
+    /// How long a dropped device's slot is held from now on (devices already dropped keep theirs).
+    pub fn set_grace(&self, grace: Duration) {
+        self.shared.grace_ms.store(
+            grace.as_millis() as u64,
+            std::sync::atomic::Ordering::Relaxed,
+        );
+    }
+
     /// Whether phones may create controllers from the controller list (default: yes).
     pub fn set_phones_can_create(&self, allowed: bool) {
         self.shared.with_table(|t| t.set_phones_can_create(allowed));

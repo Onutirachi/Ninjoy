@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["host/session", "host/devices", "host/devhost"]
+members = ["host/session", "host/devices", "host/app-core", "host/devhost"]
 
 [workspace.package]
 version = "0.1.0"
@@ -12,6 +12,7 @@ repository = "https://github.com/Onutirachi/Ninjoy"
 [workspace.dependencies]
 ninjoy-session = { path = "host/session" }
 ninjoy-devices = { path = "host/devices" }
+ninjoy-app-core = { path = "host/app-core" }
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "sync", "time", "io-std", "io-util", "signal"] }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio", "ws", "query"] }
 # rustls with the ring provider: aws-lc (rustls' default) needs extra build tools on Windows
