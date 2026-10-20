@@ -88,6 +88,7 @@ async fn https_falls_back_to_a_free_port_and_carries_the_session() {
             plain_ports: vec![taken, 0],
             secure_ports: vec![taken, 0],
             data_dir: Some(dir.clone()),
+            announce: false,
             ..SessionConfig::default()
         },
         sink,

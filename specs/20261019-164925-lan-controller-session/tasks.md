@@ -122,8 +122,8 @@ serves the page, the LAN filter and the page's basic session client.
 
 **Independent Test**: open `ninjoy.local/1` on a phone; run two hosts.
 
-- [ ] T048 [P] [US6] Rust test in `host/session/src/mdns.rs`: name selection picks `ninjoy`, then `ninjoy-2`, `ninjoy-3` when a resolver stub reports the previous names taken
-- [ ] T049 [US6] `host/session/src/mdns.rs`: announce the host name and `_ninjoy._tcp` with mdns-sd, 1 s probe for conflicts, unregister on shutdown; `Session::addresses()` returns the name and the reachable IPs; devhost prints both secure and plain addresses
+- [X] T048 [P] [US6] Rust test in `host/session/src/mdns.rs`: name selection picks `ninjoy`, then `ninjoy-2`, `ninjoy-3` when a resolver stub reports the previous names taken (verified on Windows: `Resolve-DnsName ninjoy.local` → the PC's IP)
+- [X] T049 [US6] `host/session/src/mdns.rs`: announce the host name and `_ninjoy._tcp` with mdns-sd, 1 s probe for conflicts, unregister on shutdown; `Session::addresses()` returns the name and the reachable IPs; devhost prints both secure and plain addresses
 
 ---
 

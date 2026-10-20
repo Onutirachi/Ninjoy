@@ -54,6 +54,7 @@ pub async fn start_host(config: SessionConfig) -> Host {
             plain_ports: vec![0],
             secure_ports: vec![0],
             data_dir: Some(data_dir),
+            announce: false,
             ..config
         },
         sink.clone(),
