@@ -255,7 +255,9 @@ use, stop the host) and turn a phone upright.
   another host it MUST pick a free variant and report it.
 - **FR-004**: The host MUST serve the page securely using a certificate it generates on first
   run and keeps for later runs; the plain address MUST show a translated explanation of the
-  one-time browser warning and a link to the secure address of the same slot.
+  one-time browser warning and a link to the secure address of the same slot, plus a
+  secondary link that opens the same controller on the plain address without motion sensors
+  (for browsers that refuse the certificate).
 - **FR-005**: The host MUST accept connections only from local network addresses.
 
 **Slots**
