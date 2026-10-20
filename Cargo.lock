@@ -770,6 +770,7 @@ dependencies = [
  "rustls",
  "serde_json",
  "tokio",
+ "tokio-rustls",
  "tokio-tungstenite 0.30.0",
  "tracing",
 ]

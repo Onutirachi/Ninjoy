@@ -67,12 +67,16 @@ fn parse_args() -> Result<SessionConfig, String> {
             "--plain-port" => {
                 config.plain_ports = vec![value()?.parse().map_err(|_| "invalid port")?]
             }
+            "--port" => config.secure_ports = vec![value()?.parse().map_err(|_| "invalid port")?],
+            "--name" => config.local_name = value()?,
             "--grace" => {
                 config.grace = Duration::from_secs(value()?.parse().map_err(|_| "invalid seconds")?)
             }
             "--web" => config.web_root = Some(PathBuf::from(value()?)),
             "--help" | "-h" => {
-                println!("ninjoy-devhost [--plain-port N] [--grace SECONDS] [--web DIR]\n{HELP}");
+                println!(
+                    "ninjoy-devhost [--port N] [--plain-port N] [--name NAME] [--grace SECONDS] [--web DIR]\n{HELP}"
+                );
                 std::process::exit(0);
             }
             other => return Err(format!("unknown option {other}")),
@@ -116,14 +120,23 @@ async fn main() {
     };
 
     let a = session.addresses();
-    let port = if a.plain_port == 80 {
-        String::new()
-    } else {
-        format!(":{}", a.plain_port)
+    let port = |p: u16, default: u16| {
+        if p == default {
+            String::new()
+        } else {
+            format!(":{p}")
+        }
     };
     println!("\nNinjoy session");
     for ip in &a.ips {
-        println!("  http://{ip}{port}/");
+        let plain = format!("http://{ip}{}/", port(a.plain_port, 80));
+        match a.secure_port {
+            Some(secure) => println!(
+                "  {plain}  (explains the certificate, then opens https://{ip}{}/)",
+                port(secure, 443)
+            ),
+            None => println!("  {plain}?plain  (no HTTPS: motion sensors off)"),
+        }
     }
     if a.ips.is_empty() {
         println!("  (no network address found; is the PC on Wi-Fi or Ethernet?)");

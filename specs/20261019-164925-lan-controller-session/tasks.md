@@ -110,11 +110,11 @@ serves the page, the LAN filter and the page's basic session client.
 
 **Independent Test**: plain address → explanation → secure controller with gyro.
 
-- [ ] T043 [P] [US5] Rust tests: `host/session/src/tls.rs` generates cert + key on first run, reuses them later, regenerates when unreadable; integration test connects over `wss` with a test verifier trusting the generated certificate; port fallback when 443/80 are taken (bind a blocker first)
-- [ ] T044 [P] [US5] Browser test `controller/test/browser/explain.test.ts`: explanation page in en and pt; "Open controller" points to `https://<host>/<n>`; "Continue without motion sensors" points to `http://<host>/<n>?plain`
-- [ ] T045 [US5] `host/session/src/tls.rs` (rcgen, ECDSA P-256, SANs `ninjoy.local`, `localhost`, LAN IPs, 10 years, PEM in the data dir via `directories`) and the secure server (axum-server rustls) with 443 → 8443 / 80 → 8080 fallback in `host/session/src/server.rs`
-- [ ] T046 [US5] Plain server routes: `/` and `/<n>` → `explain.html` unless `?plain`; assets and `/ws` on both servers
-- [ ] T047 [US5] `controller/explain.html` + `controller/src/ui/explain.ts`: translated explanation (Android and iPhone steps), the two links, same look as the notices
+- [X] T043 [P] [US5] Rust tests: `host/session/src/tls.rs` generates cert + key on first run, reuses them later, regenerates when unreadable; integration test connects over `wss` with a test verifier trusting the generated certificate; port fallback when 443/80 are taken (bind a blocker first)
+- [X] T044 [P] [US5] Browser test `controller/test/browser/explain.test.ts`: explanation page in en and pt; "Open controller" points to `https://<host>/<n>`; "Continue without motion sensors" points to `http://<host>/<n>?plain`
+- [X] T045 [US5] `host/session/src/tls.rs` (rcgen, ECDSA P-256, SANs `ninjoy.local`, `localhost`, LAN IPs, 10 years, PEM in the data dir via `directories`) and the secure server (axum-server rustls) with 443 → 8443 / 80 → 8080 fallback in `host/session/src/server.rs`
+- [X] T046 [US5] Plain server routes: `/` and `/<n>` → `explain.html` unless `?plain`; assets and `/ws` on both servers
+- [X] T047 [US5] `controller/explain.html` + `controller/src/ui/explain.ts`: translated explanation (Android and iPhone steps), the two links, same look as the notices
 
 ---
 

@@ -43,9 +43,17 @@ pub struct Host {
 
 pub async fn start_host(config: SessionConfig) -> Host {
     let sink = Arc::new(RecordingSink::default());
+    // random ports and a private certificate folder per test
+    let data_dir = std::env::temp_dir().join(format!(
+        "ninjoy-test-{}-{}",
+        std::process::id(),
+        NEXT_DIR.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
     let session = Session::start(
         SessionConfig {
             plain_ports: vec![0],
+            secure_ports: vec![0],
+            data_dir: Some(data_dir),
             ..config
         },
         sink.clone(),
@@ -59,6 +67,8 @@ pub async fn start_host(config: SessionConfig) -> Host {
         port,
     }
 }
+
+static NEXT_DIR: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
 pub fn device(n: u8) -> DeviceId {
     [n; 16]

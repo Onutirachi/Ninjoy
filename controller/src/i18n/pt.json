@@ -52,5 +52,13 @@
   "lobby.emptyNoCreate": "Nenhum controle ainda. Peça ao host para criar um.",
   "lobby.controller": "Controle {n}",
   "menu.controller": "Controle {n}",
-  "notice.turnSideways": "Gire o aparelho para jogar."
+  "notice.turnSideways": "Gire o aparelho para jogar.",
+  "explain.title": "Abrir o controle Ninjoy",
+  "explain.why": "O Ninjoy usa uma conexão segura com um certificado criado pelo seu PC, para que os sensores de movimento e a tela cheia funcionem. Na primeira vez, o navegador mostra um aviso de segurança. Isso é esperado: a conexão fica dentro da sua rede de casa.",
+  "explain.android": "Android: toque em “Avançado” e depois em “Ir para … (não seguro)”.",
+  "explain.iphone": "iPhone: toque em “Mostrar Detalhes”, depois em “visitar este site” e em “Visitar Site”.",
+  "explain.once": "Você só precisa fazer isso uma vez neste aparelho.",
+  "explain.open": "Abrir controle",
+  "explain.plain": "Continuar sem sensores de movimento",
+  "explain.noSecure": "A conexão segura não está disponível neste PC agora. Você ainda pode jogar sem os sensores de movimento."
 }

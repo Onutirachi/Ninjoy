@@ -2,7 +2,7 @@
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use axum::Router;
 use axum::body::Body;
@@ -30,6 +30,8 @@ pub(crate) struct AppState {
     pub web_root: Option<PathBuf>,
     /// the plain (non-secure) server shows the explanation page on page addresses
     pub plain: bool,
+    /// port of the secure server, written into the explanation page (None = no HTTPS)
+    pub secure_port: Arc<OnceLock<Option<u16>>>,
 }
 
 pub(crate) fn router(state: AppState) -> Router {
@@ -95,9 +97,19 @@ async fn files(State(state): State<AppState>, uri: Uri) -> Response {
         Some(root) => tokio::fs::read(root.join(file)).await.ok(),
         None => WebFiles::get(file).map(|f| f.data.into_owned()),
     };
-    let Some(bytes) = bytes else {
+    let Some(mut bytes) = bytes else {
         return StatusCode::NOT_FOUND.into_response();
     };
+    if file == "explain.html"
+        && let Some(port) = state.secure_port.get()
+    {
+        let value = port.map_or_else(|| "none".to_owned(), |p| p.to_string());
+        let page = String::from_utf8_lossy(&bytes).replace(
+            "name=\"ninjoy-secure-port\" content=\"\"",
+            &format!("name=\"ninjoy-secure-port\" content=\"{value}\""),
+        );
+        bytes = page.into_bytes();
+    }
     let mime = mime_guess::from_path(file).first_or_octet_stream();
     // hashed assets never change; pages must always be fresh
     let cache = if file.starts_with("assets/") {
