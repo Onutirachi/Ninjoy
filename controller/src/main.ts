@@ -10,7 +10,7 @@ import { applyLightbar } from "./ui/lightbar.ts";
 import { renderLobby } from "./ui/lobby.ts";
 import { createMenu } from "./ui/menu.ts";
 import { createNotices } from "./ui/notices.ts";
-import { createScreens } from "./ui/screens.ts";
+import { createScreens, playSplash, watchOrientation } from "./ui/screens.ts";
 import "./ui/styles.css";
 
 const app = document.getElementById("app")!;
@@ -42,7 +42,9 @@ try {
   const devPanel = new URLSearchParams(location.search).has("dev") ? attachDevPanel(controller) : null;
 
   // ---------- session with the host ----------
+  void playSplash();
   const screens = createScreens();
+  watchOrientation(() => i18n.t("notice.turnSideways"));
   const rumble = createRumble({ onUnsupported: () => notices.show("noVibration") });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") rumble.stop();
