@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-20
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: Feedback from the maintainer's first test of the controller with a virtual DualShock 4
 in Steam: start with a "tap to play" screen, keep the screen awake, click the touchpad with a
@@ -145,7 +145,8 @@ sideways: Chrome reports `rotationRate.alpha` around the device's x axis, `beta`
   rumble MUST be felt (pulses of at least 30 ms per 100 ms cycle), and a repeated rumble of the same
   strength MUST NOT restart the vibration. After the game stops rumbling the phone MUST keep
   vibrating 150 ms (a motor spinning down), so quick on/off bursts (a machine gun) feel continuous.
-- **FR-009**: The menu MUST offer vibration "game and buttons" (default), "game only" and "off";
+- **FR-009**: The menu MUST offer vibration "game and buttons" (default), "game only", "buttons
+  only" and "off", with game rumble labeled experimental;
   button taps MUST NOT vibrate while the game rumbles (the browser keeps one vibration, so a tap
   would cut the game's).
 - **FR-008**: Motion MUST be reported in the screen frame (x right, y up the screen, z toward the

@@ -76,7 +76,7 @@ export function createMenu(o: MenuOptions) {
       render();
     });
 
-    const vibration = el("select", {}, (["all", "game", "off"] as const).map((v) => el("option", { value: v, textContent: t(`menu.vibration.${v}`) })));
+    const vibration = el("select", {}, (["all", "game", "buttons", "off"] as const).map((v) => el("option", { value: v, textContent: t(`menu.vibration.${v}`) })));
     vibration.value = s.vibration;
     vibration.addEventListener("change", () => {
       controller.updateSettings({ vibration: vibration.value as Vibration });

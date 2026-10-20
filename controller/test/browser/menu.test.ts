@@ -112,7 +112,7 @@ describe("player menu (US6)", () => {
     menu.show();
     expect(panel().querySelector("h2")!.textContent).toBe("Menu do Ninjoy");
     const [vibration, select] = panel().querySelectorAll("select");
-    expect([...vibration!.options].map((op) => op.textContent)).toEqual(["Jogo e botões", "Só do jogo", "Desligada"]);
+    expect([...vibration!.options].map((op) => op.textContent)).toEqual(["Jogo (experimental) e botões", "Só do jogo (experimental)", "Só dos botões", "Desligada"]);
     vibration!.value = "game";
     vibration!.dispatchEvent(new Event("change"));
     expect(controller.settings.vibration).toBe("game");
