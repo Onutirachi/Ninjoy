@@ -131,9 +131,9 @@ serves the page, the LAN filter and the page's basic session client.
 
 **Independent Test**: watch the splash; trigger each notice; turn a phone upright.
 
-- [ ] T050 [P] [US7] Browser test `controller/test/browser/screens.test.ts`: splash runs about 1.5 s and never delays an already joined controller; every status of [data-model.md](data-model.md) shows its notice with the logo, message and buttons; portrait on a 390×844 viewport shows "turn the device sideways", portrait on 820×1180 does not; no external requests (fonts and images served locally)
-- [ ] T051 [US7] `controller/src/ui/screens.ts` + styles in `controller/src/ui/styles.css`: splash (fade in, quick zoom to a very large size while fading out), notice component (one-color logo, pulsing message, buttons), slowly moving background pattern from the ninja and wordmark, depth tokens of the host prototype; fonts imported from the fontsource packages
-- [ ] T052 [US7] Portrait-phone notice (shortest side < 600 CSS px) and lobby/explanation pages using the same component; all texts in `controller/src/i18n/en.json` and `pt.json`
+- [X] T050 [P] [US7] Browser test `controller/test/browser/screens.test.ts`: splash runs about 1.5 s and never delays an already joined controller; every status of [data-model.md](data-model.md) shows its notice with the logo, message and buttons; portrait on a 390×844 viewport shows "turn the device sideways", portrait on 820×1180 does not; no external requests (fonts and images served locally)
+- [X] T051 [US7] `controller/src/ui/screens.ts` + styles in `controller/src/ui/styles.css`: splash (fade in, quick zoom to a very large size while fading out), notice component (one-color logo, pulsing message, buttons), slowly moving background pattern of NINJOY wordmarks (the maintainer preferred the wordmark alone), depth tokens of the host prototype; fonts imported from the fontsource packages
+- [X] T052 [US7] Portrait-phone notice (shortest side < 600 CSS px) and lobby/explanation pages using the same component; all texts in `controller/src/i18n/en.json` and `pt.json`
 
 ---
 

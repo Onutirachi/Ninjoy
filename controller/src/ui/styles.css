@@ -320,14 +320,15 @@ body {
   inset: -50%;
   rotate: -20deg;
   background: oklch(0.96 0.005 250 / 0.035);
-  mask: var(--nj-pattern) 0 0 / 120px auto repeat;
-  -webkit-mask: var(--nj-pattern) 0 0 / 120px auto repeat;
+  /* rows of NINJOY wordmarks, each tile already has room around the word */
+  mask: var(--nj-pattern) 0 0 / 200px auto repeat;
+  -webkit-mask: var(--nj-pattern) 0 0 / 200px auto repeat;
   animation: nj-pattern 40s linear infinite;
 }
 
 @keyframes nj-pattern {
   to {
-    translate: 240px 0;
+    translate: 400px 0;
   }
 }
 
@@ -558,5 +559,52 @@ body {
 
   .nj-explain h1 {
     font-size: 18px;
+  }
+}
+
+/* opening splash: fade in, quick giant zoom while fading out */
+.nj-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: oklch(0.13 0.008 250);
+  pointer-events: none;
+  animation: nj-splash-bg 1.5s ease-in forwards;
+}
+
+.nj-splash-logo svg {
+  display: block;
+  height: min(32vh, 180px);
+  width: auto;
+  color: oklch(0.96 0.005 250);
+  animation: nj-splash-logo 1.5s cubic-bezier(0.6, 0, 0.9, 0.4) forwards;
+}
+
+@keyframes nj-splash-logo {
+  0% { opacity: 0; scale: 0.92; }
+  25% { opacity: 1; scale: 1; }
+  60% { opacity: 1; scale: 1.04; }
+  100% { opacity: 0; scale: 14; }
+}
+
+@keyframes nj-splash-bg {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* "turn your device sideways" covers everything on upright phones */
+.nj-rotate {
+  z-index: 45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nj-splash,
+  .nj-splash-logo svg,
+  .nj-screen-pattern,
+  .nj-screen-message.pulse {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
   }
 }
