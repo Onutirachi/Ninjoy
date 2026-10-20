@@ -93,4 +93,19 @@ describe("visual feedback (US7)", () => {
     a.up();
     b.up();
   });
+
+  it("does not vibrate on taps with game-only or no vibration, nor while the game rumbles", async () => {
+    await start();
+    controller.updateSettings({ vibration: "game" });
+    touch(root).down(...at(root, "cross")).up();
+    controller.updateSettings({ vibration: "off" });
+    touch(root).down(...at(root, "cross")).up();
+    controller.updateSettings({ vibration: "all" });
+    controller.setGameRumble(true); // a tap would replace the game's vibration
+    touch(root).down(...at(root, "cross")).up();
+    expect(platform.calls.vibrate).toEqual([]);
+    controller.setGameRumble(false);
+    touch(root).down(...at(root, "cross")).up();
+    expect(platform.calls.vibrate).toEqual([12]);
+  });
 });

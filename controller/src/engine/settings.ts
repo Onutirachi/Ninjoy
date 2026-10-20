@@ -1,4 +1,6 @@
 export type Language = "auto" | "en" | "pt";
+/** all: game rumble and button taps; game: only the game's rumble; off: nothing */
+export type Vibration = "all" | "game" | "off";
 
 /** Per-device player settings. Zone fields are absent until the player changes them. */
 export interface PlayerSettings {
@@ -11,6 +13,7 @@ export interface PlayerSettings {
   triggerMinForce?: number;
   triggerMaxZone?: number;
   gyro: boolean;
+  vibration: Vibration;
   language: Language;
 }
 
@@ -23,7 +26,7 @@ export interface ControlOverride {
   triggerMaxZone?: number;
 }
 
-export const DEFAULT_SETTINGS: PlayerSettings = { size: "auto", height: 0, finger: 14, gyro: true, language: "auto" };
+export const DEFAULT_SETTINGS: PlayerSettings = { size: "auto", height: 0, finger: 14, gyro: true, vibration: "all", language: "auto" };
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
@@ -55,6 +58,7 @@ export function settingsFromStorage(saved: Partial<PlayerSettings>): PlayerSetti
     if (key === "size" && (value === "auto" || typeof value === "number")) merged.size = value;
     else if (key === "language" && (value === "auto" || value === "en" || value === "pt")) merged.language = value;
     else if (key === "gyro" && typeof value === "boolean") merged.gyro = value;
+    else if (key === "vibration" && (value === "all" || value === "game" || value === "off")) merged.vibration = value;
     else if (typeof value === "number" && Number.isFinite(value) && (key === "height" || key === "finger" || key in RANGES)) merged[key] = value;
   }
   return clampSettings(merged);

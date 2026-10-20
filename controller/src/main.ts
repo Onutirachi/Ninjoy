@@ -37,6 +37,12 @@ try {
     skin,
     i18n: () => i18n,
     onLanguage: setLanguage,
+    onVibration: (v) => {
+      if (v === "off") {
+        rumble.stop();
+        controller.setGameRumble(false);
+      }
+    },
     onEditLayout: () => controller.setEditMode(true),
     subtitle: () => (session.slot ? i18n.t("menu.controller", { n: session.slot }) : null),
   });
@@ -131,7 +137,11 @@ try {
     },
     onRtt: (ms) => devPanel?.setRtt(ms),
     onFeedback: (f) => {
-      if (f.rumble) rumble.set(f.rumble[0], f.rumble[1]);
+      if (f.rumble) {
+        const [strong, weak] = controller.settings.vibration === "off" ? [0, 0] : f.rumble;
+        rumble.set(strong, weak);
+        controller.setGameRumble(strong > 0 || weak > 0);
+      }
       if (f.lightbar) {
         applyLightbar(f.lightbar);
         devPanel?.setLightbar(f.lightbar);
