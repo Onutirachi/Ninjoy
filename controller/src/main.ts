@@ -127,7 +127,7 @@ try {
     onStatus: showStatus,
     onList: (entries, phonesCanCreate) => {
       if (session.status.kind !== "list") return;
-      screens.show({ body: renderLobby({ i18n, entries, phonesCanCreate, onPick: (slot) => session.join(slot) }) });
+      screens.show({ variant: "still", body: renderLobby({ i18n, entries, phonesCanCreate, onPick: (slot) => session.join(slot) }) });
     },
     onRtt: (ms) => devPanel?.setRtt(ms),
     onFeedback: (f) => {

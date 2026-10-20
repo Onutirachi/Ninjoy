@@ -17,9 +17,9 @@
 
 ## US3 - Controller list and notices (P2)
 
-- [ ] T008 [P] [US3] Browser test additions in `controller/test/browser/screens.test.ts`: the rotate notice is inactive until activated; the controller list uses the still variant with the watermark
+- [X] T008 [P] [US3] Browser test additions in `controller/test/browser/screens.test.ts`: the rotate notice is inactive until activated; the controller list uses the still variant with the watermark
 - [X] T009 [US3] `watchOrientation(...).setActive()` and its use in `controller/src/main.ts`
-- [ ] T010 [US3] Controller list redesign in `controller/src/ui/lobby.ts`, `controller/src/ui/screens.ts`, `controller/src/ui/styles.css`
+- [X] T010 [US3] Controller list redesign in `controller/src/ui/lobby.ts`, `controller/src/ui/screens.ts`, `controller/src/ui/styles.css`
 
 ## US4 - Vibration (P3)
 
