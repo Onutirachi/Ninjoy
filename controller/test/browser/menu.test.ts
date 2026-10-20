@@ -270,6 +270,8 @@ describe("menu redesign", () => {
     expect(getComputedStyle(input("Controller height").closest(".nj-row")!).opacity).toBe("0");
     expect(getComputedStyle(size.closest(".nj-row")!).opacity).toBe("1");
     expect(getComputedStyle(overlay()).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 5 })); // another finger
+    expect(overlay().classList.contains("nj-peek")).toBe(true);
     window.dispatchEvent(new PointerEvent("pointercancel"));
     expect(overlay().classList.contains("nj-peek")).toBe(false);
     expect(size.closest(".nj-row")!.classList.contains("dragging")).toBe(false);
@@ -299,19 +301,36 @@ describe("menu redesign", () => {
     expect(document.querySelector(".nj-zones")).toBeNull();
   });
 
-  it("draws the trigger zones while a trigger zone slider is dragged", async () => {
+  it("shows the trigger zones in the trigger's own fill while a trigger zone slider is dragged", async () => {
     await start();
     tab("Touch").click();
-    const max = input("100% zone (top)");
-    max.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-    const bands = document.querySelectorAll<HTMLElement>(".nj-zones .nj-zone-band");
-    expect(bands).toHaveLength(4);
-    const l2 = root.querySelector<SVGElement>('svg[data-control="l2-left"]')!.getBoundingClientRect();
-    const band = [...bands].find((b) => Math.abs(b.getBoundingClientRect().left - l2.left) < 30)!.getBoundingClientRect();
-    expect(band.top).toBeCloseTo(l2.top, -1); // strong end at the top
-    expect(band.height / l2.height).toBeCloseTo(0.25, 1);
+    const l2 = root.querySelector<SVGSVGElement>('svg[data-control="l2-left"]')!;
+    const max = l2.querySelector<SVGRectElement>("[data-max-zone]")!;
+    expect(Number(max.getAttribute("fill-opacity"))).toBe(0);
+    const slider = input("100% zone (top)");
+    slider.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    expect(Number(max.getAttribute("fill-opacity"))).toBeGreaterThan(0.5);
+    const height = () => max.getBoundingClientRect().height;
+    const at25 = height();
+    slider.value = "50";
+    slider.dispatchEvent(new Event("input"));
+    expect(height() / at25).toBeCloseTo(2, 1);
+    touch(root).down(...at(root, "cross")).up(); // the controller updating keeps the preview
+    expect(Number(max.getAttribute("fill-opacity"))).toBeGreaterThan(0.5);
     window.dispatchEvent(new PointerEvent("pointerup"));
-    expect(document.querySelector(".nj-zones")).toBeNull();
+    expect(Number(max.getAttribute("fill-opacity"))).toBe(0);
+  });
+
+  it("shows a circle the size of the finger next to its value", async () => {
+    await start();
+    tab("Touch").click();
+    const finger = input("Finger size");
+    finger.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    finger.value = "20";
+    finger.dispatchEvent(new Event("input"));
+    const dot = finger.closest(".nj-row")!.querySelector<HTMLElement>(".nj-finger-dot")!;
+    expect(dot.getBoundingClientRect().width).toBeCloseTo(40, 0); // radius 20 px, at screen scale
+    window.dispatchEvent(new PointerEvent("pointerup"));
   });
 
   it("offers four vibration modes and taps the strength while dragging, at most every 150 ms", async () => {

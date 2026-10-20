@@ -51,10 +51,13 @@ export function slider(o: SliderOptions) {
     ? el("label", { className: "nj-row nj-vrow" }, [input, el("span", { className: "nj-vmeta" }, [label, output, ...(o.note ? [el("small", { textContent: o.note })] : [])])])
     : el("label", { className: "nj-row" }, [el("div", { className: "nj-row-head" }, [label, el("span", { className: "nj-row-value" }, o.extra ? [output, o.extra] : [output])]), input]);
   if (o.onDrag) {
-    input.addEventListener("pointerdown", () => {
+    input.addEventListener("pointerdown", (down) => {
+      if (row.classList.contains("dragging")) return; // a second finger
       row.classList.add("dragging");
       o.onDrag!(true);
-      const end = () => {
+      // only the finger that started the drag ends it
+      const end = (up: PointerEvent) => {
+        if (up.pointerId !== down.pointerId) return;
         removeEventListener("pointerup", end);
         removeEventListener("pointercancel", end);
         row.classList.remove("dragging");

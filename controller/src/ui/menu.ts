@@ -98,8 +98,18 @@ export function createMenu(o: MenuOptions) {
     const triggers = triggerZones(firstTrigger ?? {}, s);
     const zone = (key: "stickDeadZone" | "stickMaxZone" | "triggerMinForce" | "triggerMaxZone", value: number, max: number, kind: "stick" | "trigger") =>
       slider({ label: t(ZONE_LABELS[key]), min: 0, max, value: pct(value), format: percent, onDrag: peek(kind), onInput: (v) => controller.updateSettings({ [key]: v / 100 }) }).el;
+    // touches are circles of this radius: shown at the screen's scale next to the value
+    const fingerDot = el("span", { className: "nj-finger-dot", ariaHidden: "true" });
+    const sizeDot = (r: number) => (fingerDot.style.width = fingerDot.style.height = `${Math.max(4, 2 * r)}px`);
+    sizeDot(s.finger);
     const touch = [
-      slider({ label: t("menu.finger"), min: 0, max: 40, value: s.finger, format: (v) => t("menu.px.value", { value: v }), onDrag: peek(), onInput: (v) => controller.updateSettings({ finger: v }) }).el,
+      slider({
+        label: t("menu.finger"), min: 0, max: 40, value: s.finger, extra: fingerDot, format: (v) => t("menu.px.value", { value: v }), onDrag: peek(),
+        onInput: (v) => {
+          sizeDot(v);
+          controller.updateSettings({ finger: v });
+        },
+      }).el,
       ...(firstStick ? [
         el("h4", { textContent: t("menu.sticks") }),
         el("div", { className: "nj-pair" }, [zone("stickDeadZone", sticks.deadZone, 40, "stick"), zone("stickMaxZone", sticks.maxZone, 30, "stick")]),

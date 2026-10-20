@@ -76,8 +76,9 @@ export interface Controller {
   /** what this device can do, for the menu to explain what is unavailable */
   readonly support: { motion: MotionSupport; vibration: boolean };
   /**
-   * Draws the effective zones over every stick (dead zone, 100% zone) or trigger (100% zone,
-   * minimum force) until called with null; they follow setting changes meanwhile.
+   * Draws the effective zones over every stick (dead zone, 100% zone), every trigger
+   * (100% zone, minimum force, in its own fill) until called with null; they follow setting
+   * changes.
    */
   previewZones(kind: "stick" | "trigger" | null): void;
   readonly fullscreen: boolean;
@@ -159,6 +160,7 @@ export function createController(options: ControllerOptions): Controller {
   const drawZones = () => {
     zoneLayer?.remove();
     zoneLayer = null;
+    for (const fill of fills.values()) fill.update(0, 0, 0, false);
     if (!zoneKind) return;
     const layer = document.createElement("div");
     layer.className = "nj-zones";
@@ -185,6 +187,11 @@ export function createController(options: ControllerOptions): Controller {
       for (const rc of triggers) {
         const r = hitTester.box(rc);
         const zones = triggerZones(rc.control, settings, overrides[rc.control.id]);
+        const fill = fills.get(rc);
+        if (fill) {
+          fill.preview(zones.maxZone, zones.minForce);
+          continue;
+        }
         const direction = rc.control.trigger?.direction ?? "up";
         // the strong end (100% zone) and the weak end (minimum force) along the trigger's direction
         const end = (fraction: number, strong: boolean) => {
@@ -276,7 +283,8 @@ export function createController(options: ControllerOptions): Controller {
     order.track(fingers.map((f) => f.id));
     const finger = fingers.find((f) => f.id === order.last());
     if (!finger || !control.trigger) {
-      fills.get(rc)?.update(0, 0, 0, false);
+      // keep the menu's zone preview drawn in the fill
+      if (zoneKind !== "trigger") fills.get(rc)?.update(0, 0, 0, false);
       return;
     }
     const r = hitTester.box(rc);
