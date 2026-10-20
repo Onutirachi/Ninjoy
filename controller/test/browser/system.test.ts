@@ -164,9 +164,11 @@ describe("touchpad click by double tap (polish US2)", () => {
       hold.move(...at(root, `touchpad-${side}`, 0.9, 0.2));
       expect(pressed(controller)).toEqual(["touchpad"]);
       expect(controller.state.touchpad.touches[0]!.x).toBeCloseTo(side === "left" ? 0.45 : 0.95, 1);
-      // sliding out over the buttons below keeps only the click
+      // sliding out lets go of the click and presses nothing else
       hold.move(...at(root, "share"));
-      expect(pressed(controller)).toEqual(["touchpad"]);
+      expect(pressed(controller)).toEqual([]);
+      hold.move(...at(root, `touchpad-${side}`, 0.5, 0.5)); // back in: no click until a new double tap
+      expect(pressed(controller)).toEqual([]);
       time = 2000;
       hold.up();
       expect(pressed(controller)).toEqual([]);

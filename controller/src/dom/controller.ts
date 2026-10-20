@@ -234,6 +234,7 @@ export function createController(options: ControllerOptions): Controller {
         points.set(finger.id, { id: finger.id, ...touchpadPoint(local, rc.control.area ?? "full") });
       }
     }
+    touchpadClick.onTouchpad(new Set(points.keys()));
     touchOrder.track(points.keys());
     const touches = touchOrder.recent(MAX_TOUCHES).map((id) => points.get(id)!);
     if (!touches.length) {

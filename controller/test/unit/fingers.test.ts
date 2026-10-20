@@ -84,6 +84,20 @@ describe("TapClick", () => {
     expect(t.clicking).toBe(false);
   });
 
+  it("lets go of the click when the finger leaves the touchpad", () => {
+    const t = new TapClick<string>();
+    t.touch(1, "left", 0, 100, 100);
+    t.release(1, 100);
+    t.touch(2, "left", 200, 100, 100);
+    t.onTouchpad(new Set([2]));
+    expect(t.clicking).toBe(true);
+    t.onTouchpad(new Set());
+    expect(t.clicking).toBe(false);
+    expect(t.holds(2)).toBe(true); // still the touchpad's finger
+    t.release(2, 900);
+    expect(t.holds(2)).toBe(false);
+  });
+
   it("does not click after quick flicks or a second touch far from the tap", () => {
     const t = new TapClick<string>();
     // moving the cursor with quick short flicks
