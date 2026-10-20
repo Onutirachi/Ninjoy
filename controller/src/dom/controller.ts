@@ -8,7 +8,7 @@ import { stickValue } from "../engine/stick.ts";
 import { CLICK_POINT, MAX_TOUCHES, touchpadPoint } from "../engine/touchpad.ts";
 import { triggerForce } from "../engine/zones.ts";
 import { browserFullscreen, type FullscreenAdapter } from "../platform/fullscreen.ts";
-import { browserMotion, type MotionAdapter } from "../platform/motion.ts";
+import { browserMotion, type MotionAdapter, type MotionSupport } from "../platform/motion.ts";
 import { createStore } from "../platform/storage.ts";
 import { browserVibration, type VibrationAdapter } from "../platform/vibration.ts";
 import { createAppearance } from "./appearance.ts";
@@ -73,6 +73,13 @@ export interface Controller {
   setGameRumble(on: boolean): void;
   /** one button tap at the current strength, to feel it while adjusting */
   previewTap(): void;
+  /** what this device can do, for the menu to explain what is unavailable */
+  readonly support: { motion: MotionSupport; vibration: boolean };
+  /**
+   * Draws the effective zones over every stick (dead zone, 100% zone) or trigger (100% zone,
+   * minimum force) until called with null; they follow setting changes meanwhile.
+   */
+  previewZones(kind: "stick" | "trigger" | null): void;
   readonly fullscreen: boolean;
   /** from a tap; shows the home-screen notice where unsupported */
   toggleFullscreen(): void;
@@ -145,6 +152,57 @@ export function createController(options: ControllerOptions): Controller {
   };
 
   let gameRumble = false;
+
+  /** zone preview layer (see previewZones) */
+  let zoneKind: "stick" | "trigger" | null = null;
+  let zoneLayer: HTMLElement | null = null;
+  const drawZones = () => {
+    zoneLayer?.remove();
+    zoneLayer = null;
+    if (!zoneKind) return;
+    const layer = document.createElement("div");
+    layer.className = "nj-zones";
+    const shape = (className: string, box: { left: number; top: number; width: number; height: number }, style: Partial<CSSStyleDeclaration> = {}) => {
+      const d = document.createElement("div");
+      d.className = className;
+      Object.assign(d.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` }, style);
+      layer.append(d);
+    };
+    if (zoneKind === "stick") {
+      for (const rc of sticks) {
+        const area = hitTester.box(rc);
+        let rest = thumbRest.get(rc);
+        if (!rest) thumbRest.set(rc, (rest = thumbs.get(rc)!.measure(area)));
+        const tx = Math.max(1, (area.width / 2) * (1 - rest.size.x)), ty = Math.max(1, (area.height / 2) * (1 - rest.size.y));
+        const cx = area.left + area.width / 2, cy = area.top + area.height / 2;
+        const zones = stickZones(rc.control, settings, overrides[rc.control.id]);
+        const ellipse = (k: number) => ({ left: cx - tx * k, top: cy - ty * k, width: 2 * tx * k, height: 2 * ty * k });
+        // the 100% zone is the band between (1 - maxZone) and the edge of the travel
+        shape("nj-zone-max", ellipse(1), { borderWidth: `${ty * zones.maxZone}px ${tx * zones.maxZone}px` });
+        shape("nj-zone-dead", ellipse(zones.deadZone));
+      }
+    } else {
+      for (const rc of triggers) {
+        const r = hitTester.box(rc);
+        const zones = triggerZones(rc.control, settings, overrides[rc.control.id]);
+        const direction = rc.control.trigger?.direction ?? "up";
+        // the strong end (100% zone) and the weak end (minimum force) along the trigger's direction
+        const end = (fraction: number, strong: boolean) => {
+          const atStart = strong === (direction === "up" || direction === "left");
+          if (direction === "up" || direction === "down") {
+            const h = r.height * fraction;
+            return { left: r.left, top: atStart ? r.top : r.top + r.height - h, width: r.width, height: h };
+          }
+          const w = r.width * fraction;
+          return { left: atStart ? r.left : r.left + r.width - w, top: r.top, width: w, height: r.height };
+        };
+        shape("nj-zone-band", end(zones.maxZone, true));
+        shape("nj-zone-min", end(zones.minForce, false));
+      }
+    }
+    document.body.append(layer);
+    zoneLayer = layer;
+  };
   const update = (vibrateFor?: Finger) => {
     builder.reset();
     const now = platform.now();
@@ -403,10 +461,18 @@ export function createController(options: ControllerOptions): Controller {
       settings = clampSettings({ ...settings, ...rest });
       store.saveSettings(settings);
       relayout();
+      if (zoneKind) drawZones();
       if (gyro !== undefined && gyro !== state.gyro) toggleGyro(gyro);
     },
     setGameRumble(on) {
       gameRumble = on;
+    },
+    get support() {
+      return { motion: platform.motion.support(), vibration: platform.vibration.supported() };
+    },
+    previewZones(kind) {
+      zoneKind = kind;
+      drawZones();
     },
     previewTap() {
       if (!gameRumble && platform.vibration.supported()) platform.vibration.vibrate(tapMs(settings.tapStrength));
@@ -443,6 +509,7 @@ export function createController(options: ControllerOptions): Controller {
     releaseAll: () => input.releaseAll(),
     relayout,
     dispose() {
+      zoneLayer?.remove();
       resizeObserver.disconnect();
       editor.dispose();
       stopFullscreen();
