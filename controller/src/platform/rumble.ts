@@ -4,6 +4,11 @@ import { browserVibration, type VibrationAdapter } from "./vibration.ts";
 export const CYCLE_MS = 100;
 /** Shortest pulse a phone motor reliably spins up for. */
 const MIN_ON_MS = 30;
+/**
+ * A rumble lasts at least this long: games send very short bursts (a machine gun's shots) that
+ * would stop the phone's motor before it spins up.
+ */
+export const MIN_RUMBLE_MS = 80;
 /** Pattern length sent at a time; refreshed while the rumble lasts. */
 const PATTERN_CYCLES = 12;
 
@@ -27,26 +32,41 @@ export function createRumble(o: { vibration?: VibrationAdapter; onUnsupported?()
   let vibrating = false;
   /** the pulse playing now: games repeat the same rumble, and restarting it cuts the motor */
   let playing = "";
+  /** when the current rumble started, and a stop waiting for MIN_RUMBLE_MS */
+  let startedAt = 0;
+  let pendingStop = 0;
 
-  const stop = () => {
+  const stopNow = () => {
+    clearTimeout(pendingStop);
+    pendingStop = 0;
     clearInterval(refresh);
     refresh = 0;
     if (vibrating) vibration.vibrate(0);
     vibrating = false;
     playing = "";
   };
+  /** the game stopped rumbling: let a short burst last MIN_RUMBLE_MS */
+  const release = () => {
+    if (!vibrating || pendingStop) return;
+    const left = MIN_RUMBLE_MS - (performance.now() - startedAt);
+    if (left <= 0) stopNow();
+    else pendingStop = window.setTimeout(stopNow, left);
+  };
 
   return {
     /** strong, weak in 0…255 */
     set(strong: number, weak: number) {
       const pulse = rumblePulse(strong, weak);
-      if (!pulse) return stop();
+      if (!pulse) return release();
       if (!vibration.supported()) {
         if (!warned) o.onUnsupported?.();
         warned = true;
         return;
       }
+      clearTimeout(pendingStop);
+      pendingStop = 0;
       if (playing === pulse.join()) return;
+      if (!vibrating) startedAt = performance.now();
       playing = pulse.join();
       vibrating = true;
       const pattern = Array.from({ length: PATTERN_CYCLES }, () => pulse).flat();
@@ -56,7 +76,7 @@ export function createRumble(o: { vibration?: VibrationAdapter; onUnsupported?()
       clearInterval(refresh);
       refresh = window.setInterval(() => vibration.vibrate(pulse[1] === 0 ? CYCLE_MS * PATTERN_CYCLES : pattern.slice(0, -1)), CYCLE_MS * PATTERN_CYCLES - CYCLE_MS);
     },
-    /** page hidden or disconnected */
-    stop,
+    /** page hidden, disconnected or vibration turned off */
+    stop: stopNow,
   };
 }

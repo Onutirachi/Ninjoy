@@ -143,7 +143,8 @@ sideways: Chrome reports `rotationRate.alpha` around the device's x axis, `beta`
   background and a large ninja watermark; texts stay in the en/pt catalogs.
 - **FR-007**: The page MUST NOT call the vibration API before it has vibrated at least once. Any
   rumble MUST be felt (pulses of at least 30 ms per 100 ms cycle), and a repeated rumble of the same
-  strength MUST NOT restart the vibration.
+  strength MUST NOT restart the vibration. A rumble MUST last at least 80 ms, so very short bursts
+  (a machine gun's shots) still spin the phone's motor.
 - **FR-009**: The menu MUST offer vibration "game and buttons" (default), "game only" and "off";
   button taps MUST NOT vibrate while the game rumbles (the browser keeps one vibration, so a tap
   would cut the game's).
