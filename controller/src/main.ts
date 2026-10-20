@@ -45,7 +45,7 @@ try {
       }
     },
     onEditLayout: () => controller.setEditMode(true),
-    subtitle: () => (session.slot ? i18n.t("menu.controller", { n: session.slot }) : null),
+    slot: () => session.slot,
   });
   createEditToolbar({ controller, skin, i18n: () => i18n });
   const devPanel = new URLSearchParams(location.search).has("dev") ? attachDevPanel(controller) : null;

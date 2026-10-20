@@ -152,7 +152,7 @@ body {
 }
 
 .nj-panel button.on,
-.nj-close {
+.nj-edit .nj-close {
   background: #227dc3 !important;
   border-color: #3099e8 !important;
 }
@@ -743,4 +743,697 @@ body {
 
 .nj-screen.still .nj-lobby-card.new {
   background: oklch(0.55 0.14 245);
+}
+
+/* ===== player menu: host UI style, a raised side list and a flat main area on the header surface ===== */
+.nj-menu {
+  isolation: isolate;
+  --hue: 250;
+  --m-bg-dark: oklch(0.13 0.008 var(--hue));
+  --m-bg: oklch(0.19 0.01 var(--hue));
+  --m-bg-light: oklch(0.25 0.012 var(--hue));
+  --m-bg-top: oklch(0.31 0.014 var(--hue));
+  --m-text: oklch(0.96 0.005 var(--hue));
+  --m-muted: oklch(0.72 0.012 var(--hue));
+  --m-faint: oklch(0.55 0.012 var(--hue));
+  --m-accent: oklch(0.68 0.15 245);
+  --m-accent-deep: oklch(0.55 0.14 245);
+  --m-warn: oklch(0.8 0.15 85);
+  --m-shadow-s: inset 0 1px 0 #ffffff12, 0 1px 2px #00000038;
+  --m-shadow-m: inset 0 1px 0 #ffffff17, 0 2px 4px #00000040, 0 4px 10px #00000020;
+  --m-shadow-l: inset 0 1px 0 #ffffff1f, 0 3px 6px #00000045, 0 8px 18px #00000028;
+  --m-sunken: inset 0 1px 3px #00000050, inset 0 -1px 0 #ffffff0a;
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 176px 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(780px, 100%);
+  height: min(560px, 100%);
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--m-bg-dark);
+  box-shadow: var(--m-shadow-l), 0 20px 50px #00000080;
+  color: var(--m-muted);
+  font: 500 14px/1.45 "Manrope Variable", system-ui, sans-serif;
+  touch-action: pan-y;
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.nj-menu *,
+.nj-menu *::before,
+.nj-menu *::after {
+  box-sizing: border-box;
+}
+
+.nj-menu button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.nj-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.nj-menu-head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 8px 18px;
+}
+
+.nj-menu-word svg {
+  display: block;
+  height: 22px;
+  width: auto;
+  color: var(--m-text);
+}
+
+.nj-menu-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 6px;
+  border-radius: 999px;
+  background: var(--m-bg);
+  box-shadow: var(--m-shadow-s);
+  font-weight: 700;
+  color: var(--m-text);
+}
+
+.nj-menu-slot b {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--m-accent-deep);
+  color: #fff;
+  font: 600 15px/1 "Chakra Petch", system-ui, sans-serif;
+}
+
+.nj-spacer {
+  flex: 1;
+}
+
+.nj-menu .nj-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--m-muted);
+}
+
+.nj-menu .nj-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nj-menu .nj-close:active {
+  background: var(--m-bg);
+  color: var(--m-text);
+}
+
+.nj-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px 12px;
+  padding: 8px;
+  overflow-y: auto;
+  border-radius: 20px;
+  background: var(--m-bg);
+  box-shadow: var(--m-shadow-m);
+}
+
+.nj-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 12px;
+  border-radius: 14px;
+  font-weight: 700;
+  color: var(--m-faint);
+  text-align: left;
+}
+
+.nj-menu .nj-icon {
+  display: inline-flex;
+}
+
+.nj-menu .nj-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nj-tab[aria-selected="true"] {
+  background: var(--m-bg-light);
+  box-shadow: var(--m-shadow-s);
+  color: var(--m-text);
+}
+
+.nj-tab[aria-selected="true"] .nj-icon {
+  color: var(--m-accent);
+}
+
+.nj-menu-main {
+  position: relative;
+  z-index: 1;
+  overflow-x: hidden;
+  margin: 0 6px 12px;
+  padding: 4px 16px 16px 14px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--m-bg-top) transparent;
+}
+
+.nj-menu-mark {
+  position: absolute;
+  z-index: -1;
+  right: -60px;
+  bottom: -80px;
+  width: 340px;
+  color: oklch(0.96 0.005 250 / 0.02);
+  pointer-events: none;
+}
+
+.nj-menu-mark svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.nj-section {
+  position: relative;
+}
+
+.nj-section[hidden] {
+  display: none;
+}
+
+.nj-section h3 {
+  margin: 0;
+  font: 700 15px "Manrope Variable", system-ui, sans-serif;
+  color: var(--m-text);
+}
+
+.nj-section h4 {
+  margin: 16px 0 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--m-faint);
+}
+
+.nj-section .nj-hint,
+.nj-reason {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: var(--m-faint);
+}
+
+.nj-menu .nj-reason {
+  color: var(--m-warn);
+}
+
+/* rows without cards */
+.nj-menu .nj-row {
+  display: block;
+  padding: 4px;
+  border-radius: 14px;
+  transition: opacity 0.15s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.nj-menu .nj-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+}
+
+.nj-menu .nj-row-value output {
+  font: 600 18px/1 "Chakra Petch", system-ui, sans-serif;
+  color: var(--m-text);
+}
+
+.nj-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 24px;
+}
+
+/* range inputs: track, fill (--fill) and knob */
+.nj-menu input[type="range"] {
+  --fill: 0%;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.nj-menu input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--m-accent-deep), var(--m-accent)) 0 0 / var(--fill) 100% no-repeat, var(--m-bg-light);
+  box-shadow: var(--m-sunken);
+}
+
+.nj-menu input[type="range"]::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--m-accent-deep), var(--m-accent)) 0 0 / var(--fill) 100% no-repeat, var(--m-bg-light);
+  box-shadow: var(--m-sunken);
+}
+
+.nj-menu input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--m-accent) 0 4.5px, var(--m-bg-top) 5.5px);
+  box-shadow: var(--m-shadow-l);
+}
+
+.nj-menu input[type="range"]::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--m-accent) 0 4.5px, var(--m-bg-top) 5.5px);
+  box-shadow: var(--m-shadow-l);
+}
+
+.nj-menu input[type="range"]:focus-visible {
+  outline: 3px solid var(--m-accent);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+.nj-menu input[type="range"]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* vertical: up means more */
+.nj-vpair {
+  display: flex;
+  gap: 14px;
+}
+
+.nj-menu .nj-vrow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 4px;
+}
+
+.nj-menu input.nj-vertical {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  flex: none;
+  width: 44px;
+  height: 170px;
+}
+
+.nj-menu input.nj-vertical::-webkit-slider-runnable-track {
+  width: 10px;
+  height: 100%;
+  background: linear-gradient(0deg, var(--m-accent-deep), var(--m-accent)) 0 100% / 100% var(--fill) no-repeat, var(--m-bg-light);
+}
+
+.nj-menu input.nj-vertical::-moz-range-track {
+  width: 10px;
+  height: 100%;
+  background: linear-gradient(0deg, var(--m-accent-deep), var(--m-accent)) 0 100% / 100% var(--fill) no-repeat, var(--m-bg-light);
+}
+
+.nj-menu input.nj-vertical::-webkit-slider-thumb {
+  width: 30px;
+  height: 30px;
+  margin-top: 0;
+  margin-left: -10px;
+}
+
+.nj-vmeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 700;
+}
+
+.nj-vmeta output {
+  font: 600 30px/1 "Chakra Petch", system-ui, sans-serif;
+  color: var(--m-text);
+}
+
+.nj-vmeta small {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--m-faint);
+}
+
+.nj-menu .nj-link {
+  min-height: 44px;
+  padding: 0 4px;
+  font-weight: 700;
+  color: var(--m-accent);
+}
+
+/* switch */
+.nj-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 56px;
+  padding: 8px 4px;
+}
+
+.nj-switch-row > span {
+  flex: 1;
+}
+
+.nj-switch-row strong {
+  display: block;
+  font-size: 15px;
+  color: var(--m-text);
+}
+
+.nj-switch-row small {
+  color: var(--m-faint);
+}
+
+.nj-switch {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 56px;
+  height: 32px;
+  margin: 6px 0;
+  border-radius: 999px;
+  background: var(--m-bg-light);
+  box-shadow: var(--m-sunken);
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.nj-switch::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--m-bg-top);
+  box-shadow: var(--m-shadow-m);
+  transition: transform 0.18s ease;
+}
+
+.nj-switch:checked {
+  background: var(--m-accent-deep);
+}
+
+.nj-switch:checked::after {
+  transform: translateX(24px);
+  background: #fff;
+}
+
+.nj-switch:focus-visible {
+  outline: 3px solid var(--m-accent);
+  outline-offset: 2px;
+}
+
+.nj-switch:disabled {
+  opacity: 0.35;
+}
+
+/* one choice among a few */
+.nj-choices.nj-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 24px;
+}
+
+.nj-choice {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 4px;
+  cursor: pointer;
+}
+
+.nj-choice input {
+  appearance: none;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  border-radius: 50%;
+  background: var(--m-bg-light);
+  box-shadow: var(--m-sunken);
+}
+
+.nj-choice input:checked {
+  background: var(--m-accent-deep);
+  box-shadow: inset 0 0 0 5px var(--m-bg-top), var(--m-shadow-s);
+}
+
+.nj-choice input:focus-visible {
+  outline: 3px solid var(--m-accent);
+  outline-offset: 2px;
+}
+
+.nj-choice strong {
+  display: block;
+  color: var(--m-text);
+}
+
+.nj-choice small {
+  font-size: 12px;
+  color: var(--m-faint);
+}
+
+.nj-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: oklch(0.8 0.15 85 / 0.12);
+  color: var(--m-warn);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+.nj-choice:has(input:disabled) {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* segmented (language) */
+.nj-choices.nj-seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--m-bg);
+  box-shadow: var(--m-sunken);
+}
+
+.nj-seg .nj-choice {
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 999px;
+}
+
+.nj-seg .nj-choice input {
+  position: absolute;
+  opacity: 0;
+}
+
+.nj-seg .nj-choice strong {
+  color: var(--m-faint);
+}
+
+.nj-seg .nj-choice:has(input:checked) {
+  background: var(--m-bg-top);
+  box-shadow: var(--m-shadow-m);
+}
+
+.nj-seg .nj-choice:has(input:checked) strong {
+  color: var(--m-text);
+}
+
+.nj-seg .nj-choice:has(input:focus-visible) {
+  outline: 3px solid var(--m-accent);
+}
+
+/* general actions */
+.nj-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.nj-menu .nj-actions button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 72px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--m-muted);
+}
+
+.nj-actions .nj-icon {
+  color: var(--m-accent);
+}
+
+.nj-menu .nj-actions .nj-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.nj-menu .nj-actions button:active {
+  background: var(--m-bg);
+}
+
+/* see-through while a slider is dragged: only its row stays */
+.nj-overlay.nj-peek {
+  background: transparent;
+}
+
+.nj-peek .nj-menu {
+  background: transparent;
+  box-shadow: none;
+}
+
+.nj-peek .nj-menu-head,
+.nj-peek .nj-rail,
+.nj-peek .nj-menu-mark,
+.nj-peek .nj-section > :not(:has(.dragging), .dragging),
+.nj-peek .nj-pair > :not(.dragging),
+.nj-peek .nj-vpair > :not(.dragging) {
+  opacity: 0;
+}
+
+.nj-peek .nj-menu-main {
+  scrollbar-color: transparent transparent;
+}
+
+.nj-peek .nj-menu .dragging {
+  padding: 10px 16px;
+  background: oklch(0.19 0.01 250 / 0.82);
+  box-shadow: var(--m-shadow-l);
+  backdrop-filter: blur(6px);
+}
+
+.nj-peek .nj-vrow.dragging {
+  flex: 0 0 auto;
+}
+
+.nj-peek .dragging small {
+  display: none;
+}
+
+.nj-menu-head,
+.nj-rail,
+.nj-menu-mark,
+.nj-section > *,
+.nj-pair > *,
+.nj-vpair > * {
+  transition: opacity 0.15s ease;
+}
+
+/* zone previews drawn over the controller while a zone slider is dragged */
+.nj-zones {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.nj-zones > div {
+  position: fixed;
+  box-sizing: border-box;
+}
+
+.nj-zone-max {
+  border: 0 solid rgb(48 153 232 / 0.6);
+  border-radius: 50%;
+  outline: 2px dashed #fff;
+}
+
+.nj-zone-dead {
+  border: 3px solid #f2c94c;
+  border-radius: 50%;
+  background: rgb(242 201 76 / 0.45);
+}
+
+.nj-zone-band {
+  border-radius: 10px;
+  background: rgb(48 153 232 / 0.6);
+}
+
+.nj-zone-min {
+  border-radius: 10px;
+  background: rgb(242 201 76 / 0.5);
+}
+
+/* phone held sideways: icons only in the side list */
+@media (max-height: 430px) {
+  .nj-menu {
+    grid-template-columns: 72px 1fr;
+  }
+
+  .nj-tab {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .nj-tab span:not(.nj-icon) {
+    display: none;
+  }
+
+  .nj-menu-head {
+    padding: 8px 8px 6px 14px;
+  }
+
+  .nj-rail {
+    margin-left: 10px;
+    padding: 6px;
+  }
+
+  .nj-menu-main {
+    padding: 2px 12px 12px 10px;
+  }
+
+  .nj-menu input.nj-vertical {
+    height: 128px;
+  }
 }
