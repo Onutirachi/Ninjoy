@@ -31,4 +31,4 @@
 
 ## Polish
 
-- [ ] T012 Run the page on a phone with the spike host (tap to play, touchpad clicks in Steam, list upright) and mark the spec Implemented
+- [X] T012 Run the page on a phone with the spike host (tap to play, touchpad clicks in Steam, list upright) and mark the spec Implemented

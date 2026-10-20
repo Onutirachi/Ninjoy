@@ -2,7 +2,7 @@ import type { Binding, ResolvedSkin } from "@ninjoy/skin-format";
 import { EntryOrder, StickFingers, TapClick } from "../engine/fingers.ts";
 import { autoSize, type LayoutEdit } from "../engine/layout.ts";
 import { toControllerFrame } from "../engine/motion.ts";
-import { clampSettings, settingsFromStorage, stickZones, triggerZones, type ControlOverride, type PlayerSettings } from "../engine/settings.ts";
+import { tapsVibrate, clampSettings, settingsFromStorage, stickZones, triggerZones, type ControlOverride, type PlayerSettings } from "../engine/settings.ts";
 import { StateBuilder, type ControllerState, type DS4Button, type Touch } from "../engine/state.ts";
 import { stickValue } from "../engine/stick.ts";
 import { CLICK_POINT, MAX_TOUCHES, touchpadPoint } from "../engine/touchpad.ts";
@@ -179,7 +179,7 @@ export function createController(options: ControllerOptions): Controller {
       else active.delete(rc);
       looks.get(rc)!.apply({ active: isActive, on: toggleState(rc) });
     }
-    if (activated && vibrateFor?.pointerType === "touch" && settings.vibration === "all" && !gameRumble) {
+    if (activated && vibrateFor?.pointerType === "touch" && tapsVibrate(settings.vibration) && !gameRumble) {
       if (platform.vibration.supported()) platform.vibration.vibrate(12);
       else notify("noVibration");
     }

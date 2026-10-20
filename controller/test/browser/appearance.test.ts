@@ -100,6 +100,10 @@ describe("visual feedback (US7)", () => {
     touch(root).down(...at(root, "cross")).up();
     controller.updateSettings({ vibration: "off" });
     touch(root).down(...at(root, "cross")).up();
+    controller.updateSettings({ vibration: "buttons" });
+    touch(root).down(...at(root, "cross")).up();
+    expect(platform.calls.vibrate).toEqual([12]); // buttons only still taps
+    platform.calls.vibrate.length = 0;
     controller.updateSettings({ vibration: "all" });
     controller.setGameRumble(true); // a tap would replace the game's vibration
     touch(root).down(...at(root, "cross")).up();

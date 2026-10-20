@@ -1,4 +1,5 @@
 import { createController } from "./dom/controller.ts";
+import { gameVibrates } from "./engine/settings.ts";
 import { createI18n, detectLanguage, type I18n } from "./i18n/index.ts";
 import { deviceId } from "./platform/device-id.ts";
 import { keepAwake } from "./platform/wake-lock.ts";
@@ -38,7 +39,7 @@ try {
     i18n: () => i18n,
     onLanguage: setLanguage,
     onVibration: (v) => {
-      if (v === "off") {
+      if (!gameVibrates(v)) {
         rumble.stop();
         controller.setGameRumble(false);
       }
@@ -138,7 +139,7 @@ try {
     onRtt: (ms) => devPanel?.setRtt(ms),
     onFeedback: (f) => {
       if (f.rumble) {
-        const [strong, weak] = controller.settings.vibration === "off" ? [0, 0] : f.rumble;
+        const [strong, weak] = gameVibrates(controller.settings.vibration) ? f.rumble : [0, 0];
         rumble.set(strong, weak);
         controller.setGameRumble(strong > 0 || weak > 0);
       }
