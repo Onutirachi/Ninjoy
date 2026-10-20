@@ -128,7 +128,12 @@ async fn main() {
         }
     };
     println!("\nNinjoy session");
-    for ip in &a.ips {
+    let hosts = a
+        .name
+        .iter()
+        .cloned()
+        .chain(a.ips.iter().map(|ip| ip.to_string()));
+    for ip in hosts {
         let plain = format!("http://{ip}{}/", port(a.plain_port, 80));
         match a.secure_port {
             Some(secure) => println!(

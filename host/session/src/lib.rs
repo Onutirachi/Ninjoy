@@ -5,6 +5,7 @@
 
 mod connection;
 pub mod device;
+pub mod mdns;
 pub mod net;
 pub mod protocol;
 mod server;
@@ -40,6 +41,8 @@ pub struct SessionConfig {
     pub local_name: String,
     /// where the certificate is kept; default: Ninjoy's app data folder
     pub data_dir: Option<PathBuf>,
+    /// announce the local name on the network (mDNS)
+    pub announce: bool,
     pub grace: Duration,
     pub loss_timeout: Duration,
     /// serve the page from this folder instead of the copy built into the program
@@ -53,6 +56,7 @@ impl Default for SessionConfig {
             plain_ports: vec![80, 8080],
             local_name: "ninjoy".to_owned(),
             data_dir: None,
+            announce: true,
             grace: Duration::from_secs(60),
             loss_timeout: Duration::from_secs(1),
             web_root: None,
@@ -85,6 +89,8 @@ impl std::error::Error for StartError {}
 /// Where phones can reach this PC.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Addresses {
+    /// e.g. "ninjoy.local"; None when the name could not be announced
+    pub name: Option<String>,
     pub ips: Vec<Ipv4Addr>,
     /// None when HTTPS could not start (the plain address still works, without motion sensors)
     pub secure_port: Option<u16>,
@@ -107,6 +113,7 @@ pub struct Session {
     addresses: Addresses,
     stop: watch::Sender<bool>,
     tasks: Vec<JoinHandle<()>>,
+    announcement: Option<mdns::Announcement>,
 }
 
 impl Session {
@@ -162,8 +169,25 @@ impl Session {
         };
         let _ = secure_port_cell.set(secure_port);
 
+        let announcement = if config.announce {
+            let (name, addresses) = (config.local_name.clone(), ips.clone());
+            let port = secure_port.unwrap_or(plain_port);
+            match tokio::task::spawn_blocking(move || mdns::announce(&name, &addresses, port)).await
+            {
+                Ok(Ok(announcement)) => Some(announcement),
+                Ok(Err(error)) => {
+                    tracing::warn!(%error, "the local name is not announced; use the IP address");
+                    None
+                }
+                Err(_) => None,
+            }
+        } else {
+            None
+        };
+
         tasks.push(tokio::spawn(expire_held_slots(shared.clone(), stop_rx)));
         let addresses = Addresses {
+            name: announcement.as_ref().map(|a| a.host.clone()),
             ips,
             secure_port,
             plain_port,
@@ -174,6 +198,7 @@ impl Session {
             addresses,
             stop,
             tasks,
+            announcement,
         })
     }
 
@@ -261,6 +286,7 @@ impl Session {
     }
 
     pub async fn shutdown(self) {
+        drop(self.announcement);
         let _ = self.stop.send(true);
         for task in self.tasks {
             let _ = task.await;

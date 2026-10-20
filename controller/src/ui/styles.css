@@ -534,3 +534,29 @@ body {
   color: oklch(0.72 0.012 250);
   font-weight: 600;
 }
+
+.nj-screen-content {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.31 0.014 250) transparent;
+}
+
+/* landscape phones: keep everything on one screen */
+@media (max-height: 500px) {
+  .nj-screen-logo svg {
+    height: 22vh;
+  }
+
+  .nj-screen-content {
+    gap: 10px;
+  }
+
+  .nj-explain {
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .nj-explain h1 {
+    font-size: 18px;
+  }
+}
