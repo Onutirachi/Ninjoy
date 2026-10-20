@@ -1,6 +1,7 @@
 # Virtual DualShock 4 prototype: findings
 
-Input for the virtual DS4 spec. The prototype turned each phone slot into a ViGEmBus DualShock 4
+Input for the virtual DS4 spec, now implemented in `host/devices` (spec
+`specs/20261020-174310-virtual-ds4-backend/`); the last section lists what the backend confirmed. The prototype turned each phone slot into a ViGEmBus DualShock 4
 (extended report: touchpad, gyroscope, accelerometer) and sent the game's rumble and lightbar
 back to the phone. Tested on Windows with Steam, Counter-Strike and Overwatch, October 2026.
 
@@ -51,3 +52,14 @@ back to the phone. Tested on Windows with Steam, Counter-Strike and Overwatch, O
   is enough. With the click held and no finger on the touchpad, Steam can fire the touchpad click's
   own binding (often View: the game's scoreboard); the page now lets go of the click when the
   finger leaves the touchpad.
+
+## Confirmed by the backend (October 2026)
+
+- Windows: the developer host with the ViGEmBus backend behaves like the prototype in Steam and
+  games (buttons, sticks, analog triggers, touchpad with the double-tap click, gyro with the
+  one-to-one mapping, rumble path) with the report encoded once as the USB report 0x01.
+- Linux (CI, Ubuntu Azure kernel 6.17): a UHID pad is created, its hidraw node answers the
+  calibration (0x02) and pairing (0x12) feature reports, and output reports (rumble) come back as
+  feedback. That kernel has no `hid-playstation`, so the evdev devices a desktop kernel creates
+  (gamepad, motion sensors, touchpad) are still to be checked on a Linux PC.
+- Steady 250 reports/s holds for 8 pads; the backend adds well under 1 ms per state.
