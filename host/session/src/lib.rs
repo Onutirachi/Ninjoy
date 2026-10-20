@@ -11,10 +11,11 @@ mod server;
 mod shared;
 pub mod slots;
 pub mod state;
+pub mod tls;
 
 use std::net::{Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, SystemTime};
 
 use tokio::net::TcpListener;
@@ -31,8 +32,14 @@ use shared::{Control, Shared, lock};
 
 #[derive(Clone, Debug)]
 pub struct SessionConfig {
+    /// ports to try for the secure server, in order; 0 = any free port; empty = no HTTPS
+    pub secure_ports: Vec<u16>,
     /// ports to try for the plain (non-secure) server, in order; 0 = any free port
     pub plain_ports: Vec<u16>,
+    /// the local network name, without `.local`
+    pub local_name: String,
+    /// where the certificate is kept; default: Ninjoy's app data folder
+    pub data_dir: Option<PathBuf>,
     pub grace: Duration,
     pub loss_timeout: Duration,
     /// serve the page from this folder instead of the copy built into the program
@@ -42,7 +49,10 @@ pub struct SessionConfig {
 impl Default for SessionConfig {
     fn default() -> Self {
         Self {
+            secure_ports: vec![443, 8443],
             plain_ports: vec![80, 8080],
+            local_name: "ninjoy".to_owned(),
+            data_dir: None,
             grace: Duration::from_secs(60),
             loss_timeout: Duration::from_secs(1),
             web_root: None,
@@ -76,6 +86,8 @@ impl std::error::Error for StartError {}
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Addresses {
     pub ips: Vec<Ipv4Addr>,
+    /// None when HTTPS could not start (the plain address still works, without motion sensors)
+    pub secure_port: Option<u16>,
     pub plain_port: u16,
 }
 
@@ -105,12 +117,14 @@ impl Session {
         let shared = Arc::new(Shared::new(sink, config.grace, config.loss_timeout));
         let (stop, stop_rx) = watch::channel(false);
 
+        let secure_port_cell = Arc::new(OnceLock::new());
         let plain = bind(&config.plain_ports).await?;
         let plain_port = plain.local_addr().map(|a| a.port()).unwrap_or_default();
         let app = server::router(AppState {
             shared: shared.clone(),
             web_root: config.web_root.clone(),
             plain: true,
+            secure_port: secure_port_cell.clone(),
         });
         let mut stop_plain = stop_rx.clone();
         let serve_plain = tokio::spawn(async move {
@@ -126,9 +140,32 @@ impl Session {
             }
         });
 
-        let expiry = tokio::spawn(expire_held_slots(shared.clone(), stop_rx));
+        let ips = net::reachable_addresses();
+        let mut tasks = vec![serve_plain];
+        let secure_port = match start_secure(
+            &config,
+            &shared,
+            &ips,
+            secure_port_cell.clone(),
+            stop_rx.clone(),
+        )
+        .await
+        {
+            Ok((port, task)) => {
+                tasks.push(task);
+                Some(port)
+            }
+            Err(error) => {
+                tracing::error!(%error, "HTTPS is not available; motion sensors will not work");
+                None
+            }
+        };
+        let _ = secure_port_cell.set(secure_port);
+
+        tasks.push(tokio::spawn(expire_held_slots(shared.clone(), stop_rx)));
         let addresses = Addresses {
-            ips: net::reachable_addresses(),
+            ips,
+            secure_port,
             plain_port,
         };
         tracing::info!(?addresses, "session started");
@@ -136,7 +173,7 @@ impl Session {
             shared,
             addresses,
             stop,
-            tasks: vec![serve_plain, expiry],
+            tasks,
         })
     }
 
@@ -247,6 +284,56 @@ async fn bind(ports: &[u16]) -> Result<TcpListener, StartError> {
         ports: ports.to_vec(),
         source,
     })
+}
+
+/// The HTTPS server with the per-install certificate.
+async fn start_secure(
+    config: &SessionConfig,
+    shared: &Arc<Shared>,
+    ips: &[Ipv4Addr],
+    secure_port: Arc<OnceLock<Option<u16>>>,
+    mut stop: watch::Receiver<bool>,
+) -> std::io::Result<(u16, JoinHandle<()>)> {
+    if config.secure_ports.is_empty() {
+        return Err(std::io::Error::other("no secure port configured"));
+    }
+    // rustls is built without a default crypto provider (see Cargo.toml)
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    let dir = config
+        .data_dir
+        .clone()
+        .unwrap_or_else(tls::default_data_dir);
+    let cert = tls::load_or_create(&dir, &config.local_name, ips)?;
+    let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem(
+        cert.cert_pem.into_bytes(),
+        cert.key_pem.into_bytes(),
+    )
+    .await?;
+    let listener = bind(&config.secure_ports)
+        .await
+        .map_err(std::io::Error::other)?
+        .into_std()?;
+    let port = listener.local_addr()?.port();
+    let app = server::router(AppState {
+        shared: shared.clone(),
+        web_root: config.web_root.clone(),
+        plain: false,
+        secure_port,
+    });
+    let handle = axum_server::Handle::new();
+    let server = axum_server::from_tcp_rustls(listener, tls_config)?.handle(handle.clone());
+    let task = tokio::spawn(async move {
+        let stopper = tokio::spawn(async move {
+            let _ = stop.wait_for(|stopped| *stopped).await;
+            handle.graceful_shutdown(Some(Duration::from_secs(1)));
+        });
+        let service = app.into_make_service_with_connect_info::<SocketAddr>();
+        if let Err(error) = server.serve(service).await {
+            tracing::error!(%error, "secure server stopped");
+        }
+        stopper.abort();
+    });
+    Ok((port, task))
 }
 
 /// Frees held slots whose grace period is over.

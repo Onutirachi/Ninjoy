@@ -52,5 +52,13 @@
   "lobby.emptyNoCreate": "No controllers yet. Ask the host to create one.",
   "lobby.controller": "Controller {n}",
   "menu.controller": "Controller {n}",
-  "notice.turnSideways": "Turn your device sideways to play."
+  "notice.turnSideways": "Turn your device sideways to play.",
+  "explain.title": "Open the Ninjoy controller",
+  "explain.why": "Ninjoy uses a secure connection with a certificate made by your PC, so motion sensors and fullscreen work. The first time, your browser shows a security warning. That is expected: the connection stays inside your home network.",
+  "explain.android": "Android: tap “Advanced”, then “Proceed to … (unsafe)”.",
+  "explain.iphone": "iPhone: tap “Show Details”, then “visit this website”, then “Visit Website”.",
+  "explain.once": "You only need to do this once on this device.",
+  "explain.open": "Open controller",
+  "explain.plain": "Continue without motion sensors",
+  "explain.noSecure": "The secure connection is not available on this PC right now. You can still play without motion sensors."
 }

@@ -491,3 +491,46 @@ body {
   height: 12px;
   border-radius: 3px;
 }
+
+/* plain-address explanation page */
+.nj-explain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 520px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.nj-explain h1 {
+  margin: 0;
+  font: 600 22px "Chakra Petch", system-ui, sans-serif;
+}
+
+.nj-explain p,
+.nj-explain ul {
+  margin: 0;
+  color: oklch(0.82 0.01 250);
+}
+
+.nj-explain ul {
+  text-align: left;
+  padding-left: 20px;
+}
+
+.nj-explain .nj-explain-once {
+  font-weight: 700;
+  color: oklch(0.96 0.005 250);
+}
+
+.nj-explain a.nj-screen-button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.nj-explain-plain {
+  color: oklch(0.72 0.012 250);
+  font-weight: 600;
+}
