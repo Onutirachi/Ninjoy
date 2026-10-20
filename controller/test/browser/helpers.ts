@@ -51,7 +51,7 @@ export async function inlineSkin(manifest: object, files: Record<string, string>
 
 /** Platform without real device features: records calls and lets tests drive motion. */
 export function stubPlatform(o: { motion?: MotionSupport; permission?: boolean; fullscreen?: boolean; vibration?: boolean; angle?: number } = {}) {
-  const calls = { vibrate: [] as number[], fullscreen: 0, permission: 0 };
+  const calls = { vibrate: [] as (number | number[])[], fullscreen: 0, permission: 0 };
   let fullscreenOn = false;
   let motionListener: ((s: MotionSample) => void) | null = null;
   const fullscreenListeners = new Set<() => void>();

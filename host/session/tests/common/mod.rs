@@ -119,6 +119,24 @@ impl Page {
         .await;
     }
 
+    /// Next protocol message, pings included.
+    pub async fn recv_any(&mut self) -> Option<HostMessage> {
+        loop {
+            match tokio::time::timeout(Duration::from_secs(5), self.ws.next())
+                .await
+                .expect("host answers in time")
+            {
+                Some(Ok(Message::Binary(bytes))) => {
+                    if let Some(message) = decode_host(&bytes).expect("valid host message") {
+                        return Some(message);
+                    }
+                }
+                Some(Ok(Message::Close(_))) | None | Some(Err(_)) => return None,
+                Some(Ok(_)) => {}
+            }
+        }
+    }
+
     /// Next protocol message, skipping pings. None when the host closed the connection.
     pub async fn recv(&mut self) -> Option<HostMessage> {
         loop {

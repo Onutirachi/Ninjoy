@@ -1,10 +1,12 @@
 import { createController } from "./dom/controller.ts";
 import { createI18n, detectLanguage, type I18n } from "./i18n/index.ts";
 import { deviceId } from "./platform/device-id.ts";
+import { createRumble } from "./platform/rumble.ts";
 import { createSession, sessionUrl, slotFromPath, type SessionStatus } from "./platform/session.ts";
 import { loadOfficialSkin } from "./skins.ts";
 import { attachDevPanel } from "./ui/dev-panel.ts";
 import { createEditToolbar } from "./ui/edit-mode.ts";
+import { applyLightbar } from "./ui/lightbar.ts";
 import { renderLobby } from "./ui/lobby.ts";
 import { createMenu } from "./ui/menu.ts";
 import { createNotices } from "./ui/notices.ts";
@@ -41,8 +43,13 @@ try {
 
   // ---------- session with the host ----------
   const screens = createScreens();
+  const rumble = createRumble({ onUnsupported: () => notices.show("noVibration") });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") rumble.stop();
+  });
   const showStatus = (s: SessionStatus) => {
     const { t } = i18n;
+    if (s.kind !== "joined") rumble.stop();
     devPanel?.setConnection(s.kind === "joined" ? `controller ${s.slot}` : s.kind);
     switch (s.kind) {
       case "list":
@@ -93,7 +100,13 @@ try {
       screens.show({ body: renderLobby({ i18n, entries, phonesCanCreate, onPick: (slot) => session.join(slot) }) });
     },
     onRtt: (ms) => devPanel?.setRtt(ms),
-    onFeedback: (f) => devPanel?.setLightbar(f.lightbar),
+    onFeedback: (f) => {
+      if (f.rumble) rumble.set(f.rumble[0], f.rumble[1]);
+      if (f.lightbar) {
+        applyLightbar(f.lightbar);
+        devPanel?.setLightbar(f.lightbar);
+      }
+    },
   });
   controller.subscribe((state) => session.send(state));
   const requested = slotFromPath(location.pathname);
