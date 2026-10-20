@@ -212,13 +212,8 @@ impl AppCore {
         let mut events = session.events();
         let notify = changes.clone();
         tokio::spawn(async move {
-            loop {
-                match events.recv().await {
-                    Ok(_) | Err(broadcast::error::RecvError::Lagged(_)) => {
-                        let _ = notify.send(());
-                    }
-                    Err(broadcast::error::RecvError::Closed) => break,
-                }
+            while let Ok(_) | Err(broadcast::error::RecvError::Lagged(_)) = events.recv().await {
+                let _ = notify.send(());
             }
         });
 
