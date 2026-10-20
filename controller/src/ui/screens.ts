@@ -111,12 +111,16 @@ export function shouldAskToRotate(width: number, height: number): boolean {
   return height > width && width < 600;
 }
 
-/** The "turn your device sideways" notice, shown over everything while it applies. */
+/**
+ * The "turn your device sideways" notice, shown over everything while it applies. It only
+ * applies while the controller itself is on screen (`setActive(true)`), not on lists or notices.
+ */
 export function watchOrientation(message: () => string, parent: HTMLElement = document.body) {
   const notice = el("div", { className: "nj-screen nj-rotate" });
   notice.style.setProperty("--nj-pattern", patternTile);
+  let active = false;
   const update = () => {
-    const ask = shouldAskToRotate(window.innerWidth, window.innerHeight);
+    const ask = active && shouldAskToRotate(window.innerWidth, window.innerHeight);
     notice.hidden = !ask;
     if (ask) {
       notice.replaceChildren(
@@ -133,6 +137,10 @@ export function watchOrientation(message: () => string, parent: HTMLElement = do
   window.addEventListener("resize", update);
   return {
     update,
+    setActive(on: boolean) {
+      active = on;
+      update();
+    },
     dispose() {
       window.removeEventListener("resize", update);
       notice.remove();

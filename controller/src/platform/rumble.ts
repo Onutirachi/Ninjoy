@@ -21,11 +21,14 @@ export function createRumble(o: { vibration?: VibrationAdapter; onUnsupported?()
   const vibration = o.vibration ?? browserVibration;
   let refresh = 0;
   let warned = false;
+  /** browsers report vibrate() calls before the first tap as errors: only stop what was started */
+  let vibrating = false;
 
   const stop = () => {
     clearInterval(refresh);
     refresh = 0;
-    if (vibration.supported()) vibration.vibrate(0);
+    if (vibrating) vibration.vibrate(0);
+    vibrating = false;
   };
 
   return {
@@ -38,6 +41,7 @@ export function createRumble(o: { vibration?: VibrationAdapter; onUnsupported?()
         warned = true;
         return;
       }
+      vibrating = true;
       const pattern = Array.from({ length: PATTERN_CYCLES }, () => pulse).flat();
       // a pattern ending on "off" would just stop; drop the last pause
       if (pulse[1] === 0) vibration.vibrate(CYCLE_MS * PATTERN_CYCLES);

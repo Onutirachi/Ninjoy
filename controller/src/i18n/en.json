@@ -60,5 +60,6 @@
   "explain.once": "You only need to do this once on this device.",
   "explain.open": "Open controller",
   "explain.plain": "Continue without motion sensors",
-  "explain.noSecure": "The secure connection is not available on this PC right now. You can still play without motion sensors."
+  "explain.noSecure": "The secure connection is not available on this PC right now. You can still play without motion sensors.",
+  "start.play": "Tap to play"
 }

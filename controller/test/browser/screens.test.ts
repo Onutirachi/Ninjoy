@@ -74,6 +74,8 @@ describe("splash and orientation (US7)", () => {
     await page.viewport(390, 844);
     const watcher = watchOrientation(() => "Turn your device sideways to play.");
     const notice = document.querySelector<HTMLElement>(".nj-rotate")!;
+    expect(notice.hidden).toBe(true); // lists and notices may be used upright
+    watcher.setActive(true); // the controller is on screen
     expect(notice.hidden).toBe(false);
     expect(notice.textContent).toContain("Turn your device sideways");
     await page.viewport(844, 390);
