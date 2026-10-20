@@ -60,5 +60,6 @@
   "explain.once": "Você só precisa fazer isso uma vez neste aparelho.",
   "explain.open": "Abrir controle",
   "explain.plain": "Continuar sem sensores de movimento",
-  "explain.noSecure": "A conexão segura não está disponível neste PC agora. Você ainda pode jogar sem os sensores de movimento."
+  "explain.noSecure": "A conexão segura não está disponível neste PC agora. Você ainda pode jogar sem os sensores de movimento.",
+  "start.play": "Tocar para jogar"
 }

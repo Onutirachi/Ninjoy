@@ -38,6 +38,14 @@ describe("rumble on the phone", () => {
     rumble.stop();
   });
 
+  it("does not touch the vibration API before vibrating", () => {
+    const { calls, vibration } = stub();
+    const rumble = createRumble({ vibration });
+    rumble.stop();
+    rumble.set(0, 0);
+    expect(calls).toEqual([]);
+  });
+
   it("explains once when the device cannot vibrate", () => {
     const { calls, vibration } = stub(false);
     let told = 0;

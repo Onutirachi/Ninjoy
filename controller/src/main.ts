@@ -1,6 +1,7 @@
 import { createController } from "./dom/controller.ts";
 import { createI18n, detectLanguage, type I18n } from "./i18n/index.ts";
 import { deviceId } from "./platform/device-id.ts";
+import { keepAwake } from "./platform/wake-lock.ts";
 import { createRumble } from "./platform/rumble.ts";
 import { createSession, sessionUrl, slotFromPath, type SessionStatus } from "./platform/session.ts";
 import { loadOfficialSkin } from "./skins.ts";
@@ -8,6 +9,7 @@ import { attachDevPanel } from "./ui/dev-panel.ts";
 import { createEditToolbar } from "./ui/edit-mode.ts";
 import { applyLightbar } from "./ui/lightbar.ts";
 import { renderLobby } from "./ui/lobby.ts";
+import { renderStart } from "./ui/start.ts";
 import { createMenu } from "./ui/menu.ts";
 import { createNotices } from "./ui/notices.ts";
 import { createScreens, playSplash, watchOrientation } from "./ui/screens.ts";
@@ -44,14 +46,19 @@ try {
   // ---------- session with the host ----------
   void playSplash();
   const screens = createScreens();
-  watchOrientation(() => i18n.t("notice.turnSideways"));
+  const orientation = watchOrientation(() => i18n.t("notice.turnSideways"));
+  /** set by the "tap to play" tap; reconnections do not ask again */
+  let started = false;
   const rumble = createRumble({ onUnsupported: () => notices.show("noVibration") });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") rumble.stop();
   });
   const showStatus = (s: SessionStatus) => {
     const { t } = i18n;
-    if (s.kind !== "joined") rumble.stop();
+    if (s.kind !== "joined") {
+      rumble.stop();
+      orientation.setActive(false);
+    }
     devPanel?.setConnection(s.kind === "joined" ? `controller ${s.slot}` : s.kind);
     switch (s.kind) {
       case "list":
@@ -63,13 +70,34 @@ try {
         controller.releaseAll();
         screens.show({ message: t("session.unavailable"), pulse: true });
         break;
-      case "joined":
-        screens.hide();
+      case "joined": {
         // a reload keeps the same controller
         history.replaceState(null, "", `/${s.slot}${location.search}`);
-        screens.toast(t("session.joined", { n: s.slot }));
         session.send(controller.state);
+        const play = () => {
+          screens.hide();
+          orientation.setActive(true);
+          screens.toast(t("session.joined", { n: s.slot }));
+        };
+        if (started) {
+          play();
+          break;
+        }
+        screens.show({
+          body: renderStart({
+            i18n,
+            slot: s.slot,
+            onStart: () => {
+              // this tap is the user activation browsers require for these
+              started = true;
+              keepAwake();
+              controller.requestMotion();
+              play();
+            },
+          }),
+        });
         break;
+      }
       case "in-use":
         screens.show({
           message: s.slot ? t("session.inUse", { n: s.slot }) : t("session.notAllowed"),

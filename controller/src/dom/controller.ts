@@ -61,6 +61,11 @@ export interface Controller {
   onEditChange(listener: () => void): () => void;
   /** resizes the selected group around its center (0.5–2) */
   setGroupScale(scale: number): void;
+  /**
+   * From a tap: asks for motion permission where the browser requires it (iPhone) when gyro is
+   * on, and starts motion. Does nothing when gyro is off.
+   */
+  requestMotion(): void;
   readonly fullscreen: boolean;
   /** from a tap; shows the home-screen notice where unsupported */
   toggleFullscreen(): void;
@@ -285,6 +290,17 @@ export function createController(options: ControllerOptions): Controller {
     });
   };
 
+  const requestMotion = () => {
+    if (!settings.gyro || platform.motion.support() !== "available") return;
+    void platform.motion.requestPermission().then((granted) => {
+      if (granted) setGyro(true);
+      else {
+        setGyro(false);
+        notify("motionDenied");
+      }
+    });
+  };
+
   const toggleFullscreen = () => {
     if (platform.fullscreen.supported()) platform.fullscreen.toggle(document.documentElement);
     else notify("noFullscreen");
@@ -385,6 +401,7 @@ export function createController(options: ControllerOptions): Controller {
       return () => editListeners.delete(listener);
     },
     setGroupScale: (scale) => editor.setScale(scale),
+    requestMotion,
     get fullscreen() { return platform.fullscreen.active(); },
     toggleFullscreen,
     override: (id) => overrides[id],

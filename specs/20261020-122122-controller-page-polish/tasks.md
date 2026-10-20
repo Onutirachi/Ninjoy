@@ -4,9 +4,9 @@
 
 ## US1 - Tap to play (P1)
 
-- [ ] T001 [P] [US1] Browser test `controller/test/browser/start.test.ts`: the start screen shows the controller number and a large button; the tap requests the wake lock (stub), asks motion permission only when gyro is on and required (stub), never requests fullscreen; the wake lock is re-requested when the page becomes visible
-- [ ] T002 [US1] `controller/src/platform/wake-lock.ts` (`keepAwake`, injectable `navigator.wakeLock`) and `controller/src/ui/start.ts`
-- [ ] T003 [US1] `controller/src/main.ts`: show the start screen on the first `joined` of the page load; texts in `controller/src/i18n/{en,pt}.json`; expose a motion-permission request on the controller API (`controller.requestMotion()`)
+- [X] T001 [P] [US1] Browser test `controller/test/browser/start.test.ts`: the start screen shows the controller number and a large button; the tap requests the wake lock (stub), asks motion permission only when gyro is on and required (stub), never requests fullscreen; the wake lock is re-requested when the page becomes visible
+- [X] T002 [US1] `controller/src/platform/wake-lock.ts` (`keepAwake`, injectable `navigator.wakeLock`) and `controller/src/ui/start.ts`
+- [X] T003 [US1] `controller/src/main.ts`: show the start screen on the first `joined` of the page load; texts in `controller/src/i18n/{en,pt}.json`; expose a motion-permission request on the controller API (`controller.requestMotion()`)
 
 ## US2 - Touchpad click (P1)
 
@@ -18,12 +18,12 @@
 ## US3 - Controller list and notices (P2)
 
 - [ ] T008 [P] [US3] Browser test additions in `controller/test/browser/screens.test.ts`: the rotate notice is inactive until activated; the controller list uses the still variant with the watermark
-- [ ] T009 [US3] `watchOrientation(...).setActive()` and its use in `controller/src/main.ts`
+- [X] T009 [US3] `watchOrientation(...).setActive()` and its use in `controller/src/main.ts`
 - [ ] T010 [US3] Controller list redesign in `controller/src/ui/lobby.ts`, `controller/src/ui/screens.ts`, `controller/src/ui/styles.css`
 
 ## US4 - Vibration (P3)
 
-- [ ] T011 [US4] `controller/src/platform/rumble.ts`: no `vibrate(0)` before the first vibration; test in `controller/test/browser/feedback.test.ts`
+- [X] T011 [US4] `controller/src/platform/rumble.ts`: no `vibrate(0)` before the first vibration; test in `controller/test/browser/feedback.test.ts`
 
 ## US5 - Motion frame (P2)
 
