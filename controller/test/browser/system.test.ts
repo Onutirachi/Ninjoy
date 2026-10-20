@@ -159,6 +159,11 @@ describe("touchpad click by double tap (polish US2)", () => {
       expect(pressed(controller)).toEqual(["touchpad"]);
       const [t] = controller.state.touchpad.touches;
       expect(t!.x).toBeCloseTo(side === "left" ? 0.15 : 0.65, 1); // reported on that half
+      // dragging with the click held, like a laptop touchpad
+      time = 1500;
+      hold.move(...at(root, `touchpad-${side}`, 0.9, 0.2));
+      expect(pressed(controller)).toEqual(["touchpad"]);
+      expect(controller.state.touchpad.touches[0]!.x).toBeCloseTo(side === "left" ? 0.45 : 0.95, 1);
       time = 2000;
       hold.up();
       expect(pressed(controller)).toEqual([]);
@@ -177,5 +182,18 @@ describe("touchpad click by double tap (polish US2)", () => {
     const again = touch(root).down(...at(root, "touchpad-left", 0.5, 0.5));
     expect(pressed(controller)).toEqual([]);
     again.up();
+  });
+
+  it("quick flicks across the touchpad do not click", async () => {
+    await start();
+    for (let i = 0; i < 3; i++) {
+      time = 1000 + i * 150;
+      const flick = touch(root).down(...at(root, "touchpad-left", 0.3, 0.5));
+      time += 40;
+      flick.move(...at(root, "touchpad-left", 0.5, 0.5));
+      expect(pressed(controller)).toEqual([]);
+      time += 40;
+      flick.up();
+    }
   });
 });

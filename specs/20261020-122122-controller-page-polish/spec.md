@@ -130,9 +130,10 @@ sideways: Chrome reports `rotationRate.alpha` around the device's x axis, `beta`
 - **FR-002**: On that tap the page MUST request the screen wake lock (re-requested whenever the
   page becomes visible again), ask for motion permission when gyro is on and the browser requires
   it, and MUST NOT force fullscreen.
-- **FR-003**: A double tap and hold (tap < 250 ms, new touch within 300 ms, same rules as the stick
-  click) on a touchpad area MUST press the DualShock 4 touchpad click while that finger stays down;
-  its touch keeps being reported.
+- **FR-003**: A double tap and hold on a touchpad area MUST press the DualShock 4 touchpad click
+  while that finger stays down, and the finger can drag with the click held; its touch keeps being
+  reported. Like a laptop touchpad, the first tap lasts < 250 ms and moves < 12 px, and the second
+  touch starts within 300 ms and 60 px of it, so quick flicks moving the cursor never click.
 - **FR-004**: The official skin MUST drop the left/right click buttons and move the controls below
   the touchpads up by 50 canvas units; its preview and reference boxes are updated.
 - **FR-005**: The "turn sideways" notice MUST show only while a joined controller is on screen.

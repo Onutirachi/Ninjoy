@@ -225,7 +225,7 @@ export function createController(options: ControllerOptions): Controller {
     for (const rc of touchpads) {
       const box = hitTester.box(rc);
       for (const finger of touched.get(rc) ?? []) {
-        touchpadClick.touch(finger.id, rc.control.id, platform.now());
+        touchpadClick.touch(finger.id, rc.control.id, platform.now(), finger.x, finger.y);
         if (points.has(finger.id)) continue;
         const local = { x: (finger.x - box.left) / box.width, y: (finger.y - box.top) / box.height };
         points.set(finger.id, { id: finger.id, ...touchpadPoint(local, rc.control.area ?? "full") });
