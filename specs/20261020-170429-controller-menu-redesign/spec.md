@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-20
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: The maintainer finds the controller page's player menu too plain: a stacked list of
 sliders, toggles, selects and buttons without Ninjoy's look. Redesign it in the host UI style,
@@ -189,3 +189,7 @@ feel the taps.
 - Transparency applies to touch and mouse drags; keyboard changes keep the menu visible because
   there is no "release" to bring it back.
 - The settings model, its ranges and edit-layout mode stay as they are; only the menu changes.
+- The language choice is a segmented control while there are three options; with more languages
+  it becomes a dropdown in the host UI's field style.
+- Stick zone previews are drawn on the thumb's travel (the hitbox minus the thumb), which is what
+  the stick value is measured on; it matches the drawn base in the official skin.
