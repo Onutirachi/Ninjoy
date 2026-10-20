@@ -14,12 +14,12 @@ dependency on unfinished tasks).
 
 ## Phase 1: Setup
 
-- [ ] T001 Create the Cargo workspace `Cargo.toml` at the repository root (`members = ["host/session", "host/devhost"]`, edition 2024, `rust-version = "1.85"`, `license = "GPL-3.0-only"`, shared `[workspace.dependencies]` with the versions of research R14) and add `target/` to `.gitignore`
-- [ ] T002 [P] Create crate `host/session` (`ninjoy-session`, library) with empty modules `protocol`, `state`, `slots`, `connection`, `server`, `tls`, `mdns`, `net`, `device` in `host/session/src/`
-- [ ] T003 [P] Create crate `host/devhost` (`ninjoy-devhost`, binary) depending on `ninjoy-session` in `host/devhost/src/main.rs`
-- [ ] T004 [P] Add `assets/brand/` with the one-color logos from `drafts/logo/` (`logo-full.svg`, `logo-ninja.svg`, `logo-word.svg`, CorelDRAW metadata stripped, fill `currentColor`) and `assets/brand/LICENSE.md` ("Copyright © 2026 Ninjoy, all rights reserved; not covered by the GPL, see TRADEMARKS.md")
-- [ ] T005 [P] Add `@fontsource-variable/manrope` and `@fontsource/chakra-petch` to `controller/package.json`; add a second Vite entry `controller/explain.html` in `controller/vite.config.ts` (`build.rollupOptions.input`)
-- [ ] T006 Update `.github/workflows/ci.yml` job `test`: install the stable Rust toolchain (`dtolnay/rust-toolchain`, components rustfmt + clippy), cache cargo, run `npm run build --workspace @ninjoy/controller`, `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`
+- [X] T001 Create the Cargo workspace `Cargo.toml` at the repository root (`members = ["host/session", "host/devhost"]`, edition 2024, `rust-version = "1.85"`, `license = "GPL-3.0-only"`, shared `[workspace.dependencies]` with the versions of research R14) and add `target/` to `.gitignore`
+- [X] T002 [P] Create crate `host/session` (`ninjoy-session`, library) with empty modules `protocol`, `state`, `slots`, `connection`, `server`, `tls`, `mdns`, `net`, `device` in `host/session/src/`
+- [X] T003 [P] Create crate `host/devhost` (`ninjoy-devhost`, binary) depending on `ninjoy-session` in `host/devhost/src/main.rs`
+- [X] T004 [P] Add `assets/brand/` with the one-color logos from `drafts/logo/` (`logo-full.svg`, `logo-ninja.svg`, `logo-word.svg`, CorelDRAW metadata stripped, fill `currentColor`) and `assets/brand/LICENSE.md` ("Copyright © 2026 Ninjoy, all rights reserved; not covered by the GPL, see TRADEMARKS.md")
+- [X] T005 [P] Add `@fontsource-variable/manrope` and `@fontsource/chakra-petch` to `controller/package.json`; add a second Vite entry `controller/explain.html` in `controller/vite.config.ts` (`build.rollupOptions.input`)
+- [X] T006 Update `.github/workflows/ci.yml` job `test`: install the stable Rust toolchain (`dtolnay/rust-toolchain`, components rustfmt + clippy), cache cargo, run `npm run build --workspace @ninjoy/controller`, `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`
 
 ---
 
@@ -30,26 +30,26 @@ serves the page, the LAN filter and the page's basic session client.
 
 ### Tests
 
-- [ ] T007 [P] Write `host/session/tests/vectors.json`: one entry per message type of [contracts/protocol.md](contracts/protocol.md) (HELLO, STATE without touches, STATE with 2 touches + motion, HIDDEN, LIST, PONG, WELCOME, IN_USE, OPENED_ELSEWHERE, KICKED, VERSION_MISMATCH, FEEDBACK rumble-only / lightbar-only / both, SLOT_LIST with 3 entries, PING) with decoded fields and expected bytes in hex
-- [ ] T008 [P] Rust test `host/session/tests/protocol.rs`: encode and decode every vector; malformed lengths and unknown types are rejected/ignored as specified; sequence comparison with wrap-around
-- [ ] T009 [P] TS unit test `controller/test/unit/protocol.test.ts`: reads `host/session/tests/vectors.json`; encode/decode every vector; `ControllerState` → STATE conversion (sticks ×32767, triggers ×255, touches ×65535, button bit order, motion only with gyro on); encoding reuses one buffer
-- [ ] T010 [P] Rust unit tests in `host/session/src/slots.rs`: lowest free number; create/create_at/remove waiting slots; join by number, by 0 (new controller), refused when phones may not create; same device replaces older connection; another device gets in-use; held slot resumed by the same device; freed numbers reused; slot list snapshot and change version
-- [ ] T011 [P] Rust unit tests in `host/session/src/net.rs`: private IPv4/IPv6 ranges accepted (10/8, 172.16/12, 192.168/16, 100.64/10, 169.254/16, 127/8, fc00::/7, fe80::/10, ::1, IPv4-mapped), public addresses refused
+- [X] T007 [P] Write `host/session/tests/vectors.json`: one entry per message type of [contracts/protocol.md](contracts/protocol.md) (HELLO, STATE without touches, STATE with 2 touches + motion, HIDDEN, LIST, PONG, WELCOME, IN_USE, OPENED_ELSEWHERE, KICKED, VERSION_MISMATCH, FEEDBACK rumble-only / lightbar-only / both, SLOT_LIST with 3 entries, PING) with decoded fields and expected bytes in hex
+- [X] T008 [P] Rust test `host/session/tests/protocol.rs`: encode and decode every vector; malformed lengths and unknown types are rejected/ignored as specified; sequence comparison with wrap-around
+- [X] T009 [P] TS unit test `controller/test/unit/protocol.test.ts`: reads `host/session/tests/vectors.json`; encode/decode every vector; `ControllerState` → STATE conversion (sticks ×32767, triggers ×255, touches ×65535, button bit order, motion only with gyro on); encoding reuses one buffer
+- [X] T010 [P] Rust unit tests in `host/session/src/slots.rs`: lowest free number; create/create_at/remove waiting slots; join by number, by 0 (new controller), refused when phones may not create; same device replaces older connection; another device gets in-use; held slot resumed by the same device; freed numbers reused; slot list snapshot and change version
+- [X] T011 [P] Rust unit tests in `host/session/src/net.rs`: private IPv4/IPv6 ranges accepted (10/8, 172.16/12, 192.168/16, 100.64/10, 169.254/16, 127/8, fc00::/7, fe80::/10, ::1, IPv4-mapped), public addresses refused
 
 ### Implementation
 
-- [ ] T012 [P] `host/session/src/protocol.rs`: message enums and allocation-free encode into a caller buffer / decode from `&[u8]`, `PROTOCOL_VERSION = 1`
-- [ ] T013 [P] `host/session/src/state.rs`: `ControllerState`, `Touch`, `Motion`, `ControllerState::NEUTRAL` per [contracts/host-core-api.md](contracts/host-core-api.md)
-- [ ] T014 [P] `controller/src/engine/protocol.ts`: page-side codec (HELLO, STATE from `ControllerState`, HIDDEN, LIST, PONG; decode of every host message)
-- [ ] T015 `host/session/src/slots.rs`: slot table (`BTreeMap<u16, Slot>`), statuses Waiting/Connected/Held, transitions of [data-model.md](data-model.md), clock passed in for testability, change counter for SLOT_LIST updates
-- [ ] T016 [P] `host/session/src/net.rs`: LAN address filter and listing of reachable interface addresses (if-addrs; skip loopback, link-local and virtual adapters for display)
-- [ ] T017 [P] `host/session/src/device.rs`: User-Agent → `DeviceSummary` (model or OS + browser) with unit tests for Android Chrome, iPhone Safari, iPad, desktop Chrome/Edge/Firefox
-- [ ] T018 `host/session/src/server.rs` + `lib.rs`: `Session::start` with `SessionConfig`, plain HTTP server (axum) on the plain port: static files from rust-embed / `web_root`, `/` and `/<n>` → `index.html` (temporary until US5 adds the explanation page), `/ws` upgrade; peers outside the LAN closed before handling; `StateSink` trait; `events()` broadcast; `shutdown`
-- [ ] T019 `host/session/src/connection.rs`: per-connection task — HELLO deadline 5 s, version check, join through the slot table, decode STATE into a reused struct, drop stale sequences, call the sink on the task
-- [ ] T020 [P] `controller/src/platform/device-id.ts`: 16 random bytes in `localStorage['ninjoy.v1.device']` (hex), new identity when storage is unavailable
-- [ ] T021 `controller/src/platform/session.ts`: connect to `/ws` (wss on https pages, ws on http), HELLO with the slot from the URL, WELCOME → `history.replaceState` to `/<n>`, send STATE on every `subscribe` callback with one reused buffer, status callbacks for the UI
-- [ ] T022 `host/devhost/src/main.rs`: start the session with defaults, print addresses, log events with tracing, stdin commands `list`, `quit`; options `--port`, `--plain-port`, `--grace`, `--name`, `--web`
-- [ ] T023 `controller/src/main.ts`: start the session client after `createController`; `controller/src/ui/dev-panel.ts` shows connection status and slot number
+- [X] T012 [P] `host/session/src/protocol.rs`: message enums and allocation-free encode into a caller buffer / decode from `&[u8]`, `PROTOCOL_VERSION = 1`
+- [X] T013 [P] `host/session/src/state.rs`: `ControllerState`, `Touch`, `Motion`, `ControllerState::NEUTRAL` per [contracts/host-core-api.md](contracts/host-core-api.md)
+- [X] T014 [P] `controller/src/engine/protocol.ts`: page-side codec (HELLO, STATE from `ControllerState`, HIDDEN, LIST, PONG; decode of every host message)
+- [X] T015 `host/session/src/slots.rs`: slot table (`BTreeMap<u16, Slot>`), statuses Waiting/Connected/Held, transitions of [data-model.md](data-model.md), clock passed in for testability, change counter for SLOT_LIST updates
+- [X] T016 [P] `host/session/src/net.rs`: LAN address filter and listing of reachable interface addresses (if-addrs; skip loopback, link-local and virtual adapters for display)
+- [X] T017 [P] `host/session/src/device.rs`: User-Agent → `DeviceSummary` (model or OS + browser) with unit tests for Android Chrome, iPhone Safari, iPad, desktop Chrome/Edge/Firefox
+- [X] T018 `host/session/src/server.rs` + `lib.rs`: `Session::start` with `SessionConfig`, plain HTTP server (axum) on the plain port: static files from rust-embed / `web_root`, `/` and `/<n>` → `index.html` (temporary until US5 adds the explanation page), `/ws` upgrade; peers outside the LAN closed before handling; `StateSink` trait; `events()` broadcast; `shutdown`
+- [X] T019 `host/session/src/connection.rs`: per-connection task — HELLO deadline 5 s, version check, join through the slot table, decode STATE into a reused struct, drop stale sequences, call the sink on the task
+- [X] T020 [P] `controller/src/platform/device-id.ts`: 16 random bytes in `localStorage['ninjoy.v1.device']` (hex), new identity when storage is unavailable
+- [X] T021 `controller/src/platform/session.ts`: connect to `/ws` (wss on https pages, ws on http), HELLO with the slot from the URL, WELCOME → `history.replaceState` to `/<n>`, send STATE on every `subscribe` callback with one reused buffer, status callbacks for the UI
+- [X] T022 `host/devhost/src/main.rs`: start the session with defaults, print addresses, log events with tracing, stdin commands `list`, `quit`; options `--port`, `--plain-port`, `--grace`, `--name`, `--web`
+- [X] T023 `controller/src/main.ts`: start the session client after `createController`; `controller/src/ui/dev-panel.ts` shows connection status and slot number
 
 **Checkpoint**: `cargo run -p ninjoy-devhost`, open `http://<pc-ip>:8080/` on a phone, press buttons: states reach the host.
 
@@ -61,12 +61,12 @@ serves the page, the LAN filter and the page's basic session client.
 
 **Independent Test**: two phones join from the list and by `/n`; the host prints each slot's states.
 
-- [ ] T024 [P] [US1] Rust integration test `host/session/tests/session.rs` (plain WebSocket clients): HELLO 0 → slot 1, second → 2; slots 1 and 3 used → new gets 2; `/4` free → 4; `create_slot` → waiting 3 taken by HELLO 3; `remove_slot` frees it; `create_slot_at(7)`; LIST → SLOT_LIST now and after every change; phones-can-create off → HELLO 0 refused, SLOT_LIST flag cleared; every STATE reaches the sink in order with the right slot
-- [ ] T025 [P] [US1] Browser test `controller/test/browser/session.test.ts` (mock WebSocket server through Vitest browser commands): HELLO carries the URL slot and device id; WELCOME rewrites the URL to `/<n>`; each state change sends one STATE; the controller list renders waiting/in-use/held-for-me entries, updates on SLOT_LIST, joins on tap, hides "new controller" when not allowed
-- [ ] T026 [US1] Waiting slots and controller list in `host/session/src/slots.rs`, `connection.rs` and `lib.rs`: `create_slot`, `create_slot_at`, `remove_slot`, `set_phones_can_create`, LIST/SLOT_LIST with live updates (wake listing connections on table changes), HELLO 0 = new controller
-- [ ] T027 [US1] `controller/src/ui/lobby.ts`: controller list page for `/` (cards for waiting controllers, in-use shown disabled, "back to controller N" first, "new controller" button), live updates, join → session HELLO; texts in `controller/src/i18n/en.json` and `pt.json`
-- [ ] T028 [US1] Show the slot number briefly on join and in the player menu (`controller/src/ui/menu.ts`, `controller/src/ui/screens.ts` toast)
-- [ ] T029 [US1] devhost commands `create [n]`, `remove <n>`, `watch <n>` (print states) in `host/devhost/src/main.rs`
+- [X] T024 [P] [US1] Rust integration test `host/session/tests/session.rs` (plain WebSocket clients): HELLO 0 → slot 1, second → 2; slots 1 and 3 used → new gets 2; `/4` free → 4; `create_slot` → waiting 3 taken by HELLO 3; `remove_slot` frees it; `create_slot_at(7)`; LIST → SLOT_LIST now and after every change; phones-can-create off → HELLO 0 refused, SLOT_LIST flag cleared; every STATE reaches the sink in order with the right slot
+- [X] T025 [P] [US1] Browser test `controller/test/browser/session.test.ts` (mock WebSocket server through Vitest browser commands): HELLO carries the URL slot and device id; WELCOME rewrites the URL to `/<n>`; each state change sends one STATE; the controller list renders waiting/in-use/held-for-me entries, updates on SLOT_LIST, joins on tap, hides "new controller" when not allowed
+- [X] T026 [US1] Waiting slots and controller list in `host/session/src/slots.rs`, `connection.rs` and `lib.rs`: `create_slot`, `create_slot_at`, `remove_slot`, `set_phones_can_create`, LIST/SLOT_LIST with live updates (wake listing connections on table changes), HELLO 0 = new controller
+- [X] T027 [US1] `controller/src/ui/lobby.ts`: controller list page for `/` (cards for waiting controllers, in-use shown disabled, "back to controller N" first, "new controller" button), live updates, join → session HELLO; texts in `controller/src/i18n/en.json` and `pt.json`
+- [X] T028 [US1] Show the slot number briefly on join and in the player menu (`controller/src/ui/menu.ts`, `controller/src/ui/screens.ts` toast)
+- [X] T029 [US1] devhost commands `create [n]`, `remove <n>`, `watch <n>` (print states) in `host/devhost/src/main.rs`
 
 **Checkpoint**: MVP — phones join and play over plain HTTP.
 

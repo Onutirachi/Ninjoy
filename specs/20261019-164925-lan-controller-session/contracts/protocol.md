@@ -65,7 +65,12 @@ exists.
 The page went to the background. The host reports a neutral state for the slot at once and
 keeps the connection; the next STATE resumes input.
 
-### 0x05 LIST (1 byte)
+### 0x05 LIST (17 bytes)
+
+| Offset | Type | Field |
+|---|---|---|
+| 0 | u8 | type = 0x05 |
+| 1 | u8[16] | device identity (so the list can show "back to controller N") |
 
 Sent instead of HELLO by the controller list page (`/`). The host answers with SLOT_LIST and
 sends a new SLOT_LIST whenever a slot changes, until the connection closes or a HELLO follows

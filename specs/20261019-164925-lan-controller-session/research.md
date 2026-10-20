@@ -9,7 +9,8 @@ Decisions for the open points of [plan.md](plan.md). Crate and package versions 
   - `host/session` — library crate `ninjoy-session` (the network core);
   - `host/devhost` — binary crate `ninjoy-devhost` (the development host).
   Async runtime **tokio 1.54**; HTTP routing and WebSocket upgrade with **axum 0.8**; TLS with
-  **axum-server 0.8** (`tls-rustls` feature, which brings rustls 0.23 / tokio-rustls 0.26).
+  **axum-server 0.8** (`tls-rustls-no-provider`) with **rustls 0.23** using the **ring** crypto
+  provider (rustls' default, aws-lc, needs extra build tools on Windows).
   Logs with **tracing 0.1** + **tracing-subscriber 0.3** (devhost only installs the subscriber).
 - **Rationale**: tokio is the runtime Tauri already uses, so the desktop app can host the core
   in-process. axum gives routing, static files and WebSocket upgrade in one maintained crate;
@@ -205,7 +206,7 @@ Decisions for the open points of [plan.md](plan.md). Crate and package versions 
 |---|---|---|---|
 | tokio 1.54 | async runtime | MIT | session, devhost |
 | axum 0.8 | routing, static files, WebSocket upgrade | MIT | session |
-| axum-server 0.8 (tls-rustls) | HTTPS with rustls | MIT | session |
+| axum-server 0.8 + rustls 0.23 (ring) | HTTPS | MIT; rustls Apache-2.0/MIT/ISC, ring ISC-style | session |
 | rcgen 0.14 | self-signed certificate | MIT/Apache-2.0 | session |
 | mdns-sd 0.21 | `ninjoy.local` announcement | MIT/Apache-2.0 | session |
 | if-addrs 0.15 | list LAN addresses | MIT/BSD-3-Clause | session |
