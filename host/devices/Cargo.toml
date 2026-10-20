@@ -1,0 +1,19 @@
+[package]
+name = "ninjoy-devices"
+description = "Ninjoy virtual controllers: turns session slots into virtual DualShock 4 pads (ViGEmBus on Windows, UHID on Linux)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+ninjoy-session.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+vigem-rust = "0.2.0"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

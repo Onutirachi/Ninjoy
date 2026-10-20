@@ -26,4 +26,16 @@ jobs:
       - run: npm run build --workspace @ninjoy/controller
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
+      # the Linux virtual controller test creates a real DualShock 4 through UHID
+      - name: Allow UHID and input devices for the tests
+        run: |
+          sudo apt-get install -y "linux-modules-extra-$(uname -r)" || true
+          sudo modprobe uhid
+          sudo modprobe hid-playstation || true
+          echo 'KERNEL=="uhid", MODE="0666"' | sudo tee /etc/udev/rules.d/99-ninjoy-ci.rules
+          echo 'KERNEL=="hidraw*", MODE="0666"' | sudo tee -a /etc/udev/rules.d/99-ninjoy-ci.rules
+          echo 'SUBSYSTEM=="input", MODE="0666"' | sudo tee -a /etc/udev/rules.d/99-ninjoy-ci.rules
+          sudo udevadm control --reload
+          sudo udevadm trigger
+          sudo chmod 666 /dev/uhid
       - run: cargo test --workspace
