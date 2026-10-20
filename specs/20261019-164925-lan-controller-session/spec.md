@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-19
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "LAN controller session v1 for Ninjoy: connect the controller page
 to the desktop host over the local network, so every phone/tablet becomes a numbered controller
