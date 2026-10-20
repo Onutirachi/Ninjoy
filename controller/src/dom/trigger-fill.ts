@@ -85,6 +85,15 @@ export function createTriggerFill(rc: RenderedControl) {
 
   let last = "";
   return {
+    /** Shows the 100% zone and the minimum force (from the weak end) without a finger; update() resets it. */
+    preview(maxZone: number, minForce: number) {
+      last = "";
+      box ??= measure();
+      setRect(max, band(box, trigger.direction, 1 - maxZone, 1));
+      setRect(levelRect ?? fill, band(box, trigger.direction, 0, minForce));
+      fill.setAttribute("fill-opacity", "0.55");
+      max.setAttribute("fill-opacity", "0.9");
+    },
     /** raw = finger position along the trigger (0…1), force = resulting value, maxZone = top zone */
     update(raw: number, force: number, maxZone: number, active: boolean) {
       const key = active ? `${raw}/${force}/${maxZone}` : "off";

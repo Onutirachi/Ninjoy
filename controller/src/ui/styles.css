@@ -1391,6 +1391,26 @@ body {
   background: rgb(242 201 76 / 0.45);
 }
 
+.nj-zone-hitbox {
+  border: 2px solid rgb(255 255 255 / 0.35);
+  border-radius: 50%;
+}
+
+.nj-finger-dot {
+  flex: none;
+  border: 2px solid #f2c94c;
+  border-radius: 50%;
+  background: rgb(242 201 76 / 0.35);
+}
+
+.nj-menu .nj-row-value {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 12px;
+  min-height: 24px;
+}
+
 .nj-zone-band {
   border-radius: 10px;
   background: rgb(48 153 232 / 0.6);
