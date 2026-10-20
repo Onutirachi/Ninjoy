@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRumble, MIN_RUMBLE_MS } from "../../src/platform/rumble.ts";
+import { createRumble, RUMBLE_TAIL_MS } from "../../src/platform/rumble.ts";
 import { applyLightbar } from "../../src/ui/lightbar.ts";
 
 function stub(supported = true) {
@@ -17,22 +17,22 @@ describe("rumble on the phone", () => {
     rumble.set(255, 255);
     expect(calls.at(-1)).toBe(1200); // full rumble: one continuous vibration
     rumble.set(0, 0);
-    await new Promise((r) => setTimeout(r, MIN_RUMBLE_MS + 30));
+    await new Promise((r) => setTimeout(r, RUMBLE_TAIL_MS + 30));
     expect(calls.at(-1)).toBe(0);
   });
 
-  it("lets a very short burst last long enough to be felt", async () => {
+  it("keeps rumbling through quick bursts, like a motor spinning down", async () => {
     const { calls, vibration } = stub();
     const rumble = createRumble({ vibration });
     rumble.set(255, 0);
     rumble.set(0, 0); // a machine gun shot: on and off at once
     expect(calls).toEqual([1200]);
-    await new Promise((r) => setTimeout(r, MIN_RUMBLE_MS + 30));
+    await new Promise((r) => setTimeout(r, RUMBLE_TAIL_MS + 30));
     expect(calls).toEqual([1200, 0]);
     rumble.set(255, 0);
     rumble.set(0, 0);
     rumble.set(255, 0); // the next shot before the stop: keeps vibrating
-    await new Promise((r) => setTimeout(r, MIN_RUMBLE_MS + 30));
+    await new Promise((r) => setTimeout(r, RUMBLE_TAIL_MS + 30));
     expect(calls).toEqual([1200, 0, 1200]);
     rumble.stop();
   });

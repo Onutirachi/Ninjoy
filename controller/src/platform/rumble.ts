@@ -5,10 +5,11 @@ export const CYCLE_MS = 100;
 /** Shortest pulse a phone motor reliably spins up for. */
 const MIN_ON_MS = 30;
 /**
- * A rumble lasts at least this long: games send very short bursts (a machine gun's shots) that
- * would stop the phone's motor before it spins up.
+ * After the game stops rumbling the phone keeps going this long, like a motor spinning down:
+ * a machine gun arrives as quick on/off bursts (and the driver may only report the last "off"),
+ * which a real motor's inertia turns into one continuous rumble.
  */
-export const MIN_RUMBLE_MS = 80;
+export const RUMBLE_TAIL_MS = 150;
 /** Pattern length sent at a time; refreshed while the rumble lasts. */
 const PATTERN_CYCLES = 12;
 
@@ -32,8 +33,7 @@ export function createRumble(o: { vibration?: VibrationAdapter; onUnsupported?()
   let vibrating = false;
   /** the pulse playing now: games repeat the same rumble, and restarting it cuts the motor */
   let playing = "";
-  /** when the current rumble started, and a stop waiting for MIN_RUMBLE_MS */
-  let startedAt = 0;
+  /** the stop waiting for RUMBLE_TAIL_MS */
   let pendingStop = 0;
 
   const stopNow = () => {
@@ -45,12 +45,10 @@ export function createRumble(o: { vibration?: VibrationAdapter; onUnsupported?()
     vibrating = false;
     playing = "";
   };
-  /** the game stopped rumbling: let a short burst last MIN_RUMBLE_MS */
+  /** the game stopped rumbling: spin down after RUMBLE_TAIL_MS unless it rumbles again */
   const release = () => {
     if (!vibrating || pendingStop) return;
-    const left = MIN_RUMBLE_MS - (performance.now() - startedAt);
-    if (left <= 0) stopNow();
-    else pendingStop = window.setTimeout(stopNow, left);
+    pendingStop = window.setTimeout(stopNow, RUMBLE_TAIL_MS);
   };
 
   return {
@@ -66,7 +64,6 @@ export function createRumble(o: { vibration?: VibrationAdapter; onUnsupported?()
       clearTimeout(pendingStop);
       pendingStop = 0;
       if (playing === pulse.join()) return;
-      if (!vibrating) startedAt = performance.now();
       playing = pulse.join();
       vibrating = true;
       const pattern = Array.from({ length: PATTERN_CYCLES }, () => pulse).flat();
