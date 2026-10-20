@@ -4,9 +4,9 @@ import { CYCLE_MS, rumblePulse } from "../../src/platform/rumble.ts";
 describe("rumblePulse", () => {
   it("turns intensity into pulse length within each 100 ms cycle", () => {
     expect(rumblePulse(255, 0)).toEqual([100, 0]);
-    expect(rumblePulse(0, 128)).toEqual([50, 50]);
-    expect(rumblePulse(64, 191)).toEqual([75, 25]); // the stronger motor decides
-    expect(rumblePulse(1, 0)).toEqual([10, 90]); // very weak rumble is still felt
+    expect(rumblePulse(0, 128)).toEqual([65, 35]);
+    expect(rumblePulse(64, 191)).toEqual([82, 18]); // the stronger motor decides
+    expect(rumblePulse(1, 0)).toEqual([30, 70]); // very weak rumble is still felt
   });
 
   it("stops at zero", () => {
