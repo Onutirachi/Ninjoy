@@ -135,6 +135,46 @@ async fn keeps_settings_across_restarts() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn lists_skins_and_keeps_the_default_skin() {
+    let dir = temp_dir();
+    // an installed skin in the app's skin folder
+    std::fs::create_dir_all(dir.join("skins/arcade")).unwrap();
+    std::fs::write(
+        dir.join("skins/arcade/skin.json"),
+        r#"{"format":2,"name":"Arcade","author":"Carlos","version":"1.0.0"}"#,
+    )
+    .unwrap();
+    let core = start(&dir).await;
+    let skins = core.snapshot().skins;
+    let ids: Vec<&str> = skins.iter().map(|s| s.id.as_str()).collect();
+    assert_eq!(ids, ["ninjoy", "arcade"]);
+    assert!(skins[0].is_default && skins[0].bundled);
+    assert!(core.skin_file("arcade", "skin.json").is_some());
+
+    core.update_settings(Settings {
+        default_skin: "arcade".into(),
+        ..core.settings()
+    });
+    assert!(core.snapshot().skins[1].is_default);
+    core.shutdown().await;
+
+    let core = start(&dir).await;
+    assert_eq!(core.settings().default_skin, "arcade");
+    assert!(core.snapshot().skins[1].is_default, "applied at start");
+    core.set_broken_skins(std::collections::HashMap::from([(
+        "arcade".to_owned(),
+        "missing touch area".to_owned(),
+    )]));
+    let snap = core.snapshot();
+    assert_eq!(snap.skins[1].broken.as_deref(), Some("missing touch area"));
+    assert!(
+        snap.skins[0].is_default,
+        "a broken default falls back to the official skin"
+    );
+    core.shutdown().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn clamps_the_hold_time() {
     let core = start(&temp_dir()).await;
     core.update_settings(Settings {

@@ -44,6 +44,24 @@ fn set_settings(app: AppHandle, core: State<'_, Core>, settings: Settings) {
     sync_autostart(&app, &core);
 }
 
+/// A skin file's bytes (previews and validation in the window), sent as raw binary.
+#[tauri::command]
+fn skin_file(
+    core: State<'_, Core>,
+    id: String,
+    path: String,
+) -> Result<tauri::ipc::Response, String> {
+    core.skin_file(&id, &path)
+        .map(tauri::ipc::Response::new)
+        .ok_or_else(|| format!("{id}/{path} not found"))
+}
+
+/// Skins the window's validation found broken (id → reason).
+#[tauri::command]
+fn set_broken_skins(core: State<'_, Core>, broken: std::collections::HashMap<String, String>) {
+    core.set_broken_skins(broken);
+}
+
 #[tauri::command]
 fn qr_svg(text: String) -> String {
     ninjoy_app_core::qr_svg(&text)
@@ -159,7 +177,9 @@ fn main() {
             remove,
             kick,
             set_settings,
-            qr_svg
+            qr_svg,
+            skin_file,
+            set_broken_skins
         ])
         .setup(move |app| {
             let handle = app.handle().clone();

@@ -71,6 +71,25 @@ pub struct Snapshot {
     pub driver: DriverView,
     pub settings: Settings,
     pub controllers: Vec<ControllerView>,
+    /// the skin library, official skins first
+    pub skins: Vec<SkinView>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkinView {
+    pub id: String,
+    pub name: String,
+    pub author: String,
+    pub version: String,
+    pub format: u8,
+    pub bundled: bool,
+    pub preview: Option<String>,
+    pub files: Vec<String>,
+    /// why phones are not offered it, if so
+    pub broken: Option<String>,
+    /// the skin phones use unless they pick their own
+    pub is_default: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -114,6 +133,8 @@ pub struct ControllerView {
     pub url: String,
     /// the same by name (ninjoy.local/N)
     pub name_url: Option<String>,
+    /// the skin the phone uses (its own choice or the default)
+    pub skin: Option<String>,
 }
 
 /// The selected controller's inputs for the live view.
@@ -181,6 +202,12 @@ impl AppCore {
         session_config
             .data_dir
             .get_or_insert(config.data_dir.clone());
+        // installed skins live next to the app's data
+        let skins_dir = session_config
+            .skins_dir
+            .get_or_insert(config.data_dir.join("skins"))
+            .clone();
+        let _ = std::fs::create_dir_all(skins_dir);
         session_config.grace = Duration::from_secs(settings.hold_seconds.into());
 
         let hub = DeviceHub::new(config.backend);
@@ -189,6 +216,7 @@ impl AppCore {
             .map_err(|e| e.to_string())?;
         hub.attach(&session);
         session.set_phones_can_create(settings.phones_can_create);
+        session.set_default_skin(&settings.default_skin);
 
         let (changes, _) = broadcast::channel(64);
         let feedback = Arc::new(Mutex::new(HashMap::<u16, Feedback>::new()));
@@ -298,6 +326,7 @@ impl AppCore {
             .set_grace(Duration::from_secs(settings.hold_seconds.into()));
         self.session
             .set_phones_can_create(settings.phones_can_create);
+        self.session.set_default_skin(&settings.default_skin);
         lock(&self.store).set_settings(settings);
         self.changed();
     }
@@ -326,6 +355,7 @@ impl AppCore {
             .or_else(|| a.name.clone())
             .unwrap_or_else(|| "localhost".into());
         let feedback = lock(&self.feedback).clone();
+        let default_skin = self.session.default_skin();
         let now = Instant::now();
         let controllers = self
             .session
@@ -363,6 +393,13 @@ impl AppCore {
                     rumble: last.and_then(|f| f.rumble).map(|(a, b)| [a, b]),
                     url: self.url(&ip, s.number),
                     name_url: a.name.as_ref().map(|name| self.url(name, s.number)),
+                    skin: s.skin.as_ref().map(|id| {
+                        if id.is_empty() {
+                            default_skin.clone()
+                        } else {
+                            id.clone()
+                        }
+                    }),
                 }
             })
             .collect();
@@ -381,7 +418,35 @@ impl AppCore {
             },
             settings: self.settings(),
             controllers,
+            skins: self
+                .session
+                .skins()
+                .into_iter()
+                .map(|e| SkinView {
+                    is_default: e.id == default_skin,
+                    id: e.id,
+                    name: e.name,
+                    author: e.author,
+                    version: e.version,
+                    format: e.format,
+                    bundled: e.bundled,
+                    preview: e.preview,
+                    files: e.files,
+                    broken: e.broken,
+                })
+                .collect(),
         }
+    }
+
+    /// A file of a skin in the library (previews and validation in the window).
+    pub fn skin_file(&self, id: &str, path: &str) -> Option<Vec<u8>> {
+        self.session.skin_file(id, path)
+    }
+
+    /// Skins the window's validation found broken (id → reason): phones are not offered them.
+    pub fn set_broken_skins(&self, broken: std::collections::HashMap<String, String>) {
+        self.session.set_broken_skins(broken);
+        self.changed();
     }
 
     /// The controller's current inputs, for the live view.

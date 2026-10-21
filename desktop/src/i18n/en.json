@@ -55,14 +55,17 @@
   "window.close": "Close (keeps running in the tray)",
   "window.settings": "Settings",
   "skins.title": "Skins",
-  "skins.hint": "For now every controller uses the official skin.",
+  "skins.hint": "The default skin is used by phones that did not pick their own in the controller menu.",
   "skins.default": "Default",
   "skins.official": "Official · {author} · v{version}",
-  "skins.soon": "Official · coming soon",
   "skins.import": "Import skin",
   "skins.importSoon": "Coming soon",
   "tray.title": "Ninjoy keeps running",
   "tray.notice": "Ninjoy stays in the system tray so friends can keep joining. Open it again from the tray icon, or quit it there.",
   "tray.ok": "Got it",
-  "settings.closeToTray": "Keep running in the tray when closed"
+  "settings.closeToTray": "Keep running in the tray when closed",
+  "info.skin": "Skin",
+  "skins.byAuthor": "{author} · v{version}",
+  "skins.broken": "Not offered to phones: {reason}",
+  "skins.makeDefault": "Use as the default"
 }

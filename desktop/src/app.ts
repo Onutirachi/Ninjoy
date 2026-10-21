@@ -8,7 +8,7 @@ import type { Bridge, ControllerView, Language, Settings, Snapshot, Theme } from
 import { renderDetails, renderEmpty } from "./details.ts";
 import { el, html, icons, lightbarCss, shortUrl } from "./dom.ts";
 import { createI18n, detectLanguage, type I18n } from "./i18n/index.ts";
-import { renderSkins } from "./skins.ts";
+import { checkLibrary, renderSkins } from "./skins.ts";
 
 /** Latency samples kept per controller (one per second). */
 const HISTORY = 60;
@@ -211,7 +211,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
       details = renderDetails(ctx, c);
       detail.replaceChildren(details.el);
     }
-    details.update(c, latency.get(c.number) ?? [], now());
+    details.update(c, latency.get(c.number) ?? [], now(), (id) => snapshot.skins.find((s) => s.id === id)?.name ?? id);
   };
 
   const select = (n: number) => {
@@ -272,7 +272,9 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     const main = el("div", { className: "main" }, [list, detail]);
 
     details = null; // texts change with the language
-    app.replaceChildren(titlebar, page === "controllers" ? main : renderSkins(i18n, preview));
+    const skins = () =>
+      renderSkins({ i18n, bridge, skins: snapshot.skins, onDefault: (id) => void setSettings({ defaultSkin: id }).then(() => refresh()) });
+    app.replaceChildren(titlebar, page === "controllers" ? main : skins());
     renderList();
     renderDetail();
   };
@@ -293,6 +295,10 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     if (selected === null) selected = snapshot.controllers[0]?.number ?? null;
     renderList();
     renderDetail();
+    if (page === "skins") {
+      const grid = app.querySelector(".skins");
+      if (grid) grid.replaceWith(renderSkins({ i18n, bridge, skins: snapshot.skins, onDefault: (id) => void setSettings({ defaultSkin: id }).then(() => refresh()) }));
+    }
   };
 
   let pendingLive = false;
@@ -310,6 +316,8 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
 
   applyTheme(snapshot.settings.theme);
   render();
+  // phones are only offered skins that pass the skin format rules
+  void checkLibrary(bridge, snapshot.skins, i18n.locale).then(() => refresh());
   const stop = bridge.onChanged(() => void refresh());
   let timer = 0;
   let raf = 0;

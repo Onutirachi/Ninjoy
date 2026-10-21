@@ -14,7 +14,8 @@
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource/chakra-petch": "^5.3.0",
-    "@tauri-apps/api": "^2.12.4"
+    "@tauri-apps/api": "^2.12.4",
+    "@ninjoy/skin-format": "*"
   },
   "devDependencies": {
     "@vitest/browser": "^5.0.5",

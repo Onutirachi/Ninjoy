@@ -67,6 +67,7 @@ export function renderDetails(ctx: DetailsContext, c: ControllerView) {
     gyro: el("dd"),
     vibration: el("dd"),
     lightbar: el("dd"),
+    skin: el("dd"),
   };
   const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
   line.classList.add("line");
@@ -96,6 +97,7 @@ export function renderDetails(ctx: DetailsContext, c: ControllerView) {
             ...row("info.gyro", values.gyro),
             ...row("info.vibration", values.vibration),
             ...row("info.lightbar", values.lightbar),
+            ...row("info.skin", values.skin),
           ]),
           spark,
         ]),
@@ -108,8 +110,9 @@ export function renderDetails(ctx: DetailsContext, c: ControllerView) {
     el: root,
     status: c.status,
     number: c.number,
-    update(c: ControllerView, samples: number[], now: number) {
+    update(c: ControllerView, samples: number[], now: number, skinName: (id: string) => string = (id) => id) {
       const { t } = ctx.i18n();
+      values.skin.textContent = c.skin ? skinName(c.skin) : "—";
       const device = c.device ?? "";
       if (c.status === "waiting") meta.textContent = t("detail.waiting");
       else if (c.status === "reconnecting") meta.textContent = t("detail.reconnecting", { device, n: c.holdLeft ?? 0 });

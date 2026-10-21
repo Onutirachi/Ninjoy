@@ -10,6 +10,8 @@ export interface Settings {
   phonesCanCreate: boolean;
   startWithSystem: boolean;
   closeToTray: boolean;
+  /** the skin phones use unless they pick their own */
+  defaultSkin: string;
 }
 
 export interface ControllerView {
@@ -28,6 +30,22 @@ export interface ControllerView {
   rumble: [number, number] | null;
   url: string;
   nameUrl: string | null;
+  /** the skin the phone uses (its own choice or the default) */
+  skin: string | null;
+}
+
+export interface SkinView {
+  id: string;
+  name: string;
+  author: string;
+  version: string;
+  format: number;
+  bundled: boolean;
+  preview: string | null;
+  files: string[];
+  /** why phones are not offered it */
+  broken: string | null;
+  isDefault: boolean;
 }
 
 export interface Snapshot {
@@ -35,6 +53,7 @@ export interface Snapshot {
   driver: { ok: boolean; backend: string | null; reason: string | null; fix: string | null };
   settings: Settings;
   controllers: ControllerView[];
+  skins: SkinView[];
 }
 
 export interface LiveView {
@@ -56,6 +75,10 @@ export interface Bridge {
   kick(number: number): Promise<void>;
   setSettings(settings: Settings): Promise<void>;
   qrSvg(text: string): Promise<string>;
+  /** a file of a skin in the library */
+  skinFile(id: string, path: string): Promise<Uint8Array>;
+  /** skins the window found broken (id → reason) */
+  setBrokenSkins(broken: Record<string, string>): Promise<void>;
   /** called when the snapshot changed; returns a function that stops listening */
   onChanged(listener: () => void): () => void;
   minimize(): void;
@@ -78,6 +101,8 @@ export async function tauriBridge(): Promise<Bridge> {
     kick: (number) => invoke<void>("kick", { number }),
     setSettings: (settings) => invoke<void>("set_settings", { settings }),
     qrSvg: (text) => invoke<string>("qr_svg", { text }),
+    skinFile: async (id, path) => new Uint8Array(await invoke<ArrayBuffer>("skin_file", { id, path })),
+    setBrokenSkins: (broken) => invoke<void>("set_broken_skins", { broken }),
     onChanged(listener) {
       const stop = listen("changed", () => listener());
       return () => void stop.then((f) => f());
