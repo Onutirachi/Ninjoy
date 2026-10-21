@@ -28,39 +28,58 @@ fn is_lan_v6(ip: Ipv6Addr) -> bool {
         || (first & 0xffc0) == 0xfe80 // link-local fe80::/10
 }
 
-/// Names of adapters that phones cannot reach (virtual machines, containers, VPN-less tunnels).
-const VIRTUAL_ADAPTERS: [&str; 7] = [
-    "vethernet",
+/// Adapters phones cannot reach: virtual machines' private networks and containers. A Hyper-V
+/// external switch ("vEthernet (<name>)") bridges the real network, so plain "vEthernet" is
+/// only ranked lower, not dropped.
+const UNREACHABLE_ADAPTERS: [&str; 6] = [
+    "wsl",
+    "default switch",
     "virtualbox",
     "vmware",
     "docker",
-    "wsl",
-    "hyper-v",
     "loopback",
 ];
+
+/// Picks, from (adapter name, address) pairs, the addresses phones are likely to reach, best
+/// first: physical adapters before bridged virtual ones, home networks (192.168/16) first.
+pub fn pick_addresses(interfaces: &[(String, Ipv4Addr)]) -> Vec<Ipv4Addr> {
+    let mut found: Vec<(bool, Ipv4Addr)> = interfaces
+        .iter()
+        .filter(|(name, _)| {
+            let name = name.to_lowercase();
+            !UNREACHABLE_ADAPTERS.iter().any(|v| name.contains(v))
+                // Linux container pairs, not Windows' "vEthernet"
+                && !(name.starts_with("veth") && !name.starts_with("vethernet"))
+                && !name.starts_with("br-")
+        })
+        .filter(|(_, ip)| is_lan_v4(*ip) && !ip.is_loopback() && !ip.is_link_local())
+        .map(|(name, ip)| (name.to_lowercase().contains("vethernet"), *ip))
+        .collect();
+    found.sort_by_key(|(virtual_adapter, ip)| {
+        (
+            *virtual_adapter,
+            !matches!(ip.octets(), [192, 168, ..]),
+            *ip,
+        )
+    });
+    let mut ips: Vec<Ipv4Addr> = found.into_iter().map(|(_, ip)| ip).collect();
+    ips.dedup();
+    ips
+}
 
 /// IPv4 addresses of the network interfaces phones are likely to reach, best first.
 pub fn reachable_addresses() -> Vec<Ipv4Addr> {
     let Ok(interfaces) = if_addrs::get_if_addrs() else {
         return Vec::new();
     };
-    let mut found: Vec<Ipv4Addr> = interfaces
+    let pairs: Vec<(String, Ipv4Addr)> = interfaces
         .into_iter()
-        .filter(|i| {
-            let name = i.name.to_lowercase();
-            !VIRTUAL_ADAPTERS.iter().any(|v| name.contains(v))
-                && !name.starts_with("veth")
-                && !name.starts_with("br-")
-        })
         .filter_map(|i| match i.ip() {
-            IpAddr::V4(v4) if is_lan_v4(v4) && !v4.is_loopback() && !v4.is_link_local() => Some(v4),
-            _ => None,
+            IpAddr::V4(v4) => Some((i.name, v4)),
+            IpAddr::V6(_) => None,
         })
         .collect();
-    // home networks first
-    found.sort_by_key(|ip| (!matches!(ip.octets(), [192, 168, ..]), *ip));
-    found.dedup();
-    found
+    pick_addresses(&pairs)
 }
 
 #[cfg(test)]
@@ -102,5 +121,29 @@ mod tests {
         ] {
             assert!(!is_lan(ip(s)), "{s}");
         }
+    }
+
+    #[test]
+    fn picks_reachable_adapters_including_a_bridged_hyper_v_switch() {
+        let pairs: Vec<(String, Ipv4Addr)> = [
+            ("vEthernet (WSL (Hyper-V firewall))", "172.29.144.1"),
+            ("vEthernet (Default Switch)", "172.31.192.1"),
+            ("vEthernet (Ethernet Bridge)", "192.168.0.10"),
+            ("Ethernet 2", "10.0.0.7"),
+            ("Wi-Fi", "192.168.1.20"),
+            ("Docker Desktop", "192.168.65.1"),
+            ("Loopback Pseudo-Interface 1", "127.0.0.1"),
+            ("Wi-Fi", "8.8.8.8"),
+        ]
+        .into_iter()
+        .map(|(n, ip)| (n.to_string(), ip.parse().unwrap()))
+        .collect();
+        let want: Vec<Ipv4Addr> = ["192.168.1.20", "10.0.0.7", "192.168.0.10"]
+            .iter()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        assert_eq!(pick_addresses(&pairs), want);
+        // only the bridge: its address is used
+        assert_eq!(pick_addresses(&pairs[..3]), [want[2]]);
     }
 }
