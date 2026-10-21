@@ -873,6 +873,7 @@ body {
   margin: 0 0 12px 12px;
   padding: 8px;
   overflow-y: auto;
+  scrollbar-width: none; /* still scrolls on short screens, without a bar */
   border-radius: 20px;
   background: var(--m-bg);
   box-shadow: var(--m-shadow-m);
@@ -1433,6 +1434,7 @@ body {
 
   .nj-tab {
     justify-content: center;
+    min-height: 40px;
     padding: 0;
   }
 
