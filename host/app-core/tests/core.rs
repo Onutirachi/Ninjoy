@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
-use ninjoy_app_core::{AppCore, CoreConfig, CoreError, Settings, Theme};
+use ninjoy_app_core::{AppCore, CoreConfig, CoreError, Settings, Theme, data_dir};
 use ninjoy_devices::Unavailable;
 use ninjoy_session::SessionConfig;
 
@@ -222,4 +222,35 @@ fn draws_qr_codes_as_svg() {
         &svg[..20]
     );
     assert!(svg.contains("</svg>"));
+}
+
+#[test]
+fn keeps_data_beside_the_program_and_brings_the_old_data_along() {
+    let root = temp_dir();
+    let user = root.join("user");
+    std::fs::create_dir_all(user.join("skins/arcade")).unwrap();
+    std::fs::write(user.join("cert.pem"), "cert").unwrap();
+    std::fs::write(user.join("skins/arcade/skin.json"), "{}").unwrap();
+    let beside = root.join("program/data");
+    std::fs::create_dir_all(root.join("program")).unwrap();
+
+    assert_eq!(data_dir(&beside, &user), beside);
+    assert_eq!(
+        std::fs::read_to_string(beside.join("cert.pem")).unwrap(),
+        "cert",
+        "phones keep trusting it"
+    );
+    assert!(beside.join("skins/arcade/skin.json").is_file());
+
+    // later runs use it as it is
+    std::fs::write(user.join("cert.pem"), "newer").unwrap();
+    assert_eq!(data_dir(&beside, &user), beside);
+    assert_eq!(
+        std::fs::read_to_string(beside.join("cert.pem")).unwrap(),
+        "cert"
+    );
+
+    // a folder that cannot be made falls back to the user's data folder
+    std::fs::write(root.join("file"), "").unwrap();
+    assert_eq!(data_dir(&root.join("file/data"), &user), user);
 }
