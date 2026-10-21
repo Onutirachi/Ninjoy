@@ -19,7 +19,7 @@ describe("anchors and groups", () => {
   it("applies a group's anchor to all its controls", async () => {
     const skin = await resolve({ controls: [at("a", 0), at("b", 1500), menu], groups: [{ name: "g", anchor: "right", controls: ["a", "b"] }] });
     expect([anchorOf(skin, "a"), anchorOf(skin, "b")]).toEqual(["right", "right"]);
-    expect(skin.groups).toContainEqual({ name: "g", anchor: "right", controls: ["a", "b"] });
+    expect(skin.groups).toContainEqual({ name: "g", anchor: "right", fixed: false, controls: ["a", "b"] });
   });
 
   it("derives the anchor of an ungrouped control from its position (thirds)", async () => {
@@ -42,7 +42,7 @@ describe("anchors and groups", () => {
 
   it("puts every ungrouped control in an implicit group named after it", async () => {
     const skin = await resolve({ controls: [at("solo", 100), menu] });
-    expect(skin.groups).toContainEqual({ name: "solo", anchor: "left", controls: ["solo"] });
+    expect(skin.groups).toContainEqual({ name: "solo", anchor: "left", fixed: false, controls: ["solo"] });
     expect(skin.controls.find((c) => c.id === "solo")?.group).toBe("solo");
   });
 });

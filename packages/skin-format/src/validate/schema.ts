@@ -1,5 +1,5 @@
 import { Validator, type OutputUnit } from "@cfworker/json-schema";
-import schema from "../../schema/skin-manifest.v1.schema.json" with { type: "json" };
+import schema from "../../schema/skin-manifest.v2.schema.json" with { type: "json" };
 import type { ReportCollector } from "../report.ts";
 
 const validator = new Validator(schema as object, "2020-12", false);

@@ -3,4 +3,4 @@ export { filesFromMap, filesFromZip } from "./files.ts";
 export { loadSkin } from "./load.ts";
 export { formatReportEntry, REPORT_CODES, type Locale, type ReportCode } from "./report.ts";
 export type * from "./types.ts";
-export { default as skinManifestSchema } from "../schema/skin-manifest.v1.schema.json" with { type: "json" };
+export { default as skinManifestSchema } from "../schema/skin-manifest.v2.schema.json" with { type: "json" };

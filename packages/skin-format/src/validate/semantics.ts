@@ -51,8 +51,32 @@ export function checkManifest(manifest: Manifest, report: ReportCollector): void
     }
   }
 
+  // a group either resizes with the player's layout or stays fixed, never both
+  const byId = new Map(manifest.controls.map((c) => [c.id, c]));
+  for (const group of manifest.groups ?? []) {
+    const fixed = group.controls.map((id) => byId.get(id)?.fixed === true);
+    if (fixed.some((f) => f) && fixed.some((f) => !f)) report.error("fixed-mixed-group", { group: group.name });
+  }
+
+  if (manifest.format === 1) checkFormat1(manifest, report);
+
   if (!manifest.controls.some((c) => c.type === "system" && c.action === "menu")) report.warning("no-menu");
   if (!manifest.preview) report.info("no-preview");
+}
+
+/** Format 2 features are errors in a format 1 manifest (older Ninjoy versions would misread it). */
+function checkFormat1(manifest: Manifest, report: ReportCollector): void {
+  const usesKeyword = (color: string | undefined) => color === "original" || (color?.startsWith("lightbar") ?? false);
+  const pairs = (p: { inactive?: string; active?: string } | undefined) => [p?.inactive, p?.active];
+  const need = (feature: string) => report.error("needs-format-2", { feature });
+  if (manifest.defaults?.stick !== undefined) need("defaults.stick");
+  if (Object.values(manifest.defaults?.colors ?? {}).some((p) => pairs(p).some(usesKeyword))) need("colors");
+  for (const control of manifest.controls) {
+    if (control.type === "decor") need(`decor (${control.id})`);
+    if (control.fixed !== undefined) need(`fixed (${control.id})`);
+    if (control.output !== undefined) need(`output (${control.id})`);
+    if (Object.values(control.elements ?? {}).some((e) => pairs(e.colors).some(usesKeyword))) need(`colors (${control.id})`);
+  }
 }
 
 const STICK_ONLY: Role[] = ["thumb", "thumb-label"];
@@ -83,7 +107,8 @@ export function checkElements(control: ManifestControl, scan: SvgScan, report: R
     const info = scan.ids.get(id);
     if (info && !info.isShape) report.error("hitbox-not-single-shape", { ...at, element: id });
   }
-  if (hitboxes.length === 0 && withRole("base").length === 0) report.error("missing-touch-area", at);
+  // decorations take no touches, so they need no touch area
+  if (control.type !== "decor" && hitboxes.length === 0 && withRole("base").length === 0) report.error("missing-touch-area", at);
 
   if (control.type === "stick" && withRole("thumb").length === 0) report.error("missing-thumb", at);
   if (control.type !== "stick") {

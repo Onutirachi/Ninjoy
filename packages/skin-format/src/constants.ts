@@ -7,8 +7,8 @@ export const MAX_PACKAGE_BYTES = 20 * 1024 * 1024;
 /** The manifest file at the root of every package. */
 export const MANIFEST_PATH = "skin.json";
 
-/** The only manifest format this version understands. */
-export const FORMAT_VERSION = 1;
+/** The newest manifest format this version understands (format 1 skins keep working). */
+export const FORMAT_VERSION = 2;
 
 /** Built-in values used when neither the control nor the skin defaults declare one. */
 export const BUILTIN = {

@@ -7,7 +7,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./schema/skin-manifest.v1.schema.json"
+    "./schema": "./schema/skin-manifest.v2.schema.json"
   },
   "scripts": {
     "test": "vitest run",

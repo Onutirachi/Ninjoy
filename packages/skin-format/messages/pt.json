@@ -31,5 +31,7 @@
   "unsafe-attribute": "\"{file}\" tem o atributo \"{attribute}\" em <{element}>; eventos não são permitidos em skins.",
   "unsafe-reference": "\"{file}\" aponta para \"{value}\" a partir de <{element}>; skins só podem usar arquivos dentro do pacote.",
   "unsafe-css": "\"{file}\" contém CSS que carrega conteúdo externo: {value}",
-  "unsafe-doctype": "\"{file}\" declara entidades no DOCTYPE, o que não é permitido em skins."
+  "unsafe-doctype": "\"{file}\" declara entidades no DOCTYPE, o que não é permitido em skins.",
+  "fixed-mixed-group": "O grupo \"{group}\" mistura controles fixos com controles que redimensionam; deixe todos fixos ou nenhum.",
+  "needs-format-2": "{feature} exige o formato 2; use \"format\": 2 no skin.json."
 }

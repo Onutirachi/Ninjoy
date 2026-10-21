@@ -31,5 +31,7 @@
   "unsafe-attribute": "\"{file}\" has a \"{attribute}\" attribute on <{element}>; event handlers are not allowed in skins.",
   "unsafe-reference": "\"{file}\" refers to \"{value}\" from <{element}>; skins may only use files inside the package.",
   "unsafe-css": "\"{file}\" contains CSS that loads external content: {value}",
-  "unsafe-doctype": "\"{file}\" declares entities in its DOCTYPE, which is not allowed in skins."
+  "unsafe-doctype": "\"{file}\" declares entities in its DOCTYPE, which is not allowed in skins.",
+  "fixed-mixed-group": "Group \"{group}\" mixes fixed controls with controls that resize; make them all fixed or none.",
+  "needs-format-2": "{feature} needs format 2; set \"format\": 2 in skin.json."
 }

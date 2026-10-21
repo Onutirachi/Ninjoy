@@ -12,6 +12,19 @@ export interface LoadedControl {
 const own = (color: string | undefined) => (color && color !== "inherit" ? color : undefined);
 
 /**
+ * A declared element color as drawn: undefined = inherit, null = "original" (keep the SVG's
+ * color), "lightbar" → the live lightbar CSS variable (mixed with transparency when given).
+ */
+function elementColor(color: string | undefined): string | null | undefined {
+  const c = own(color);
+  if (c === undefined) return undefined;
+  if (c === "original") return null;
+  const lightbar = /^lightbar(?: (\d+)%)?$/.exec(c);
+  if (!lightbar) return c;
+  return lightbar[1] === undefined ? "var(--ninjoy-lightbar)" : `color-mix(in srgb, var(--ninjoy-lightbar) ${lightbar[1]}%, transparent)`;
+}
+
+/**
  * Element colors: element value → its nearest listed ancestor group (SVG groups share their
  * colors with their contents) → the skin default for the element's role → null (keep the SVG
  * color). Each state (inactive / active) inherits independently.
@@ -26,8 +39,13 @@ function resolveElements({ control, scan }: LoadedControl, manifest: Manifest): 
     // listed ancestors, nearest first
     const ancestors = [...(scan.ids.get(id)?.insideGroupIds ?? [])].reverse().map((g) => listed[g]).filter((e) => e !== undefined);
     const role = element.role ?? ancestors.find((a) => a.role)?.role ?? null;
-    const pick = (state: keyof ColorPair) =>
-      own(element.colors?.[state]) ?? ancestors.map((a) => own(a.colors?.[state])).find((c) => c !== undefined) ?? own(defaultsFor(role)?.[state]) ?? null;
+    const pick = (state: keyof ColorPair): string | null => {
+      for (const c of [element.colors?.[state], ...ancestors.map((a) => a.colors?.[state]), defaultsFor(role)?.[state]]) {
+        const resolved = elementColor(c);
+        if (resolved !== undefined) return resolved;
+      }
+      return null;
+    };
     return { id, role, colors: { inactive: pick("inactive"), active: pick("active") } };
   });
 }
@@ -42,6 +60,7 @@ function resolveControl(loaded: LoadedControl, manifest: Manifest): ResolvedCont
     box: { ...control.box },
     anchor: "center",
     group: control.id,
+    fixed: control.fixed ?? false,
     elements: resolveElements(loaded, manifest),
     glow: {
       enabled: control.glow?.enabled ?? defaults.glow?.enabled ?? BUILTIN.glow.enabled,
@@ -57,6 +76,7 @@ function resolveControl(loaded: LoadedControl, manifest: Manifest): ResolvedCont
       resolved.side = control.side ?? "left";
       resolved.stick = {
         click: control.click ?? (resolved.side === "left" ? "l3" : "r3"),
+        output: control.output ?? defaults.stick?.output ?? "analog",
         tuning: { deadZone: tuning.deadZone, maxZone: tuning.maxZone },
       };
       break;
@@ -118,7 +138,8 @@ export function resolveSkin(manifest: Manifest, loaded: LoadedControl[]): Resolv
     const right = Math.max(...members.map((c) => c.box.x + c.box.width));
     const anchor = group.anchor ?? anchorFromPosition(left, right);
     for (const c of members) { c.group = group.name; c.anchor = anchor; }
-    groups.push({ name: group.name, anchor, controls: members.map((c) => c.id) });
+    // the checks refuse groups mixing fixed and resizing controls
+    groups.push({ name: group.name, anchor, fixed: members.length > 0 && members.every((c) => c.fixed), controls: members.map((c) => c.id) });
   }
   const grouped = new Set(groups.flatMap((g) => g.controls));
   for (const c of controls) {
@@ -126,12 +147,12 @@ export function resolveSkin(manifest: Manifest, loaded: LoadedControl[]): Resolv
     const declared = manifest.controls.find((m) => m.id === c.id)?.anchor;
     c.group = c.id;
     c.anchor = declared ?? anchorFromPosition(c.box.x, c.box.x + c.box.width);
-    groups.push({ name: c.id, anchor: c.anchor, controls: [c.id] });
+    groups.push({ name: c.id, anchor: c.anchor, fixed: c.fixed, controls: [c.id] });
   }
 
   return {
     canvas: { width: CANVAS.width, height: CANVAS.height },
-    meta: { name: manifest.name, author: manifest.author, version: manifest.version, format: 1 },
+    meta: { name: manifest.name, author: manifest.author, version: manifest.version, format: manifest.format === 2 ? 2 : 1 },
     background: resolveBackground(manifest),
     ...(manifest.preview ? { preview: manifest.preview } : {}),
     controls,

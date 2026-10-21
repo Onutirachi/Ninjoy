@@ -25,7 +25,10 @@ export type Role =
   | "base" | "label" | "label-on" | "label-off"
   | "thumb" | "thumb-label" | "hitbox" | "pressed" | "level";
 
-export type ControlType = "button" | "stick" | "trigger" | "touchpad" | "system";
+/** "decor" draws but takes no touches and sends nothing (format 2). */
+export type ControlType = "button" | "stick" | "trigger" | "touchpad" | "system" | "decor";
+/** What a stick sends: the analog stick, or the d-pad in 8 directions (format 2). */
+export type StickOutput = "analog" | "dpad";
 export type Direction = "up" | "down" | "left" | "right";
 export type Placement = "cover" | "contain" | "center" | "tile";
 export type SystemAction = "menu" | "fullscreen" | "gyro";
@@ -59,6 +62,9 @@ export interface ManifestControl {
   area?: "full" | "left" | "right";
   action?: SystemAction;
   toggleActive?: boolean;
+  /** keeps its default-layout place and size whatever the player's size and height (format 2) */
+  fixed?: boolean;
+  output?: StickOutput;
 }
 
 export interface Manifest {
@@ -75,6 +81,7 @@ export interface Manifest {
     glow?: Glow;
     toggleActive?: boolean;
     tuning?: { trigger?: TriggerTuning; stick?: StickTuning };
+    stick?: { output?: StickOutput };
   };
   groups?: { name: string; anchor?: Anchor; controls: string[] }[];
   controls: ManifestControl[];
@@ -97,7 +104,10 @@ export interface ResolvedElement {
   id: string;
   /** null = decoration */
   role: Role | null;
-  /** null = keep the color drawn in the SVG */
+  /**
+   * A CSS color (the lightbar color is `var(--ninjoy-lightbar)`, alone or mixed with
+   * transparency), or null = keep the color drawn in the SVG.
+   */
   colors: { inactive: string | null; active: string | null };
 }
 
@@ -110,6 +120,7 @@ export interface ResolvedControl {
   anchor: Anchor;
   /** group name; ungrouped controls form an implicit group named after the control */
   group: string;
+  fixed: boolean;
   elements: ResolvedElement[];
   glow: { enabled: boolean; color: string };
   bindings?: Binding[];
@@ -122,7 +133,7 @@ export interface ResolvedControl {
     maxZone: string;
     tuning: { maxZone: number; minForce: number };
   };
-  stick?: { click: Binding | "none"; tuning: { deadZone: number; maxZone: number } };
+  stick?: { click: Binding | "none"; output: StickOutput; tuning: { deadZone: number; maxZone: number } };
   area?: "full" | "left" | "right";
   action?: SystemAction;
   /** fullscreen and gyro only */
@@ -131,11 +142,12 @@ export interface ResolvedControl {
 
 export interface ResolvedSkin {
   canvas: { width: 1600; height: 720 };
-  meta: { name: string; author: string; version: string; format: 1 };
+  meta: { name: string; author: string; version: string; format: 1 | 2 };
   background: { color: string; image?: string; placement: Placement; opacity: number } | null;
   preview?: string;
   controls: ResolvedControl[];
-  groups: { name: string; anchor: Anchor; controls: string[] }[];
+  /** fixed groups ignore the player's size and height */
+  groups: { name: string; anchor: Anchor; fixed: boolean; controls: string[] }[];
 }
 
 export type LoadResult =

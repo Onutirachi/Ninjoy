@@ -4,8 +4,8 @@
 
 ## Format 2 (US3/US4/US5 foundations)
 
-- [ ] T001 [P] skin-format tests: format 2 accepted, format 1 unchanged, format 2 features rejected in format 1; colors `original`/`lightbar`/`lightbar N%` resolved; `decor` without touch area; `fixed` groups and `fixed-mixed-group`; stick `output` with defaults and overrides
-- [ ] T002 Schema, semantics, types and resolve in `packages/skin-format`
+- [X] T001 [P] skin-format tests: format 2 accepted, format 1 unchanged, format 2 features rejected in format 1; colors `original`/`lightbar`/`lightbar N%` resolved; `decor` without touch area; `fixed` groups and `fixed-mixed-group`; stick `output` with defaults and overrides
+- [X] T002 Schema, semantics, types and resolve in `packages/skin-format`
 
 ## US3/US4/US5 - Page drawing and input (P2)
 
