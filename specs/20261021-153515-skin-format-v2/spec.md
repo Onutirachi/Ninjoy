@@ -166,7 +166,9 @@ check the d-pad directions in Steam's test screen while the analog stick stays c
   input and have no pressed state.
 - **FR-004**: Any control or decoration MAY be "fixed": it keeps its default-layout screen
   position and size whatever the player's size and height settings; edit-layout mode can still
-  move and resize it.
+  move and resize it. A resizing group drawn right above a fixed group with the same anchor
+  shrinks onto that group's top instead of the screen's bottom, so it never slides under it
+  (SH and OP above a fixed PS).
 - **FR-005**: A stick MUST be able to output the d-pad (8 directions, 45° sectors with hysteresis)
   instead of the analog stick; the skin's defaults set the output for its sticks and each stick
   MAY override it.

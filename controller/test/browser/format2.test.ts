@@ -60,6 +60,19 @@ describe("format 2 on the controller", () => {
     expect(box("x").width).toBeLessThan(x.width);
   });
 
+  it("keeps resizing controls above a fixed control under them", async () => {
+    await start([
+      { id: "ps", type: "button", bindings: ["ps"], fixed: true, svg: "r.svg", box: { x: 700, y: 500, width: 200, height: 100 }, elements: { base: { role: "base" } } },
+      { id: "sh", type: "button", bindings: ["share"], svg: "r.svg", box: { x: 700, y: 380, width: 200, height: 100 }, elements: { base: { role: "base" } } },
+    ]);
+    const box = (id: string) => root.querySelector(`svg[data-control="${id}"]`)!.getBoundingClientRect();
+    const [sh, gap] = [box("sh"), box("ps").top - box("sh").bottom];
+    controller.updateSettings({ size: 0.5 });
+    expect(box("sh").width).toBeCloseTo(sh.width / 2, 0);
+    expect(box("sh").bottom).toBeLessThan(box("ps").top); // shrinks onto the PS, not under it
+    expect(box("ps").top - box("sh").bottom).toBeCloseTo(gap / 2, 0); // the gap scales too
+  });
+
   it("sends the d-pad from a d-pad stick and leaves the analog stick centered", async () => {
     await start([{ id: "lever", type: "stick", side: "left", output: "dpad", svg: "s.svg", box: { x: 100, y: 200, width: 400, height: 400 }, elements: { ring: { role: "base" }, ball: { role: "thumb" } } }]);
     const [cx, cy] = at(root, "lever");
