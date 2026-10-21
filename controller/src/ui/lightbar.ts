@@ -8,12 +8,14 @@ let game: Rgb | null = null;
 
 /**
  * How the color looks on a screen: games send LED intensities (a dim `64 0 0` is a clear red on
- * the controller's LED but almost black on a screen), so the brightest channel is raised to full
- * and the hue kept. Off (black) stays off.
+ * the controller's LED but almost black on a screen), so dim colors are brightened along a curve
+ * that keeps the hue and the order of brightness (fades still show). Off (black) stays off.
  */
 export function asShown([r, g, b]: Rgb): Rgb {
   const max = Math.max(r, g, b);
-  return max === 0 ? [0, 0, 0] : [r, g, b].map((v) => Math.round((v * 255) / max)) as Rgb;
+  if (max === 0) return [0, 0, 0];
+  const brightness = 0.4 + 0.6 * Math.sqrt(max / 255);
+  return [r, g, b].map((v) => Math.round((v * 255 * brightness) / max)) as Rgb;
 }
 
 const paint = (root: HTMLElement) => {

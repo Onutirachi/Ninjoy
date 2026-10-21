@@ -38,7 +38,8 @@ const PLAYER_COLORS: [number, number, number][] = [[48, 153, 232], [232, 72, 72]
 
 /**
  * The lightbar as the phone shows it: games send LED intensities (a dim `64 0 0` is a clear red on
- * an LED but almost black on a screen), so the brightest channel is raised to full and the hue kept.
+ * an LED but almost black on a screen), so dim colors are brightened along a curve that keeps the
+ * hue and the order of brightness (fades still show). Same curve as the controller page.
  */
 export function lightbarCss(color: [number, number, number] | null, number: number): string {
   if (!color) {
@@ -46,6 +47,7 @@ export function lightbarCss(color: [number, number, number] | null, number: numb
     return `rgb(${r} ${g} ${b})`;
   }
   const max = Math.max(...color);
-  const [r, g, b] = max === 0 ? color : color.map((v) => Math.round((v * 255) / max));
+  const brightness = 0.4 + 0.6 * Math.sqrt(max / 255);
+  const [r, g, b] = max === 0 ? color : color.map((v) => Math.round((v * 255 * brightness) / max));
   return `rgb(${r} ${g} ${b})`;
 }

@@ -356,7 +356,12 @@ pub struct FeedbackHandle(Arc<Shared>);
 impl FeedbackHandle {
     /// Sends rumble and/or lightbar to the device of `number`; ignored if none is connected.
     pub fn send(&self, number: u16, feedback: Feedback) {
-        let conn = lock(&self.0.table).get(number).and_then(|s| s.conn);
+        let Some(conn) = lock(&self.0.table).get(number).map(|s| s.conn) else {
+            return; // no such slot
+        };
+        if let Some(color) = feedback.lightbar {
+            lock(&self.0.live(number)).lightbar = Some(color);
+        }
         if let Some(conn) = conn {
             self.0.control(conn, Control::Send(feedback.to_message()));
         }

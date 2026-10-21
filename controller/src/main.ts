@@ -148,6 +148,8 @@ try {
         screens.show({ message: t("session.unavailable"), pulse: true });
         break;
       case "joined": {
+        // the host sends the game's color right after, if the game set one
+        applyLightbar(null);
         setPlayerColor(s.slot);
         // a reload keeps the same controller
         history.replaceState(null, "", `/${s.slot}${location.search}`);

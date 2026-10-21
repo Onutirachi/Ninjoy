@@ -98,12 +98,19 @@ describe("lightbar", () => {
     expect(el.style.getPropertyValue("--ninjoy-lightbar")).toBe("rgb(48 153 232)"); // back to the player's color
   });
 
-  it("shows dim LED colors at full brightness, keeping the hue", () => {
+  it("brightens dim LED colors, keeping the hue and fades", () => {
     const el = document.createElement("div");
-    applyLightbar([64, 0, 0], el);
-    expect(el.style.getPropertyValue("--ninjoy-lightbar")).toBe("rgb(255 0 0)");
-    applyLightbar([0, 32, 64], el);
-    expect(el.style.getPropertyValue("--ninjoy-lightbar")).toBe("rgb(0 128 255)");
+    const shown = (rgb: [number, number, number]) => {
+      applyLightbar(rgb, el);
+      return el.style.getPropertyValue("--ninjoy-lightbar");
+    };
+    expect(shown([255, 0, 0])).toBe("rgb(255 0 0)");
+    expect(shown([64, 0, 0])).toBe("rgb(179 0 0)"); // a quarter on the LED, clearly red on screen
+    expect(shown([0, 32, 64])).toBe("rgb(0 89 179)");
+    // a fade out stays a fade out
+    const reds = [255, 128, 64, 16, 1].map((v) => Number(/rgb\((\d+)/.exec(shown([v, 0, 0]))![1]));
+    expect(reds).toEqual([...reds].sort((a, b) => b - a));
+    expect(new Set(reds).size).toBe(reds.length);
     applyLightbar([0, 0, 0], el);
     expect(el.style.getPropertyValue("--ninjoy-lightbar")).toBe("rgb(0 0 0)"); // off stays off
   });

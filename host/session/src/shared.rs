@@ -78,6 +78,9 @@ pub(crate) struct Live {
     pub rtt: Option<Duration>,
     /// the skin the page says it uses ("" = the default)
     pub skin: Option<String>,
+    /// the game's last lightbar color, sent again when the phone (re)joins: games only send it
+    /// when it changes
+    pub lightbar: Option<[u8; 3]>,
 }
 
 pub(crate) struct Shared {

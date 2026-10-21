@@ -217,5 +217,7 @@ check the d-pad directions in Steam's test screen while the analog stick stays c
   written (installed for every user, a read-only image) it uses the user's data folder. The first
   run with the folder beside the program copies the user's data folder into it.
 - Games send lightbar colors as LED intensities (often dim, like `64 0 0`); the phone and the host
-  window show them with the brightest channel at full, keeping the hue, so they read on a screen
-  as they look on a real controller.
+  window brighten them along the same curve (hue and brightness order kept, so blinks and fades
+  still show; off stays black), so they read on a screen as they look on a real controller.
+- Games send the lightbar only when it changes; the host keeps each controller's last color and
+  sends it again when a phone joins or reconnects.
