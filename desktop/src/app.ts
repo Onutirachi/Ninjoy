@@ -47,7 +47,8 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
 
   const items = el("div", { className: "items", role: "listbox" });
   const count = el("span");
-  const detail = el("main", { className: "panel detail" });
+  // the details sit on the window background, like the prototype (only the list is a card)
+  const detail = el("main", { className: "detail" });
   let details: ReturnType<typeof renderDetails> | null = null;
   let popover: HTMLElement | null = null;
 
