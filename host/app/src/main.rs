@@ -162,9 +162,10 @@ fn main() {
                 .tooltip("Ninjoy")
                 .menu(&menu)
                 .show_menu_on_left_click(false);
-            if let Some(icon) = app.default_window_icon() {
-                tray = tray.icon(icon.clone());
-            }
+            // drawn for the tray's size (sharper than scaling the big window icon down)
+            tray = tray.icon(tauri::image::Image::from_bytes(include_bytes!(
+                "../icons/32x32.png"
+            ))?);
             tray.on_menu_event(|app, event| match event.id().as_ref() {
                 "open" => show(app),
                 "quit" => quit(app),

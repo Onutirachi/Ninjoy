@@ -105,7 +105,9 @@ export function createMotion(preview: string, offText: () => string) {
       const turn = (from: number, to: number) => ((((to - from) % 360) + 540) % 360) - 180;
       pitch += turn(pitch, targetPitch) * smooth;
       roll += turn(roll, targetRoll) * smooth;
-      yaw = (yaw + s.rate[1] * dt) * 0.98;
+      // turning (like a door) has no fixed reference: integrate the gyro and drift back to the
+      // front over a few seconds, so turns read naturally
+      yaw = (yaw + s.rate[1] * dt) * Math.exp(-dt / 4);
       phone.style.transform = `rotateX(${-12 + pitch}deg) rotateY(${yaw}deg) rotateZ(${roll}deg)`;
       values.textContent = `gyro ${s.rate.map((v) => v.toFixed(1)).join(" ")} °/s`;
     },

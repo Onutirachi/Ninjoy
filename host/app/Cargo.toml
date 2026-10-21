@@ -10,7 +10,7 @@ publish = false
 
 [dependencies]
 ninjoy-app-core.workspace = true
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-autostart = "2"
 serde = { version = "1", features = ["derive"] }
 tracing.workspace = true
