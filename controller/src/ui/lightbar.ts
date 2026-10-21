@@ -6,8 +6,18 @@ const PLAYER_COLORS: Rgb[] = [[48, 153, 232], [232, 72, 72], [72, 200, 120], [23
 let player: Rgb = PLAYER_COLORS[0]!;
 let game: Rgb | null = null;
 
+/**
+ * How the color looks on a screen: games send LED intensities (a dim `64 0 0` is a clear red on
+ * the controller's LED but almost black on a screen), so the brightest channel is raised to full
+ * and the hue kept. Off (black) stays off.
+ */
+export function asShown([r, g, b]: Rgb): Rgb {
+  const max = Math.max(r, g, b);
+  return max === 0 ? [0, 0, 0] : [r, g, b].map((v) => Math.round((v * 255) / max)) as Rgb;
+}
+
 const paint = (root: HTMLElement) => {
-  const [r, g, b] = game ?? player;
+  const [r, g, b] = game ? asShown(game) : player;
   root.style.setProperty("--ninjoy-lightbar", `rgb(${r} ${g} ${b})`);
 };
 

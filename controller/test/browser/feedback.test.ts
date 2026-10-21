@@ -97,4 +97,14 @@ describe("lightbar", () => {
     applyLightbar(null, el);
     expect(el.style.getPropertyValue("--ninjoy-lightbar")).toBe("rgb(48 153 232)"); // back to the player's color
   });
+
+  it("shows dim LED colors at full brightness, keeping the hue", () => {
+    const el = document.createElement("div");
+    applyLightbar([64, 0, 0], el);
+    expect(el.style.getPropertyValue("--ninjoy-lightbar")).toBe("rgb(255 0 0)");
+    applyLightbar([0, 32, 64], el);
+    expect(el.style.getPropertyValue("--ninjoy-lightbar")).toBe("rgb(0 128 255)");
+    applyLightbar([0, 0, 0], el);
+    expect(el.style.getPropertyValue("--ninjoy-lightbar")).toBe("rgb(0 0 0)"); // off stays off
+  });
 });
