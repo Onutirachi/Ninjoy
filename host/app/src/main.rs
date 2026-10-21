@@ -63,6 +63,18 @@ fn sync_autostart(app: &AppHandle, core: &AppCore) {
     }
 }
 
+/// The window's icon (the taskbar shows it) at the size the screen scale needs, from the
+/// hand-drawn sizes: Windows scales a large icon down poorly and the ninja's details blur.
+fn window_icon(scale: f64) -> tauri::Result<tauri::image::Image<'static>> {
+    let bytes: &'static [u8] = match scale {
+        s if s >= 1.75 => include_bytes!("../icons/64x64.png"),
+        s if s >= 1.375 => include_bytes!("../icons/48x48.png"),
+        s if s >= 1.125 => include_bytes!("../icons/40x40.png"),
+        _ => include_bytes!("../icons/32x32.png"),
+    };
+    tauri::image::Image::from_bytes(bytes)
+}
+
 /// Shows the window (creating it the first time) and brings it forward.
 fn show(app: &AppHandle) {
     let window = match app.get_webview_window("main") {
@@ -82,6 +94,9 @@ fn show(app: &AppHandle) {
             }
         },
     };
+    if let Ok(icon) = window_icon(window.scale_factor().unwrap_or(1.0)) {
+        let _ = window.set_icon(icon);
+    }
     let _ = window.show();
     let _ = window.unminimize();
     let _ = window.set_focus();

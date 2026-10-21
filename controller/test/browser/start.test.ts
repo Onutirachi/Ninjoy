@@ -26,6 +26,7 @@ describe("tap to play (US1)", () => {
     expect(screen.querySelector(".nj-start-slot")!.textContent).toBe("Controle 3");
     const button = screen.querySelector<HTMLButtonElement>(".nj-start-button")!;
     expect(button.textContent).toBe("Tocar para jogar");
+    expect(screen.querySelector(".nj-start-tip")!.textContent).toContain("rotação automática");
     button.click();
     button.click();
     expect(started).toBe(1);

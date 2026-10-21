@@ -1452,3 +1452,11 @@ body {
     height: 128px;
   }
 }
+
+.nj-start-tip {
+  max-width: 34em;
+  margin: 0;
+  color: oklch(0.72 0.012 250);
+  font-size: 13px;
+  text-align: center;
+}
