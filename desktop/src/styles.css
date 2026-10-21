@@ -1114,9 +1114,13 @@ button.chip:hover {
   pointer-events: none;
 }
 
-/* drawn at the end size (6×) and scaled down, so the logo stays sharp while it zooms through */
+/* drawn at the end size (6×) and scaled down, so the logo stays sharp while it zooms through;
+   centered by position since it is far wider than the window */
 .splash svg {
-  grid-area: 1 / 1;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
   width: calc(min(46vh, 300px) * 6);
   height: auto;
   animation: splash-logo 1.4s cubic-bezier(0.5, 0, 0.75, 0) forwards;
