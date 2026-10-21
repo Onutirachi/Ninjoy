@@ -71,6 +71,9 @@ fn page_message(m: &Value) -> PageMessage {
         "pong" => PageMessage::Pong {
             nonce: num(&m["nonce"]),
         },
+        "skin" => PageMessage::Skin {
+            id: m["id"].as_str().unwrap().to_owned(),
+        },
         other => panic!("unknown page message {other}"),
     }
 }
@@ -122,6 +125,7 @@ fn host_message(m: &Value) -> HostMessage {
             nonce: num(&m["nonce"]),
             last_rtt: num(&m["lastRtt"]),
         },
+        "skins-changed" => HostMessage::SkinsChanged,
         other => panic!("unknown host message {other}"),
     }
 }

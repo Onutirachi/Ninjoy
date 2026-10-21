@@ -6,7 +6,7 @@ use std::sync::{Arc, OnceLock};
 
 use axum::Router;
 use axum::body::Body;
-use axum::extract::{ConnectInfo, Request, State, WebSocketUpgrade};
+use axum::extract::{ConnectInfo, Path, Request, State, WebSocketUpgrade};
 use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri, header};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
@@ -37,6 +37,8 @@ pub(crate) struct AppState {
 pub(crate) fn router(state: AppState) -> Router {
     Router::new()
         .route("/ws", get(websocket))
+        .route("/skins/index.json", get(skin_index))
+        .route("/skins/{id}/{*path}", get(skin_file))
         .fallback(get(files))
         .layer(middleware::from_fn(lan_only))
         .with_state(state)
@@ -68,6 +70,37 @@ async fn websocket(
         .to_owned();
     let shared = state.shared.clone();
     upgrade.on_upgrade(move |socket| connection::run(shared, socket, user_agent))
+}
+
+/// The skins phones may use and the default one (never cached: it changes).
+async fn skin_index(State(state): State<AppState>) -> Response {
+    let mut response = Response::new(Body::from(state.shared.skins.index().to_string()));
+    let headers = response.headers_mut();
+    headers.insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_static("application/json"),
+    );
+    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
+    response
+}
+
+/// A file of a skin in the library.
+async fn skin_file(
+    State(state): State<AppState>,
+    Path((id, path)): Path<(String, String)>,
+) -> Response {
+    let Some(bytes) = state.shared.skins.read(&id, &path) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let mime = mime_guess::from_path(&path).first_or_octet_stream();
+    let mut response = Response::new(Body::from(bytes));
+    let headers = response.headers_mut();
+    if let Ok(v) = HeaderValue::from_str(mime.as_ref()) {
+        headers.insert(header::CONTENT_TYPE, v);
+    }
+    // a skin may be replaced by a newer version: always check
+    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
+    response
 }
 
 /// `/` (controller list) and `/<n>` (a controller) are the page; everything else is a file.

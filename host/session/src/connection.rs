@@ -12,7 +12,7 @@ use crate::device::summarize;
 use crate::protocol::{
     DeviceId, HostMessage, PROTOCOL_VERSION, PageMessage, decode_page, encode_host, seq_is_newer,
 };
-use crate::shared::{Control, Live, SessionEvent, Shared, lock};
+use crate::shared::{Control, Feedback, Live, SessionEvent, Shared, lock};
 use crate::slots::{ConnId, Join};
 use crate::state::ControllerState;
 
@@ -97,6 +97,10 @@ pub(crate) async fn run(shared: Arc<Shared>, socket: WebSocket, user_agent: Stri
                                 joined = Some(Joined { slot, live: shared.live(slot), last_seq: None, last_state: ControllerState::NEUTRAL });
                                 deadline = Instant::now() + shared.loss_timeout;
                                 send!(HostMessage::Welcome { version: PROTOCOL_VERSION, slot });
+                                let lightbar = lock(&joined.as_ref().unwrap().live).lightbar;
+                                if let Some(color) = lightbar {
+                                    send!(Feedback { rumble: None, lightbar: Some(color) }.to_message());
+                                }
                             }
                             Join::InUse { requested } => send!(HostMessage::InUse { requested }),
                             Join::NotAllowed => send!(HostMessage::InUse { requested: 0 }),
@@ -124,6 +128,11 @@ pub(crate) async fn run(shared: Arc<Shared>, socket: WebSocket, user_agent: Stri
                     PageMessage::Hidden => {
                         if let Some(j) = joined.as_ref() {
                             shared.deliver(j.slot, conn, &j.live, &j.last_state.released());
+                        }
+                    }
+                    PageMessage::Skin { id } => {
+                        if let Some(j) = joined.as_ref() {
+                            lock(&j.live).skin = Some(id);
                         }
                     }
                     PageMessage::Pong { nonce } => {

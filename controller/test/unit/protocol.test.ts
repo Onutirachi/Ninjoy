@@ -18,6 +18,7 @@ describe("page messages (shared vectors)", () => {
         hidden: () => encoder.hidden(),
         list: () => encoder.list(fromHex(m.device)),
         pong: () => encoder.pong(m.nonce),
+        skin: () => encoder.skin(m.id),
       }[m.type as string]!();
       expect(hex(bytes)).toBe(expected);
     });

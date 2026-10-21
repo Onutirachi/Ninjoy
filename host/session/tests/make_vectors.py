@@ -35,6 +35,8 @@ page = [
     ("hidden", {"type": "hidden"}, lambda m: bytes([0x03])),
     ("pong", {"type": "pong", "nonce": 0xA1B2C3D4}, lambda m: struct.pack("<BI", 0x04, m["nonce"])),
     ("list", {"type": "list", "device": device.hex()}, lambda m: bytes([0x05]) + bytes.fromhex(m["device"])),
+    ("skin", {"type": "skin", "id": "ninjoy-arcade"}, lambda m: bytes([0x06, len(m["id"].encode())]) + m["id"].encode()),
+    ("skin-default", {"type": "skin", "id": ""}, lambda m: bytes([0x06, 0])),
 ]
 
 host = [
@@ -51,6 +53,7 @@ host = [
      lambda m: bytes([0x88, 1, 3]) + struct.pack("<HBHBHB", 1, 1, 3, 0, 300, 3)),
     ("slot-list-empty", {"type": "slot-list", "phonesCanCreate": False, "entries": []}, lambda m: bytes([0x88, 0, 0])),
     ("ping", {"type": "ping", "nonce": 42, "lastRtt": 123}, lambda m: struct.pack("<BIH", 0x87, 42, 123)),
+    ("skins-changed", {"type": "skins-changed"}, lambda m: bytes([0x89])),
 ]
 
 doc = {

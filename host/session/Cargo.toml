@@ -20,9 +20,9 @@ rust-embed.workspace = true
 mime_guess.workspace = true
 tracing.workspace = true
 futures-util.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
 tokio-rustls = { version = "0.26.6", default-features = false, features = ["ring", "tls12", "logging"] }
 tokio-tungstenite.workspace = true
-serde_json.workspace = true

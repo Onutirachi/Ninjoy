@@ -10,6 +10,7 @@ pub mod net;
 pub mod protocol;
 mod server;
 mod shared;
+pub mod skins;
 pub mod slots;
 pub mod state;
 pub mod tls;
@@ -41,6 +42,8 @@ pub struct SessionConfig {
     pub local_name: String,
     /// where the certificate is kept; default: Ninjoy's app data folder
     pub data_dir: Option<PathBuf>,
+    /// installed skins, one folder per skin id (the official skins are always there)
+    pub skins_dir: Option<PathBuf>,
     /// announce the local name on the network (mDNS)
     pub announce: bool,
     pub grace: Duration,
@@ -56,6 +59,7 @@ impl Default for SessionConfig {
             plain_ports: vec![80, 8080],
             local_name: "ninjoy".to_owned(),
             data_dir: None,
+            skins_dir: None,
             announce: true,
             grace: Duration::from_secs(60),
             loss_timeout: Duration::from_secs(1),
@@ -105,6 +109,8 @@ pub struct SlotInfo {
     pub connected_since: Option<SystemTime>,
     pub last_state: Option<ControllerState>,
     pub rtt: Option<Duration>,
+    /// the skin the phone uses: its own choice, or "" for the host's default
+    pub skin: Option<String>,
 }
 
 /// A running session: servers, slots and connections.
@@ -121,7 +127,12 @@ impl Session {
         config: SessionConfig,
         sink: Arc<dyn StateSink>,
     ) -> Result<Session, StartError> {
-        let shared = Arc::new(Shared::new(sink, config.grace, config.loss_timeout));
+        let shared = Arc::new(Shared::new(
+            sink,
+            config.grace,
+            config.loss_timeout,
+            config.skins_dir.clone(),
+        ));
         let (stop, stop_rx) = watch::channel(false);
 
         let secure_port_cell = Arc::new(OnceLock::new());
@@ -213,11 +224,11 @@ impl Session {
         table
             .iter()
             .map(|(number, slot)| {
-                let (last_state, rtt) = live
+                let (last_state, rtt, skin) = live
                     .get(&number)
                     .map(|l| {
                         let l = lock(l);
-                        (l.last_state, l.rtt)
+                        (l.last_state, l.rtt, l.skin.clone())
                     })
                     .unwrap_or_default();
                 SlotInfo {
@@ -227,6 +238,7 @@ impl Session {
                     connected_since: slot.connected_since,
                     last_state,
                     rtt,
+                    skin,
                 }
             })
             .collect()
@@ -275,6 +287,35 @@ impl Session {
         );
     }
 
+    /// Every skin in the library (official first), with the reason when one is broken.
+    pub fn skins(&self) -> Vec<skins::SkinEntry> {
+        self.shared.skins.entries()
+    }
+
+    /// The default skin phones use when they did not choose one.
+    pub fn default_skin(&self) -> String {
+        self.shared.skins.default()
+    }
+
+    /// Chooses the default skin; open pages are told at once.
+    pub fn set_default_skin(&self, id: &str) {
+        if self.shared.skins.set_default(id) {
+            self.shared.skins_changed();
+        }
+    }
+
+    /// Skins the app found broken (id → reason): phones are no longer offered them.
+    pub fn set_broken_skins(&self, broken: std::collections::HashMap<String, String>) {
+        if self.shared.skins.set_broken(broken) {
+            self.shared.skins_changed();
+        }
+    }
+
+    /// Tells open pages to look at the library again (a skin was added or removed).
+    pub fn skins_changed(&self) {
+        self.shared.skins_changed();
+    }
+
     /// Whether phones may create controllers from the controller list (default: yes).
     pub fn set_phones_can_create(&self, allowed: bool) {
         self.shared.with_table(|t| t.set_phones_can_create(allowed));
@@ -310,7 +351,12 @@ pub struct FeedbackHandle(Arc<Shared>);
 impl FeedbackHandle {
     /// Sends rumble and/or lightbar to the device of `number`; ignored if none is connected.
     pub fn send(&self, number: u16, feedback: Feedback) {
-        let conn = lock(&self.0.table).get(number).and_then(|s| s.conn);
+        let Some(conn) = lock(&self.0.table).get(number).map(|s| s.conn) else {
+            return; // no such slot
+        };
+        if let Some(color) = feedback.lightbar {
+            lock(&self.0.live(number)).lightbar = Some(color);
+        }
         if let Some(conn) = conn {
             self.0.control(conn, Control::Send(feedback.to_message()));
         }

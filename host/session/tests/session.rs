@@ -445,6 +445,46 @@ async fn feedback_reaches_the_connected_page_only() {
 }
 
 #[tokio::test]
+async fn a_phone_joining_gets_the_games_last_lightbar() {
+    use ninjoy_session::Feedback;
+    let host = start_host(SessionConfig::default()).await;
+    let lightbar = |color| Feedback {
+        rumble: None,
+        lightbar: Some(color),
+    };
+    // set while nobody plays the controller yet
+    let waiting = host.session.create_slot();
+    host.session.send_feedback(waiting, lightbar([64, 0, 0]));
+    let (mut page, slot) = Page::join(host.port, waiting, device(1)).await;
+    assert_eq!(slot, waiting);
+    assert_eq!(
+        page.recv().await,
+        Some(HostMessage::Feedback {
+            rumble: None,
+            lightbar: Some([64, 0, 0])
+        })
+    );
+    // games send it only when it changes: a reconnecting phone gets the latest again
+    host.session.send_feedback(slot, lightbar([0, 0, 64]));
+    assert_eq!(
+        page.recv().await,
+        Some(HostMessage::Feedback {
+            rumble: None,
+            lightbar: Some([0, 0, 64])
+        })
+    );
+    page.close().await;
+    let (mut again, _) = Page::join(host.port, slot, device(1)).await;
+    assert_eq!(
+        again.recv().await,
+        Some(HostMessage::Feedback {
+            rumble: None,
+            lightbar: Some([0, 0, 64])
+        })
+    );
+}
+
+#[tokio::test]
 async fn the_host_measures_the_round_trip_and_tells_the_page() {
     let host = start_host(SessionConfig::default()).await;
     let (mut page, _) = Page::join(host.port, 0, device(1)).await;
