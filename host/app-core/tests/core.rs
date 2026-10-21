@@ -116,11 +116,13 @@ async fn keeps_settings_across_restarts() {
     let defaults = core.settings();
     assert_eq!(defaults.hold_seconds, 60);
     assert!(defaults.phones_can_create);
+    assert!(defaults.close_to_tray);
     let changed = Settings {
         theme: Theme::Dark,
         hold_seconds: 120,
         phones_can_create: false,
         start_with_system: true,
+        close_to_tray: false,
         ..defaults
     };
     core.update_settings(changed.clone());

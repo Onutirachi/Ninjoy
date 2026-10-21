@@ -35,6 +35,8 @@ pub struct Settings {
     pub hold_seconds: u16,
     pub phones_can_create: bool,
     pub start_with_system: bool,
+    /// closing the window keeps Ninjoy running in the tray (otherwise it quits)
+    pub close_to_tray: bool,
 }
 
 impl Default for Settings {
@@ -45,6 +47,7 @@ impl Default for Settings {
             hold_seconds: 60,
             phones_can_create: true,
             start_with_system: false,
+            close_to_tray: true,
         }
     }
 }
