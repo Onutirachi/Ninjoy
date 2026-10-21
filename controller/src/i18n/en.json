@@ -92,5 +92,13 @@
   "menu.zone.stickMax": "100% zone (edge)",
   "menu.zone.minForce": "Minimum force",
   "menu.zone.triggerMax": "100% zone (top)",
-  "start.rotateTip": "Tip: turn off auto-rotate on your phone so the screen does not flip while you play."
+  "start.rotateTip": "Tip: turn off auto-rotate on your phone so the screen does not flip while you play.",
+  "menu.section.skins": "Skins",
+  "menu.skins.hint": "Skins installed on the computer. Your choice stays on this phone.",
+  "menu.skins.hostDefault": "Host default ({name})",
+  "menu.skins.follow": "Follows the computer's choice",
+  "menu.skins.by": "by {author}",
+  "menu.skins.default": "default",
+  "menu.skins.inUse": "in use",
+  "notice.skinMissing": "Your skin is no longer on this computer, so the default one is used."
 }

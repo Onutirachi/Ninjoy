@@ -33,6 +33,8 @@ pub struct SkinEntry {
     pub author: String,
     pub version: String,
     pub format: u8,
+    /// the preview image's path inside the skin, if it has one
+    pub preview: Option<String>,
     /// every file, '/'-separated, relative to the skin
     pub files: Vec<String>,
     /// shipped with Ninjoy (cannot be removed)
@@ -135,7 +137,7 @@ impl Library {
             .map(|e| {
                 json!({
                     "id": e.id, "name": e.name, "author": e.author, "version": e.version,
-                    "format": e.format, "files": e.files,
+                    "format": e.format, "files": e.files, "preview": e.preview,
                 })
             })
             .collect();
@@ -169,6 +171,7 @@ fn describe(
         author: String::new(),
         version: String::new(),
         format: 0,
+        preview: None,
         files,
         bundled,
         broken: None,
@@ -187,6 +190,11 @@ fn describe(
             entry.name = text("name");
             entry.author = text("author");
             entry.version = text("version");
+            entry.preview = m
+                .get("preview")
+                .and_then(Value::as_str)
+                .filter(|p| safe_path(p))
+                .map(str::to_owned);
             let format = m.get("format").and_then(Value::as_u64).unwrap_or(0);
             entry.format = format as u8;
             if !FORMATS.contains(&format) {

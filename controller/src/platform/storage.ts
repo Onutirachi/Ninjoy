@@ -2,15 +2,17 @@ import type { LayoutEdit } from "../engine/layout.ts";
 import type { ControlOverride, PlayerSettings } from "../engine/settings.ts";
 
 const PREFIX = "ninjoy.v1";
-const skinKey = (skin: { name: string; version: string }) => `${skin.name}@${skin.version}`;
+/** the official skin's edits were kept as "Ninjoy@<version>" before skins had ids */
+const LEGACY_OFFICIAL = "Ninjoy@";
 
 export interface Store {
   loadSettings(): Partial<PlayerSettings>;
   saveSettings(settings: Partial<PlayerSettings>): void;
-  loadLayout(skin: { name: string; version: string }): Record<string, LayoutEdit>;
-  saveLayout(skin: { name: string; version: string }, layout: Record<string, LayoutEdit>): void;
-  loadOverrides(skin: { name: string; version: string }): Record<string, ControlOverride>;
-  saveOverrides(skin: { name: string; version: string }, overrides: Record<string, ControlOverride>): void;
+  /** per skin id */
+  loadLayout(skinId: string): Record<string, LayoutEdit>;
+  saveLayout(skinId: string, layout: Record<string, LayoutEdit>): void;
+  loadOverrides(skinId: string): Record<string, ControlOverride>;
+  saveOverrides(skinId: string, overrides: Record<string, ControlOverride>): void;
 }
 
 /**
@@ -34,12 +36,24 @@ export function createStore(storage: Storage | null = globalThis.localStorage ??
       // storage full or blocked: settings stay in memory for this session
     }
   };
+  /** A skin's data; the official skin falls back to its edits saved before skins had ids. */
+  const readSkin = <T extends object>(kind: string, id: string): T => {
+    const own = read<T>(`${PREFIX}.${kind}.${id}`);
+    if (Object.keys(own).length || id !== "ninjoy" || !storage) return own;
+    try {
+      const keys = Array.from({ length: storage.length }, (_, i) => storage.key(i) ?? "");
+      const legacy = keys.filter((k) => k.startsWith(`${PREFIX}.${kind}.${LEGACY_OFFICIAL}`)).sort().at(-1);
+      return legacy ? read<T>(legacy) : own;
+    } catch {
+      return own;
+    }
+  };
   return {
     loadSettings: () => read(`${PREFIX}.settings`),
     saveSettings: (s) => write(`${PREFIX}.settings`, s),
-    loadLayout: (skin) => read(`${PREFIX}.layout.${skinKey(skin)}`),
-    saveLayout: (skin, layout) => write(`${PREFIX}.layout.${skinKey(skin)}`, layout),
-    loadOverrides: (skin) => read(`${PREFIX}.overrides.${skinKey(skin)}`),
-    saveOverrides: (skin, overrides) => write(`${PREFIX}.overrides.${skinKey(skin)}`, overrides),
+    loadLayout: (id) => readSkin("layout", id),
+    saveLayout: (id, layout) => write(`${PREFIX}.layout.${id}`, layout),
+    loadOverrides: (id) => readSkin("overrides", id),
+    saveOverrides: (id, overrides) => write(`${PREFIX}.overrides.${id}`, overrides),
   };
 }
