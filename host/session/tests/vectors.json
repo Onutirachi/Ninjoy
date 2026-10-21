@@ -110,6 +110,22 @@
         "device": "101112131415161718191a1b1c1d1e1f"
       },
       "hex": "05101112131415161718191a1b1c1d1e1f"
+    },
+    {
+      "name": "skin",
+      "message": {
+        "type": "skin",
+        "id": "ninjoy-arcade"
+      },
+      "hex": "060d6e696e6a6f792d617263616465"
+    },
+    {
+      "name": "skin-default",
+      "message": {
+        "type": "skin",
+        "id": ""
+      },
+      "hex": "0600"
     }
   ],
   "host": [
@@ -240,6 +256,13 @@
         "lastRtt": 123
       },
       "hex": "872a0000007b00"
+    },
+    {
+      "name": "skins-changed",
+      "message": {
+        "type": "skins-changed"
+      },
+      "hex": "89"
     }
   ]
 }

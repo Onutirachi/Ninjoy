@@ -76,6 +76,8 @@ pub(crate) struct Live {
     pub owner: ConnId,
     pub last_state: Option<ControllerState>,
     pub rtt: Option<Duration>,
+    /// the skin the page says it uses ("" = the default)
+    pub skin: Option<String>,
 }
 
 pub(crate) struct Shared {
@@ -90,6 +92,7 @@ pub(crate) struct Shared {
     /// how long a dropped device's slot is held, in ms (changed at run time by the app)
     pub grace_ms: AtomicU64,
     pub loss_timeout: Duration,
+    pub skins: crate::skins::Library,
 }
 
 /// Locks a mutex, ignoring poisoning (a panicked task must not take the session down).
@@ -98,7 +101,12 @@ pub(crate) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 impl Shared {
-    pub fn new(sink: Arc<dyn StateSink>, grace: Duration, loss_timeout: Duration) -> Self {
+    pub fn new(
+        sink: Arc<dyn StateSink>,
+        grace: Duration,
+        loss_timeout: Duration,
+        skins_dir: Option<std::path::PathBuf>,
+    ) -> Self {
         Self {
             table: Mutex::new(SlotTable::new()),
             live: Mutex::new(HashMap::new()),
@@ -109,6 +117,7 @@ impl Shared {
             next_conn: AtomicU64::new(1),
             grace_ms: AtomicU64::new(grace.as_millis() as u64),
             loss_timeout,
+            skins: crate::skins::Library::new(skins_dir),
         }
     }
 
@@ -146,6 +155,13 @@ impl Shared {
 
     pub fn drop_live(&self, slot: u16) {
         lock(&self.live).remove(&slot);
+    }
+
+    /// Tells every open page that the skin library or the default skin changed.
+    pub fn skins_changed(&self) {
+        for tx in lock(&self.conns).values() {
+            let _ = tx.try_send(Control::Send(HostMessage::SkinsChanged));
+        }
     }
 
     pub fn control(&self, conn: ConnId, control: Control) {

@@ -6,9 +6,11 @@ import { DS4_BUTTONS, type ControllerState } from "./state.ts";
  */
 export const PROTOCOL_VERSION = 1;
 
-const HELLO = 0x01, STATE = 0x02, HIDDEN = 0x03, PONG = 0x04, LIST = 0x05;
+const HELLO = 0x01, STATE = 0x02, HIDDEN = 0x03, PONG = 0x04, LIST = 0x05, SKIN = 0x06;
 const WELCOME = 0x81, IN_USE = 0x82, OPENED_ELSEWHERE = 0x83, KICKED = 0x84, VERSION_MISMATCH = 0x85;
-const FEEDBACK = 0x86, PING = 0x87, SLOT_LIST = 0x88;
+const FEEDBACK = 0x86, PING = 0x87, SLOT_LIST = 0x88, SKINS_CHANGED = 0x89;
+/** Longest skin id (bytes) in a SKIN message. */
+const MAX_SKIN_ID = 64;
 
 /** A STATE as it travels: integers in wire units. */
 export interface RawState {
@@ -36,7 +38,9 @@ export type HostMessage =
   | { type: "feedback"; rumble: [number, number] | null; lightbar: [number, number, number] | null }
   | { type: "slot-list"; phonesCanCreate: boolean; entries: { slot: number; status: ListStatus }[] }
   /** lastRtt in 0.1 ms units, 0 = unknown */
-  | { type: "ping"; nonce: number; lastRtt: number };
+  | { type: "ping"; nonce: number; lastRtt: number }
+  /** the host's skins or default skin changed */
+  | { type: "skins-changed" };
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
@@ -66,7 +70,7 @@ export function toRawState(state: ControllerState): RawState {
  * valid until the next call (WebSocket.send copies it).
  */
 export class Encoder {
-  private readonly bytes: Uint8Array<ArrayBuffer> = new Uint8Array(64);
+  private readonly bytes: Uint8Array<ArrayBuffer> = new Uint8Array(128);
   private readonly view = new DataView(this.bytes.buffer);
 
   hello(slot: number, device: Uint8Array): Uint8Array<ArrayBuffer> {
@@ -121,6 +125,15 @@ export class Encoder {
     this.view.setUint32(1, nonce >>> 0, true);
     return this.bytes.subarray(0, 5);
   }
+
+  /** The skin this page uses ("" = the host's default). */
+  skin(id: string): Uint8Array<ArrayBuffer> {
+    const text = new TextEncoder().encode(id).subarray(0, MAX_SKIN_ID);
+    this.bytes[0] = SKIN;
+    this.bytes[1] = text.length;
+    this.bytes.set(text, 2);
+    return this.bytes.subarray(0, 2 + text.length);
+  }
 }
 
 export class ProtocolError extends Error {}
@@ -161,6 +174,7 @@ export function decodeHost(data: ArrayBuffer | Uint8Array): HostMessage | null {
       return { type: "slot-list", phonesCanCreate: (v.getUint8(1) & 1) !== 0, entries };
     }
     case PING: len(7); return { type: "ping", nonce: v.getUint32(1, true), lastRtt: v.getUint16(5, true) };
+    case SKINS_CHANGED: len(1); return { type: "skins-changed" };
     default: return null;
   }
 }

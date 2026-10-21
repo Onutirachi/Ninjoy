@@ -126,6 +126,11 @@ pub(crate) async fn run(shared: Arc<Shared>, socket: WebSocket, user_agent: Stri
                             shared.deliver(j.slot, conn, &j.live, &j.last_state.released());
                         }
                     }
+                    PageMessage::Skin { id } => {
+                        if let Some(j) = joined.as_ref() {
+                            lock(&j.live).skin = Some(id);
+                        }
+                    }
                     PageMessage::Pong { nonce } => {
                         if let (Some(j), Some((sent_nonce, sent_at))) = (joined.as_ref(), ping_sent)
                             && nonce == sent_nonce

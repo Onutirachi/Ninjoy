@@ -16,6 +16,7 @@ mod kind {
     pub const HIDDEN: u8 = 0x03;
     pub const PONG: u8 = 0x04;
     pub const LIST: u8 = 0x05;
+    pub const SKIN: u8 = 0x06;
     pub const WELCOME: u8 = 0x81;
     pub const IN_USE: u8 = 0x82;
     pub const OPENED_ELSEWHERE: u8 = 0x83;
@@ -24,13 +25,17 @@ mod kind {
     pub const FEEDBACK: u8 = 0x86;
     pub const PING: u8 = 0x87;
     pub const SLOT_LIST: u8 = 0x88;
+    pub const SKINS_CHANGED: u8 = 0x89;
 }
 
 const STATE_HEADER: usize = 21;
 const TOUCH_SIZE: usize = 5;
 const MOTION_SIZE: usize = 24;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+/// Longest skin id (bytes) in a `Skin` message.
+pub const MAX_SKIN_ID: usize = 64;
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum PageMessage {
     /// `slot` 0 = new controller
     Hello {
@@ -49,6 +54,10 @@ pub enum PageMessage {
     },
     Pong {
         nonce: u32,
+    },
+    /// the skin the page uses ("" = the host's default)
+    Skin {
+        id: String,
     },
 }
 
@@ -97,6 +106,8 @@ pub enum HostMessage {
         nonce: u32,
         last_rtt: u16,
     },
+    /// the skin library or the default skin changed: the page asks again
+    SkinsChanged,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -246,6 +257,19 @@ pub fn decode_page(bytes: &[u8]) -> Result<Option<PageMessage>, DecodeError> {
             expect_len(bytes, 5)?;
             PageMessage::Pong { nonce: r.u32() }
         }
+        kind::SKIN => {
+            let len = *bytes.get(1).ok_or(DecodeError::BadLength {
+                kind,
+                len: bytes.len(),
+            })? as usize;
+            if len > MAX_SKIN_ID {
+                return Err(DecodeError::BadValue { kind });
+            }
+            expect_len(bytes, 2 + len)?;
+            let id =
+                std::str::from_utf8(&bytes[2..]).map_err(|_| DecodeError::BadValue { kind })?;
+            PageMessage::Skin { id: id.to_owned() }
+        }
         _ => return Ok(None),
     };
     Ok(Some(message))
@@ -294,6 +318,11 @@ pub fn encode_page(message: &PageMessage, out: &mut Vec<u8>) {
             out.push(kind::PONG);
             out.extend_from_slice(&nonce.to_le_bytes());
         }
+        PageMessage::Skin { id } => {
+            let id = &id.as_bytes()[..id.len().min(MAX_SKIN_ID)];
+            out.extend_from_slice(&[kind::SKIN, id.len() as u8]);
+            out.extend_from_slice(id);
+        }
     }
 }
 
@@ -336,6 +365,7 @@ pub fn encode_host(message: &HostMessage, out: &mut Vec<u8>) {
             out.extend_from_slice(&nonce.to_le_bytes());
             out.extend_from_slice(&last_rtt.to_le_bytes());
         }
+        HostMessage::SkinsChanged => out.push(kind::SKINS_CHANGED),
     }
 }
 
@@ -414,6 +444,10 @@ pub fn decode_host(bytes: &[u8]) -> Result<Option<HostMessage>, DecodeError> {
                 nonce: r.u32(),
                 last_rtt: r.u16(),
             }
+        }
+        kind::SKINS_CHANGED => {
+            expect_len(bytes, 1)?;
+            HostMessage::SkinsChanged
         }
         _ => return Ok(None),
     };

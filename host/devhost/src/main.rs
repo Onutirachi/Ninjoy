@@ -84,10 +84,11 @@ fn parse_args() -> Result<(SessionConfig, bool), String> {
                 config.grace = Duration::from_secs(value()?.parse().map_err(|_| "invalid seconds")?)
             }
             "--web" => config.web_root = Some(PathBuf::from(value()?)),
+            "--skins" => config.skins_dir = Some(PathBuf::from(value()?)),
             "--no-devices" => devices = false,
             "--help" | "-h" => {
                 println!(
-                    "ninjoy-devhost [--port N] [--plain-port N] [--name NAME] [--grace SECONDS] [--web DIR] [--no-devices]\n{HELP}"
+                    "ninjoy-devhost [--port N] [--plain-port N] [--name NAME] [--grace SECONDS] [--web DIR] [--skins DIR] [--no-devices]\n{HELP}"
                 );
                 std::process::exit(0);
             }
