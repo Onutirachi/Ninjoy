@@ -34,4 +34,4 @@
 
 ## Polish
 
-- [ ] T013 Run on Windows (and Linux when available) with phones; screenshots light/dark; mark the spec Implemented
+- [X] T013 Run on Windows (and Linux when available) with phones; screenshots light/dark; mark the spec Implemented
