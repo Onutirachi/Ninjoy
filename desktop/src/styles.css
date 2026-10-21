@@ -1114,14 +1114,15 @@ button.chip:hover {
   pointer-events: none;
 }
 
-/* drawn at the end size (6×) and scaled down, so the logo stays sharp while it zooms through;
-   centered by position since it is far wider than the window */
+/* the logo's width is animated (not a transform), so the vector is redrawn every frame and stays
+   smooth while it zooms through; centered by position since it ends far wider than the window */
 .splash svg {
+  --w: min(46vh, 300px);
   position: absolute;
   top: 50%;
   left: 50%;
   translate: -50% -50%;
-  width: calc(min(46vh, 300px) * 6);
+  width: var(--w);
   height: auto;
   animation: splash-logo 1.4s cubic-bezier(0.5, 0, 0.75, 0) forwards;
 }
@@ -1129,22 +1130,22 @@ button.chip:hover {
 @keyframes splash-logo {
   0% {
     opacity: 0;
-    transform: scale(0.15);
+    width: calc(var(--w) * 0.9);
   }
 
   35% {
     opacity: 1;
-    transform: scale(0.1667);
+    width: var(--w);
   }
 
   75% {
     opacity: 1;
-    transform: scale(0.1767);
+    width: calc(var(--w) * 1.06);
   }
 
   100% {
     opacity: 0;
-    transform: scale(1);
+    width: calc(var(--w) * 6);
   }
 }
 
