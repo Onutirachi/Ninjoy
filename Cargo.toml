@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["host/session", "host/devices", "host/app-core", "host/devhost"]
+members = ["host/session", "host/devices", "host/app-core", "host/app", "host/devhost"]
 
 [workspace.package]
 version = "0.1.0"

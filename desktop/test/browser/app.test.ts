@@ -238,11 +238,18 @@ describe("desktop window", () => {
     expect(root.querySelector<HTMLButtonElement>(".skin.add")!.disabled).toBe(true);
   });
 
-  it("moves the window from the title bar and hides to the tray on close", async () => {
+  it("moves the window from the title bar and hides to the tray on close, explaining it once", async () => {
+    localStorage.removeItem("ninjoy-tray-notice");
     await start();
     expect(root.querySelector(".titlebar")!.hasAttribute("data-tauri-drag-region")).toBe(true);
     root.querySelector<HTMLButtonElement>(".win .close")!.click();
-    expect(bridge.calls).toContain("close");
+    expect(bridge.calls).not.toContain("close");
+    expect(text(root, ".popover.tray h2")).toBe("Ninjoy keeps running");
+    root.querySelector<HTMLButtonElement>(".popover.tray button")!.click();
+    expect(bridge.calls).toEqual(["close"]);
+    root.querySelector<HTMLButtonElement>(".win .close")!.click();
+    expect(bridge.calls).toEqual(["close", "close"]);
+    expect(root.querySelector(".popover.tray")).toBeNull();
   });
 });
 

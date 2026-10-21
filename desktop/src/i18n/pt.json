@@ -60,5 +60,8 @@
   "skins.official": "Oficial · {author} · v{version}",
   "skins.soon": "Oficial · em breve",
   "skins.import": "Importar skin",
-  "skins.importSoon": "Em breve"
+  "skins.importSoon": "Em breve",
+  "tray.title": "O Ninjoy continua rodando",
+  "tray.notice": "O Ninjoy fica na bandeja do sistema para os amigos continuarem entrando. Abra de novo pelo ícone da bandeja, ou encerre por lá.",
+  "tray.ok": "Entendi"
 }
