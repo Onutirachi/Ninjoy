@@ -8,7 +8,7 @@ import { createSession, sessionUrl, slotFromPath, type SessionStatus } from "./p
 import { loadOfficialSkin } from "./skins.ts";
 import { attachDevPanel } from "./ui/dev-panel.ts";
 import { createEditToolbar } from "./ui/edit-mode.ts";
-import { applyLightbar } from "./ui/lightbar.ts";
+import { applyLightbar, setPlayerColor } from "./ui/lightbar.ts";
 import { renderLobby } from "./ui/lobby.ts";
 import { renderStart } from "./ui/start.ts";
 import { createMenu } from "./ui/menu.ts";
@@ -78,6 +78,9 @@ try {
         screens.show({ message: t("session.unavailable"), pulse: true });
         break;
       case "joined": {
+        // the host sends the game's color right after, if the game set one
+        applyLightbar(null);
+        setPlayerColor(s.slot);
         // a reload keeps the same controller
         history.replaceState(null, "", `/${s.slot}${location.search}`);
         session.send(controller.state);

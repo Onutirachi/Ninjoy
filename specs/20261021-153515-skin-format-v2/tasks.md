@@ -9,8 +9,8 @@
 
 ## US3/US4/US5 - Page drawing and input (P2)
 
-- [ ] T003 [P] Controller tests: lightbar color follows `--ninjoy-lightbar` and starts from the player color; decor ignores touches (a control under it gets them); fixed groups ignore size and height; d-pad stick presses the 8 directions with hysteresis and leaves the analog stick centered
-- [ ] T004 Appearance/lightbar default, hit-test exclusion, layout for fixed groups, d-pad output in `controller/src`
+- [X] T003 [P] Controller tests: lightbar color follows `--ninjoy-lightbar` and starts from the player color; decor ignores touches (a control under it gets them); fixed groups ignore size and height; d-pad stick presses the 8 directions with hysteresis and leaves the analog stick centered
+- [X] T004 Appearance/lightbar default, hit-test exclusion, layout for fixed groups, d-pad output in `controller/src`
 
 ## US1/US2 - Library and choice (P1)
 

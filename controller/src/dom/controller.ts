@@ -4,7 +4,7 @@ import { autoSize, type LayoutEdit } from "../engine/layout.ts";
 import { toControllerFrame } from "../engine/motion.ts";
 import { tapMs, tapsVibrate, clampSettings, settingsFromStorage, stickZones, triggerZones, type ControlOverride, type PlayerSettings } from "../engine/settings.ts";
 import { StateBuilder, type ControllerState, type DS4Button, type Touch } from "../engine/state.ts";
-import { stickValue } from "../engine/stick.ts";
+import { dpadDirections, stickValue } from "../engine/stick.ts";
 import { CLICK_POINT, MAX_TOUCHES, touchpadPoint } from "../engine/touchpad.ts";
 import { triggerForce } from "../engine/zones.ts";
 import { browserFullscreen, type FullscreenAdapter } from "../platform/fullscreen.ts";
@@ -224,6 +224,7 @@ export function createController(options: ControllerOptions): Controller {
       // a finger holding the touchpad click stays on the touchpad: sliding out presses nothing else
       const holdsClick = touchpadClick.holds(finger.id);
       for (const rc of rendered.controls) {
+        if (rc.control.type === "decor") continue; // drawn only: touches pass through
         if (holdsClick && rc.control.type !== "touchpad") continue;
         if (rc.control.type !== "stick" && hitTester.hits(rc, finger.x, finger.y, settings.finger)) {
           touched.set(rc, [...(touched.get(rc) ?? []), finger]);
@@ -253,6 +254,9 @@ export function createController(options: ControllerOptions): Controller {
     publish(now);
   };
 
+  /** last d-pad sector per d-pad stick (for hysteresis); cleared when its finger lifts */
+  const dpadSectors = new Map<string, number | null>();
+
   /** Stick value, click and thumb from the finger driving it; true while it is held. */
   const updateStick = (rc: RenderedControl): boolean => {
     const { control } = rc;
@@ -260,6 +264,7 @@ export function createController(options: ControllerOptions): Controller {
     const finger = input.fingers.get(stickFingers.owner(control.id) ?? -1);
     if (!finger) {
       thumb.moveTo(0, 0, false);
+      dpadSectors.delete(control.id);
       return false;
     }
     const area = hitTester.box(rc);
@@ -269,7 +274,13 @@ export function createController(options: ControllerOptions): Controller {
     const travel = { x: Math.max(1, (area.width / 2) * (1 - rest.size.x)), y: Math.max(1, (area.height / 2) * (1 - rest.size.y)) };
     const cx = area.left + area.width / 2, cy = area.top + area.height / 2;
     const value = stickValue({ x: finger.x - cx, y: finger.y - cy }, travel, stickZones(control, settings, overrides[control.id]));
-    builder.stick(control.side ?? "left", value.x, value.y);
+    if (control.stick?.output === "dpad") {
+      const dpad = dpadDirections(value.x, value.y, dpadSectors.get(control.id) ?? null);
+      dpadSectors.set(control.id, dpad.sector);
+      for (const dir of dpad.dirs) builder.press(dir);
+    } else {
+      builder.stick(control.side ?? "left", value.x, value.y);
+    }
     const click = control.stick?.click;
     if (click && click !== "none" && stickFingers.clicking(control.id)) builder.press(BUTTON_OF[click]);
     thumb.moveTo(value.clamped.x - rest.offset.x * area.width, value.clamped.y - rest.offset.y * area.height, true);
@@ -444,8 +455,9 @@ export function createController(options: ControllerOptions): Controller {
   };
 
   const relayout = () => {
-    const size = settings.size === "auto" ? autoSize(root.getBoundingClientRect().height) : settings.size;
-    rendered.relayout({ size, height: settings.height, edits });
+    const defaultSize = autoSize(root.getBoundingClientRect().height);
+    const size = settings.size === "auto" ? defaultSize : settings.size;
+    rendered.relayout({ size, height: settings.height, defaultSize, edits });
     hitTester.invalidate();
     thumbRest.clear();
     update();

@@ -18,6 +18,18 @@ export interface LayoutInput {
   height: number;
   group: { anchor: "left" | "center" | "right"; center: { x: number; y: number } };
   edit?: LayoutEdit;
+  /**
+   * The canvas line the group stands on (`y`) and where that line is in the view (`at`): the
+   * canvas bottom by default; the top of a fixed group below it, so the group shrinks onto it
+   * instead of under it.
+   */
+  rest?: { y: number; at: number };
+}
+
+/** Where a canvas line of a fixed group (drawn at `defaultSize`, height 0) is in the view. */
+export function fixedLine(y: number, aspect: number, defaultSize: number): number {
+  const g = Math.min(1, viewWidth(aspect) / CANVAS_W) * defaultSize;
+  return CANVAS_H - (CANVAS_H - y) * g;
 }
 
 const multiply = (m: Matrix, n: Matrix): Matrix => [
@@ -43,7 +55,7 @@ export function autoSize(screenHeight: number): number {
  * anchor + global size, then the player's offset (canvas units, so it scales with the size),
  * then the player's scale around the group's own center.
  */
-export function groupTransform({ aspect, size, height, group, edit }: LayoutInput): Matrix {
+export function groupTransform({ aspect, size, height, group, edit, rest }: LayoutInput): Matrix {
   const VW = viewWidth(aspect);
   const g = Math.min(1, VW / CANVAS_W) * size;
   const lift = height * Math.max(0, CANVAS_H - CANVAS_H * g);
@@ -51,8 +63,9 @@ export function groupTransform({ aspect, size, height, group, edit }: LayoutInpu
   const sx = { left: 0, center: VW / 2, right: VW }[group.anchor];
   const { x: cx, y: cy } = group.center;
   const s = edit?.scale ?? 1;
+  const { y: restY, at } = rest ?? { y: CANVAS_H, at: CANVAS_H };
   return [
-    translate(sx, CANVAS_H - lift), scale(g), translate(-ax, -CANVAS_H),
+    translate(sx, at - lift), scale(g), translate(-ax, -restY),
     translate(edit?.dx ?? 0, edit?.dy ?? 0),
     translate(cx, cy), scale(s), translate(-cx, -cy),
   ].reduce(multiply);
