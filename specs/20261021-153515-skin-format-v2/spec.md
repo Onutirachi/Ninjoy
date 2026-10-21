@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-21
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: What the Skin Studio and the maintainer's new skins need from the skin format, and how
 skins reach the phones: colors that follow the game's lightbar or keep the drawn color,

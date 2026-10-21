@@ -23,4 +23,4 @@
 
 ## Polish
 
-- [ ] T011 The maintainer's skin v2 in a library folder (PS, lightbar, bottom buttons fixed) and a run on a phone; mark the spec Implemented
+- [X] T011 The maintainer's skin v2 in a library folder (PS, lightbar, bottom buttons fixed) and a run on a phone; mark the spec Implemented
