@@ -17,12 +17,16 @@ export interface RenderedGroup {
   el: SVGGElement;
   /** center of the group's boxes on the canvas */
   center: { x: number; y: number };
+  /** keeps the default layout's place and size (ignores the player's size and height) */
+  fixed: boolean;
 }
 
 export interface LayoutParams {
   size: number;
   height: number;
   edits: Record<string, LayoutEdit>;
+  /** the automatic size, where fixed groups stay */
+  defaultSize: number;
 }
 
 export interface Rendered {
@@ -74,7 +78,7 @@ export function render(skin: ResolvedSkin, root: HTMLElement): Rendered {
       el.append(rendered.svg);
     }
     svg.append(el);
-    return { name: group.name, anchor: group.anchor, el, center: centerOf(members) };
+    return { name: group.name, anchor: group.anchor, el, center: centerOf(members), fixed: group.fixed };
   });
   // keep skin order for everything that iterates controls
   const order = new Map(skin.controls.map((c, i) => [c.id, i]));
@@ -82,13 +86,15 @@ export function render(skin: ResolvedSkin, root: HTMLElement): Rendered {
 
   const rendered: Rendered = {
     background, stage, svg, controls, groups, aspect: 1,
-    relayout({ size, height, edits }) {
+    relayout({ size, height, defaultSize, edits }) {
       const { width, height: h } = root.getBoundingClientRect();
       const aspect = h > 0 ? width / h : 1;
       rendered.aspect = aspect;
       svg.setAttribute("viewBox", `0 0 ${viewWidth(aspect)} ${CANVAS_H}`);
       for (const group of groups) {
-        const m = groupTransform({ aspect, size, height, group, edit: edits[group.name] });
+        const m = group.fixed
+          ? groupTransform({ aspect, size: defaultSize, height: 0, group, edit: edits[group.name] })
+          : groupTransform({ aspect, size, height, group, edit: edits[group.name] });
         group.el.setAttribute("transform", `matrix(${m.join(" ")})`);
       }
     },

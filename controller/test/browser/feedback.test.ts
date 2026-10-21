@@ -95,6 +95,6 @@ describe("lightbar", () => {
     applyLightbar([255, 0, 128], el);
     expect(el.style.getPropertyValue("--ninjoy-lightbar")).toBe("rgb(255 0 128)");
     applyLightbar(null, el);
-    expect(el.style.getPropertyValue("--ninjoy-lightbar")).toBe("");
+    expect(el.style.getPropertyValue("--ninjoy-lightbar")).toBe("rgb(48 153 232)"); // back to the player's color
   });
 });
