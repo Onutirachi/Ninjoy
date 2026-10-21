@@ -845,12 +845,14 @@ button.chip:hover {
   fill: var(--accent);
 }
 
+/* one light tone for every part; the accent shows what is pressed, where the sticks and fingers
+   are and how far the triggers go */
 .pad .well {
-  fill: var(--pad-well);
+  fill: var(--pad);
 }
 
 .pad .trig,
-.pad .touch {
+.pad .dot {
   fill: var(--accent);
 }
 

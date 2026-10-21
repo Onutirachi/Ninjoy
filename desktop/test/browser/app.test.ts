@@ -142,14 +142,15 @@ describe("desktop window", () => {
   it("follows the phone's inputs in the live view", async () => {
     await start((b) => {
       b.snap.controllers = [controller(1, { status: "connected", device: "Pixel · Chrome", gyro: true })];
-      b.liveState = { buttons: 1 << 0, sticks: [32767, 0, 0, -32767], triggers: [255, 0], gyro: true, touches: [[3, 65535, 0]], rate: [10, 20, 30], accel: [0, 9.8, 0] };
+      b.liveState = { buttons: (1 << 0) | (1 << 13), sticks: [32767, 0, 0, -32767], triggers: [255, 0], gyro: true, touches: [[3, 65535, 0]], rate: [10, 20, 30], accel: [0, 9.8, 0] };
     });
     await app.frame(1000);
     const pad = root.querySelector(".pad")!;
     expect(pad.querySelector('[data-b="cross"]')!.classList.contains("on")).toBe(true);
     expect(pad.querySelector('[data-b="circle"]')!.classList.contains("on")).toBe(false);
-    expect(Number(pad.querySelector('[data-stick="left"]')!.getAttribute("cx"))).toBeCloseTo(61.29 + 9.5, 1);
-    expect(Number(pad.querySelector('[data-stick="right"]')!.getAttribute("cy"))).toBeCloseTo(61.29 - 9.5, 1);
+    expect(pad.querySelector('[data-b="r3"]')!.classList.contains("on")).toBe(true); // the stick click lights its own circle
+    expect(Number(pad.querySelector('[data-stick="left"]')!.getAttribute("cx"))).toBeCloseTo(61.29 + 15.5, 1);
+    expect(Number(pad.querySelector('[data-stick="right"]')!.getAttribute("cy"))).toBeCloseTo(61.29 - 15.5, 1);
     expect(Number(pad.querySelector('[data-trig="0"]')!.getAttribute("height"))).toBeCloseTo(38, 1);
     const touch = pad.querySelector('[data-touch="0"]')!;
     expect(touch.getAttribute("visibility")).toBe("visible");

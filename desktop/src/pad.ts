@@ -7,7 +7,8 @@ import { el, html } from "./dom.ts";
 const BUTTONS = ["cross", "circle", "square", "triangle", "up", "down", "left", "right", "l1", "r1", "l2", "r2", "l3", "r3", "share", "options", "ps", "touchpad"];
 
 const STICKS = { left: [61.29, 61.29], right: [103.22, 61.29] } as const;
-const STICK_TRAVEL = 9.5;
+/** the stick dots move inside their round areas (radius 18.87) */
+const STICK_TRAVEL = 15.5;
 const TRIGGER_TOP = 80.2;
 const TRIGGER_LEN = 38;
 /** the touchpad well in drawing units */
@@ -16,17 +17,17 @@ const TOUCH = { x: 42.5, y: 0.5, w: 79.5, h: 37.2 };
 const PAD_SVG = `<svg class="pad" viewBox="-6 -6 176.5 113.6" aria-hidden="true">
   <defs><clipPath id="clip-l2"><path d="M8.88 42.42c-4.63,0 -8.38,3.76 -8.38,8.39l0 20.96c0,4.63 3.75,8.39 8.38,8.39 4.63,0 8.39,-3.76 8.39,-8.39l0 -20.96c0,-4.63 -3.76,-8.39 -8.39,-8.39z"/></clipPath><clipPath id="clip-r2"><path d="M155.63 42.42c4.63,0 8.39,3.76 8.39,8.39l0 20.96c0,4.63 -3.76,8.39 -8.39,8.39 -4.63,0 -8.39,-3.76 -8.39,-8.39l0 -20.96c0,-4.63 3.76,-8.39 8.39,-8.39z"/></clipPath></defs>
   <path class="well" d="M50.81 0.5l62.89 0c4.61,0 8.39,3.77 8.39,8.38l0 20.96c0,4.62 -3.78,8.39 -8.39,8.39l-62.89 0c-4.61,0 -8.39,-3.77 -8.39,-8.39l0 -20.96c0,-4.61 3.78,-8.38 8.39,-8.38z"/>
-  <circle class="touch" data-touch="0" r="2.6" cx="82" cy="19" visibility="hidden"/><circle class="touch" data-touch="1" r="2.6" cx="82" cy="19" visibility="hidden"/>
+  <circle class="dot" data-touch="0" r="2.6" cx="82" cy="19" visibility="hidden"/><circle class="dot" data-touch="1" r="2.6" cx="82" cy="19" visibility="hidden"/>
   <circle class="ctl" data-b="up" cx="19.36" cy="7.83" r="7.34"/><circle class="ctl" data-b="right" cx="30.89" cy="19.36" r="7.34"/>
   <circle class="ctl" data-b="down" cx="19.36" cy="30.89" r="7.34"/><circle class="ctl" data-b="left" cx="7.83" cy="19.36" r="7.34"/>
   <circle class="ctl" data-b="triangle" cx="145.15" cy="7.83" r="7.34"/><circle class="ctl" data-b="circle" cx="156.68" cy="19.36" r="7.34"/>
   <circle class="ctl" data-b="cross" cx="145.15" cy="30.89" r="7.34"/><circle class="ctl" data-b="square" cx="133.62" cy="19.36" r="7.34"/>
   <path class="well" d="M8.88 42.42c-4.63,0 -8.38,3.76 -8.38,8.39l0 20.96c0,4.63 3.75,8.39 8.38,8.39 4.63,0 8.39,-3.76 8.39,-8.39l0 -20.96c0,-4.63 -3.76,-8.39 -8.39,-8.39z"/><rect class="trig" data-trig="0" clip-path="url(#clip-l2)" x="0" y="80.2" width="18" height="0"/>
   <path class="well" d="M155.63 42.42c4.63,0 8.39,3.76 8.39,8.39l0 20.96c0,4.63 -3.76,8.39 -8.39,8.39 -4.63,0 -8.39,-3.76 -8.39,-8.39l0 -20.96c0,-4.63 3.76,-8.39 8.39,-8.39z"/><rect class="trig" data-trig="1" clip-path="url(#clip-r2)" x="146.7" y="80.2" width="18" height="0"/>
-  <circle class="ctl" data-b="l1" cx="29.85" cy="50.81" r="8.39"/><circle class="ctl" data-b="l2" cx="29.85" cy="71.77" r="8.39"/>
-  <circle class="ctl" data-b="r1" cx="134.67" cy="50.81" r="8.39"/><circle class="ctl" data-b="r2" cx="134.67" cy="71.77" r="8.39"/>
-  <circle class="well" cx="61.29" cy="61.29" r="18.87"/><circle class="ctl stick" data-b="l3" data-stick="left" cx="61.29" cy="61.29" r="8.39"/>
-  <circle class="well" cx="103.22" cy="61.29" r="18.87"/><circle class="ctl stick" data-b="r3" data-stick="right" cx="103.22" cy="61.29" r="8.39"/>
+  <circle class="ctl" data-b="l1" cx="29.85" cy="50.81" r="8.39"/><circle class="ctl" data-b="l3" cx="29.85" cy="71.77" r="8.39"/>
+  <circle class="ctl" data-b="r1" cx="134.67" cy="50.81" r="8.39"/><circle class="ctl" data-b="r3" cx="134.67" cy="71.77" r="8.39"/>
+  <circle class="well" cx="61.29" cy="61.29" r="18.87"/><circle class="dot" data-stick="left" cx="61.29" cy="61.29" r="2.6"/>
+  <circle class="well" cx="103.22" cy="61.29" r="18.87"/><circle class="dot" data-stick="right" cx="103.22" cy="61.29" r="2.6"/>
   <path class="ctl" data-b="share" d="M66.55 101.12c1.73,0 3.14,-1.41 3.14,-3.14l0 -10.48c0,-1.73 -1.41,-3.15 -3.14,-3.15 -1.73,0 -3.15,1.42 -3.15,3.15l0 10.48c0,1.73 1.42,3.14 3.15,3.14z"/><circle class="ctl" data-b="ps" cx="82.27" cy="92.74" r="8.39"/><path class="ctl" data-b="options" d="M97.96 101.12c1.73,0 3.15,-1.41 3.15,-3.14l0 -10.48c0,-1.73 -1.42,-3.15 -3.15,-3.15 -1.73,0 -3.14,1.42 -3.14,3.15l0 10.48c0,1.73 1.41,3.14 3.14,3.14z"/>
 </svg>`;
 
@@ -76,6 +77,8 @@ export function createMotion(preview: string, offText: () => string) {
   const values = el("small", { className: "gyro-vals" });
   const root = el("section", { className: "area motion" }, [el("div", { className: "scene" }, [phone]), values]);
   let yaw = 0;
+  let pitch = 0;
+  let roll = 0;
   let last = 0;
   return {
     el: root,
@@ -89,10 +92,12 @@ export function createMotion(preview: string, offText: () => string) {
         return;
       }
       const [ax, ay, az] = s.accel;
-      const pitch = (Math.atan2(az, ay) * 180) / Math.PI;
-      const roll = (Math.atan2(-ax, ay) * 180) / Math.PI;
+      // gravity is noisy: follow it smoothly instead of jumping with every sample
+      const smooth = 1 - Math.exp(-dt / 0.12);
+      pitch += ((Math.atan2(az, ay) * 180) / Math.PI - pitch) * smooth;
+      roll += ((Math.atan2(-ax, ay) * 180) / Math.PI - roll) * smooth;
       yaw = (yaw + s.rate[1] * dt) * 0.98;
-      phone.style.transform = `rotateX(${-12 - pitch}deg) rotateY(${yaw}deg) rotateZ(${roll}deg)`;
+      phone.style.transform = `rotateX(${-12 + pitch}deg) rotateY(${yaw}deg) rotateZ(${roll}deg)`;
       values.textContent = `gyro ${s.rate.map((v) => v.toFixed(1)).join(" ")} °/s`;
     },
   };
