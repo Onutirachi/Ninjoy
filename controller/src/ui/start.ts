@@ -12,5 +12,7 @@ export function renderStart(o: { i18n: I18n; slot: number; onStart(): void }): H
   return el("div", { className: "nj-start" }, [
     el("p", { className: "nj-start-slot", textContent: t("session.joined", { n: o.slot }) }),
     play,
+    // the page cannot lock the orientation without fullscreen; turning the phone flips the screen
+    el("p", { className: "nj-start-tip", textContent: t("start.rotateTip") }),
   ]);
 }

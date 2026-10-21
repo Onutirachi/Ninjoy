@@ -91,5 +91,6 @@
   "menu.zone.dead": "Dead zone (center)",
   "menu.zone.stickMax": "100% zone (edge)",
   "menu.zone.minForce": "Minimum force",
-  "menu.zone.triggerMax": "100% zone (top)"
+  "menu.zone.triggerMax": "100% zone (top)",
+  "start.rotateTip": "Tip: turn off auto-rotate on your phone so the screen does not flip while you play."
 }

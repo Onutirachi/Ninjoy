@@ -35,7 +35,7 @@
   "driver.ok": "Driver OK",
   "driver.missing": "No virtual controllers",
   "driver.title": "Virtual controllers",
-  "driver.okText": "Every controller is a virtual DualShock 4 ({backend}).",
+  "driver.okText": "{backend} is installed and working.",
   "driver.phones": "Phones can still join and play; games will not see their controllers until this is fixed.",
   "settings.title": "Settings",
   "settings.theme": "Theme",

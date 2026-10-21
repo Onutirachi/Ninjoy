@@ -35,7 +35,7 @@
   "driver.ok": "Driver OK",
   "driver.missing": "Sem controles virtuais",
   "driver.title": "Controles virtuais",
-  "driver.okText": "Cada controle é um DualShock 4 virtual ({backend}).",
+  "driver.okText": "{backend} instalado e funcionando.",
   "driver.phones": "Os celulares ainda conectam e jogam; os jogos só vão ver os controles depois de resolver isso.",
   "settings.title": "Configurações",
   "settings.theme": "Tema",

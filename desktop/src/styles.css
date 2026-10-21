@@ -1102,6 +1102,7 @@ button.chip:hover {
 
 /* splash: the logo fades in, zooms through and fades out (like the phone's) */
 .splash {
+  overflow: hidden;
   position: fixed;
   inset: 0;
   z-index: 50;
@@ -1113,8 +1114,10 @@ button.chip:hover {
   pointer-events: none;
 }
 
+/* drawn at the end size (6×) and scaled down, so the logo stays sharp while it zooms through */
 .splash svg {
-  width: min(46vh, 300px);
+  grid-area: 1 / 1;
+  width: calc(min(46vh, 300px) * 6);
   height: auto;
   animation: splash-logo 1.4s cubic-bezier(0.5, 0, 0.75, 0) forwards;
 }
@@ -1122,22 +1125,22 @@ button.chip:hover {
 @keyframes splash-logo {
   0% {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.15);
   }
 
   35% {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(0.1667);
   }
 
   75% {
     opacity: 1;
-    transform: scale(1.06);
+    transform: scale(0.1767);
   }
 
   100% {
     opacity: 0;
-    transform: scale(6);
+    transform: scale(1);
   }
 }
 
