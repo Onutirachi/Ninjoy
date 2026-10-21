@@ -9,6 +9,7 @@ export interface Settings {
   holdSeconds: number;
   phonesCanCreate: boolean;
   startWithSystem: boolean;
+  closeToTray: boolean;
 }
 
 export interface ControllerView {
@@ -59,7 +60,7 @@ export interface Bridge {
   onChanged(listener: () => void): () => void;
   minimize(): void;
   toggleMaximize(): void;
-  /** hides to the tray */
+  /** closes the window: the app hides it to the tray or quits, as the settings say */
   close(): void;
 }
 
@@ -83,6 +84,6 @@ export async function tauriBridge(): Promise<Bridge> {
     },
     minimize: () => void win.minimize(),
     toggleMaximize: () => void win.toggleMaximize(),
-    close: () => void win.hide(),
+    close: () => void win.close(),
   };
 }

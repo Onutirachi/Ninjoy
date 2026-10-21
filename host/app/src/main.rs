@@ -188,11 +188,19 @@ fn main() {
             }
             Ok(())
         })
-        // closing the window keeps Ninjoy in the tray
+        // closing the window keeps Ninjoy in the tray, unless the player turned that off
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
-                let _ = window.hide();
+                let app = window.app_handle();
+                let to_tray = app
+                    .try_state::<Core>()
+                    .is_none_or(|core| core.settings().close_to_tray);
+                if to_tray {
+                    let _ = window.hide();
+                } else {
+                    quit(app);
+                }
             }
         })
         .build(tauri::generate_context!());

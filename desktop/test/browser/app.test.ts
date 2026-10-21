@@ -30,7 +30,7 @@ class FakeBridge implements Bridge {
   snap: Snapshot = {
     addresses: { name: "ninjoy.local", ips: ["192.168.0.10"], securePort: 8443, plainPort: 8080 },
     driver: { ok: true, backend: "ViGEmBus", reason: null, fix: null },
-    settings: { theme: "auto", language: "en", holdSeconds: 60, phonesCanCreate: true, startWithSystem: false },
+    settings: { theme: "auto", language: "en", holdSeconds: 60, phonesCanCreate: true, startWithSystem: false, closeToTray: true },
     controllers: [],
   };
   liveState: LiveView | null = null;
@@ -213,6 +213,9 @@ describe("desktop window", () => {
     const phones = settings().querySelector<HTMLInputElement>('[data-setting="phonesCanCreate"]')!;
     phones.click();
     expect(bridge.saved.at(-1)!.phonesCanCreate).toBe(false);
+    const tray = settings().querySelector<HTMLInputElement>('[data-setting="closeToTray"]')!;
+    tray.click();
+    expect(bridge.saved.at(-1)!.closeToTray).toBe(false);
   });
 
   it("explains a missing driver from the title bar", async () => {
@@ -249,6 +252,16 @@ describe("desktop window", () => {
     expect(bridge.calls).toEqual(["close"]);
     root.querySelector<HTMLButtonElement>(".win .close")!.click();
     expect(bridge.calls).toEqual(["close", "close"]);
+    expect(root.querySelector(".popover.tray")).toBeNull();
+  });
+
+  it("quits on close without the tray notice when closing to the tray is off", async () => {
+    localStorage.removeItem("ninjoy-tray-notice");
+    await start((b) => {
+      b.snap.settings.closeToTray = false;
+    });
+    root.querySelector<HTMLButtonElement>(".win .close")!.click();
+    expect(bridge.calls).toEqual(["close"]);
     expect(root.querySelector(".popover.tray")).toBeNull();
   });
 });

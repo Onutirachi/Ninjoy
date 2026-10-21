@@ -101,7 +101,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     const holdText = el("span", { textContent: t("settings.holdValue", { n: s.holdSeconds }) });
     hold.addEventListener("input", () => (holdText.textContent = t("settings.holdValue", { n: hold.value })));
     hold.addEventListener("change", () => void setSettings({ holdSeconds: Number(hold.value) }));
-    const toggle = (label: string, on: boolean, key: "phonesCanCreate" | "startWithSystem") => {
+    const toggle = (label: string, on: boolean, key: "phonesCanCreate" | "startWithSystem" | "closeToTray") => {
       const input = el("input", { type: "checkbox", className: "switch", checked: on, role: "switch", ariaLabel: label });
       input.dataset.setting = key;
       input.addEventListener("change", () => void setSettings({ [key]: input.checked }));
@@ -121,6 +121,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
       el("div", { className: "row" }, [el("span", { className: "label", textContent: t("settings.hold") }), el("div", { className: "field" }, [holdText]), el("div", { className: "field" }, [hold])]),
       toggle(t("settings.phones"), s.phonesCanCreate, "phonesCanCreate"),
       toggle(t("settings.startup"), s.startWithSystem, "startWithSystem"),
+      toggle(t("settings.closeToTray"), s.closeToTray, "closeToTray"),
       el("div", { className: "row" }, [el("span", { className: "label", textContent: t("settings.network") }), el("div", { className: "field" }, [t("settings.address"), el("span", { textContent: address })])]),
     ]);
     root.append(popover);
@@ -139,6 +140,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
 
   /** The first close explains that Ninjoy stays in the tray (once per computer). */
   const close = () => {
+    if (!snapshot.settings.closeToTray) return bridge.close();
     let told = true;
     try {
       told = localStorage.getItem("ninjoy-tray-notice") === "1";

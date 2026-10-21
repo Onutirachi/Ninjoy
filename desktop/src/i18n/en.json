@@ -63,5 +63,6 @@
   "skins.importSoon": "Coming soon",
   "tray.title": "Ninjoy keeps running",
   "tray.notice": "Ninjoy stays in the system tray so friends can keep joining. Open it again from the tray icon, or quit it there.",
-  "tray.ok": "Got it"
+  "tray.ok": "Got it",
+  "settings.closeToTray": "Keep running in the tray when closed"
 }
