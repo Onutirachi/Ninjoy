@@ -18,7 +18,7 @@ const TOUCH = { x: 42.5, y: 0.5, w: 79.5, h: 37.2 };
 
 const PAD_SVG = `<svg class="pad" viewBox="-6 -6 176.5 113.6" aria-hidden="true">
   <defs><clipPath id="clip-l2"><path d="M8.88 42.42c-4.63,0 -8.38,3.76 -8.38,8.39l0 20.96c0,4.63 3.75,8.39 8.38,8.39 4.63,0 8.39,-3.76 8.39,-8.39l0 -20.96c0,-4.63 -3.76,-8.39 -8.39,-8.39z"/></clipPath><clipPath id="clip-r2"><path d="M155.63 42.42c4.63,0 8.39,3.76 8.39,8.39l0 20.96c0,4.63 -3.76,8.39 -8.39,8.39 -4.63,0 -8.39,-3.76 -8.39,-8.39l0 -20.96c0,-4.63 3.76,-8.39 8.39,-8.39z"/></clipPath></defs>
-  <path class="well" d="M50.81 0.5l62.89 0c4.61,0 8.39,3.77 8.39,8.38l0 20.96c0,4.62 -3.78,8.39 -8.39,8.39l-62.89 0c-4.61,0 -8.39,-3.77 -8.39,-8.39l0 -20.96c0,-4.61 3.78,-8.38 8.39,-8.38z"/>
+  <path class="ctl" data-b="touchpad" d="M50.81 0.5l62.89 0c4.61,0 8.39,3.77 8.39,8.38l0 20.96c0,4.62 -3.78,8.39 -8.39,8.39l-62.89 0c-4.61,0 -8.39,-3.77 -8.39,-8.39l0 -20.96c0,-4.61 3.78,-8.38 8.39,-8.38z"/>
   <circle class="dot" data-touch="0" r="2.6" cx="82" cy="19" visibility="hidden"/><circle class="dot" data-touch="1" r="2.6" cx="82" cy="19" visibility="hidden"/>
   <circle class="ctl" data-b="up" cx="19.36" cy="7.83" r="7.34"/><circle class="ctl" data-b="right" cx="30.89" cy="19.36" r="7.34"/>
   <circle class="ctl" data-b="down" cx="19.36" cy="30.89" r="7.34"/><circle class="ctl" data-b="left" cx="7.83" cy="19.36" r="7.34"/>

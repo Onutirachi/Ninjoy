@@ -686,7 +686,10 @@ button.chip:hover {
   box-shadow: var(--shadow-l);
 }
 
+/* the details grow with the window: sizes below use the details' own width and height (cqw,
+   cqh), from the prototype's sizes at 1280 × 800 up to about twice that on a large screen */
 .detail {
+  container-type: size;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -728,11 +731,11 @@ button.chip:hover {
 
 .quad {
   display: grid;
-  grid-template-columns: auto 380px;
+  grid-template-columns: auto clamp(380px, 30cqw, 620px);
   justify-content: center;
   align-items: start;
-  gap: 0 72px;
-  padding-top: 10px;
+  gap: 0 clamp(72px, 7cqw, 160px);
+  padding-top: clamp(10px, 3cqh, 48px);
 }
 
 .duo {
@@ -740,8 +743,7 @@ button.chip:hover {
   flex: 1;
   align-items: center;
   justify-content: center;
-  gap: 56px;
-  max-height: 240px;
+  gap: clamp(56px, 6cqw, 140px);
   min-height: 0;
   margin-top: auto;
 }
@@ -766,7 +768,7 @@ button.chip:hover {
 }
 
 .qr-area .qr {
-  width: 255px;
+  width: clamp(255px, min(24cqw, 40cqh), 460px);
   padding: 14px;
   border-radius: 18px;
 }
@@ -779,27 +781,28 @@ button.chip:hover {
 }
 
 .qr-area .addr {
-  width: 255px;
+  width: clamp(255px, min(24cqw, 40cqh), 460px);
+  font-size: clamp(17px, 1.4cqw, 24px);
   margin-top: 14px;
 }
 
 .info {
   display: grid;
   grid-template-columns: 1fr auto;
-  row-gap: 16px;
+  row-gap: clamp(16px, 2.6cqh, 34px);
   padding-top: 6px;
 }
 
 .info dt {
   color: var(--text-faint);
-  font-size: 16px;
+  font-size: clamp(16px, 1.3cqw, 22px);
   font-weight: 600;
 }
 
 .info dd {
   margin: 0;
   color: var(--text);
-  font: 700 18px/1.3 var(--ff-display);
+  font: 700 clamp(18px, 1.5cqw, 26px) / 1.3 var(--ff-display);
   text-align: right;
 }
 
@@ -814,8 +817,8 @@ button.chip:hover {
 
 .spark {
   width: 100%;
-  height: 52px;
-  margin-top: 26px;
+  height: clamp(52px, 9cqh, 120px);
+  margin-top: clamp(26px, 4cqh, 56px);
 }
 
 .spark path {
@@ -832,7 +835,7 @@ button.chip:hover {
 
 /* live controller drawing */
 .pad {
-  width: 300px;
+  width: clamp(300px, min(32cqw, 48cqh), 640px);
   max-height: 100%;
   overflow: visible;
 }
@@ -856,19 +859,26 @@ button.chip:hover {
   fill: var(--accent);
 }
 
+.pad:has([data-b="touchpad"].on) [data-touch] {
+  fill: #fff;
+}
+
 /* the phone turning with the gyro */
+.motion {
+  --w: clamp(170px, min(18cqw, 27cqh), 360px);
+}
+
 .motion .scene {
   display: grid;
   place-items: center;
-  width: 240px;
-  height: 150px;
-  perspective: 600px;
+  width: calc(var(--w) * 1.41);
+  height: calc(var(--w) * 0.88);
+  perspective: calc(var(--w) * 3.5);
 }
 
 .phone3d {
-  --w: 170px;
-  --h: 79px;
-  --d: 10px;
+  --h: calc(var(--w) * 0.465);
+  --d: calc(var(--w) * 0.06);
   position: relative;
   width: var(--w);
   height: var(--h);
@@ -954,7 +964,7 @@ button.chip:hover {
 }
 
 .waiting-view .qr {
-  width: 250px;
+  width: clamp(250px, min(28cqw, 46cqh), 480px);
   margin: 0 auto 18px;
   padding: 16px;
   border-radius: 22px;
