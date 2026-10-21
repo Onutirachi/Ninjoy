@@ -101,7 +101,10 @@ async fn lists_the_official_and_installed_skins() {
         arcade["files"],
         serde_json::json!(["controls/a.svg", "skin.json"])
     );
-    assert_eq!(v["skins"][0]["preview"], "preview.png", "the official skin's preview");
+    assert_eq!(
+        v["skins"][0]["preview"], "preview.png",
+        "the official skin's preview"
+    );
 
     let all = host.session.skins();
     let reason = |id: &str| {

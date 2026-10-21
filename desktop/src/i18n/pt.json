@@ -55,14 +55,17 @@
   "window.close": "Fechar (continua na bandeja)",
   "window.settings": "Configurações",
   "skins.title": "Skins",
-  "skins.hint": "Por enquanto todos os controles usam a skin oficial.",
+  "skins.hint": "A skin padrão vale para os celulares que não escolheram a sua no menu do controle.",
   "skins.default": "Padrão",
   "skins.official": "Oficial · {author} · v{version}",
-  "skins.soon": "Oficial · em breve",
   "skins.import": "Importar skin",
   "skins.importSoon": "Em breve",
   "tray.title": "O Ninjoy continua rodando",
   "tray.notice": "O Ninjoy fica na bandeja do sistema para os amigos continuarem entrando. Abra de novo pelo ícone da bandeja, ou encerre por lá.",
   "tray.ok": "Entendi",
-  "settings.closeToTray": "Ao fechar, continuar na bandeja"
+  "settings.closeToTray": "Ao fechar, continuar na bandeja",
+  "info.skin": "Skin",
+  "skins.byAuthor": "{author} · v{version}",
+  "skins.broken": "Não oferecida aos celulares: {reason}",
+  "skins.makeDefault": "Usar como padrão"
 }

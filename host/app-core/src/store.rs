@@ -37,6 +37,8 @@ pub struct Settings {
     pub start_with_system: bool,
     /// closing the window keeps Ninjoy running in the tray (otherwise it quits)
     pub close_to_tray: bool,
+    /// the skin phones use unless they pick their own
+    pub default_skin: String,
 }
 
 impl Default for Settings {
@@ -48,6 +50,7 @@ impl Default for Settings {
             phones_can_create: true,
             start_with_system: false,
             close_to_tray: true,
+            default_skin: "ninjoy".into(),
         }
     }
 }

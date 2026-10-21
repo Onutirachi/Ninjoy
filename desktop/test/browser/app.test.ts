@@ -21,6 +21,7 @@ function controller(number: number, patch: Partial<ControllerView> = {}): Contro
     rumble: null,
     url: `https://192.168.0.10:8443/${number}`,
     nameUrl: `https://ninjoy.local:8443/${number}`,
+    skin: null,
     ...patch,
   };
 }
@@ -30,9 +31,12 @@ class FakeBridge implements Bridge {
   snap: Snapshot = {
     addresses: { name: "ninjoy.local", ips: ["192.168.0.10"], securePort: 8443, plainPort: 8080 },
     driver: { ok: true, backend: "ViGEmBus", reason: null, fix: null },
-    settings: { theme: "auto", language: "en", holdSeconds: 60, phonesCanCreate: true, startWithSystem: false, closeToTray: true },
+    settings: { theme: "auto", language: "en", holdSeconds: 60, phonesCanCreate: true, startWithSystem: false, closeToTray: true, defaultSkin: "ninjoy" },
     controllers: [],
+    skins: [{ id: "ninjoy", name: "Ninjoy", author: "Ninjoy", version: "0.2.0", format: 1, bundled: true, preview: null, files: [], broken: null, isDefault: true }],
   };
+  files: Record<string, string> = {};
+  brokenReports: Record<string, string>[] = [];
   liveState: LiveView | null = null;
   calls: string[] = [];
   saved: Settings[] = [];
@@ -61,6 +65,15 @@ class FakeBridge implements Bridge {
     this.saved.push(settings);
     this.snap.settings = settings;
   }
+  async skinFile(id: string, path: string) {
+    const text = this.files[`${id}/${path}`];
+    if (text === undefined) throw new Error("missing");
+    return new TextEncoder().encode(text);
+  }
+  async setBrokenSkins(broken: Record<string, string>) {
+    this.brokenReports.push(broken);
+    for (const s of this.snap.skins) s.broken = broken[s.id] ?? null;
+  }
   async qrSvg(text: string) {
     return `<svg data-text="${text}"></svg>`;
   }
@@ -80,6 +93,15 @@ class FakeBridge implements Bridge {
 }
 
 const settle = () => new Promise((r) => setTimeout(r, 20));
+
+const SQUARE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect id="bg" width="100" height="100"/></svg>';
+const ARCADE = {
+  format: 2, name: "Arcade", author: "Carlos", version: "1.0.0", orientation: "landscape",
+  controls: [
+    { id: "menu", type: "system", action: "menu", svg: "c/m.svg", box: { x: 750, y: 600, width: 100, height: 100 }, elements: { bg: { role: "base" } } },
+    { id: "lp", type: "button", bindings: ["square"], svg: "c/m.svg", box: { x: 1000, y: 200, width: 100, height: 100 }, elements: { bg: { role: "base" } } },
+  ],
+};
 const text = (root: HTMLElement, selector: string) => root.querySelector(selector)?.textContent ?? "";
 
 describe("desktop window", () => {
@@ -232,14 +254,48 @@ describe("desktop window", () => {
     expect(text(pop, "code")).toContain("nefarius/ViGEmBus");
   });
 
-  it("lists the official skin and marks importing as coming soon", async () => {
-    await start();
+  it("lists the skin library, chooses the default and shows broken skins", async () => {
+    await start((b) => {
+      b.snap.skins.push(
+        { id: "arcade", name: "Arcade", author: "Carlos", version: "1.0.0", format: 2, bundled: false, preview: null, files: ["skin.json"], broken: null, isDefault: false },
+        { id: "old", name: "Old", author: "X", version: "1.0.0", format: 9, bundled: false, preview: null, files: [], broken: "format 9 is not supported by this version", isDefault: false },
+      );
+      b.files["arcade/skin.json"] = JSON.stringify(ARCADE);
+    });
     root.querySelector<HTMLButtonElement>('[data-tab="skins"]')!.click();
-    expect(text(root, ".skins-head h1")).toBe("Skins");
-    const official = root.querySelector(".skin")!;
-    expect(text(official as HTMLElement, "strong")).toBe("Ninjoy");
-    expect(text(official as HTMLElement, "small")).toMatch(/^Official · Ninjoy · v\d/);
-    expect(root.querySelector<HTMLButtonElement>(".skin.add")!.disabled).toBe(true);
+    const card = (id: string) => root.querySelector<HTMLButtonElement>(`.skin[data-skin="${id}"]`)!;
+    expect(text(card("ninjoy"), "small")).toMatch(/^Official · Ninjoy · v\d/);
+    expect(card("ninjoy").getAttribute("aria-pressed")).toBe("true");
+    expect(text(card("arcade"), "small")).toBe("Carlos · v1.0.0");
+    expect(card("old").disabled).toBe(true);
+    expect(text(card("old"), "small")).toContain("format 9");
+    expect(root.querySelector(".skin.soon:not(.add)")).toBeNull(); // no "coming soon" placeholder skin
+    card("arcade").click();
+    await settle();
+    expect(bridge.saved.at(-1)!.defaultSkin).toBe("arcade");
+  });
+
+  it("checks installed skins with the skin format rules and reports the broken ones", async () => {
+    await start((b) => {
+      b.snap.skins.push(
+        { id: "good", name: "Good", author: "C", version: "1.0.0", format: 2, bundled: false, preview: null, files: ["skin.json", "c/m.svg"], broken: null, isDefault: false },
+        { id: "bad", name: "Bad", author: "C", version: "1.0.0", format: 2, bundled: false, preview: null, files: ["skin.json"], broken: null, isDefault: false },
+      );
+      b.files["good/skin.json"] = JSON.stringify(ARCADE);
+      b.files["good/c/m.svg"] = SQUARE;
+      b.files["bad/skin.json"] = JSON.stringify({ ...ARCADE, controls: ARCADE.controls.slice(1) }); // its svg is missing
+    });
+    await settle();
+    await settle();
+    expect(Object.keys(bridge.brokenReports.at(-1)!)).toEqual(["bad"]);
+  });
+
+  it("shows which skin each phone uses", async () => {
+    await start((b) => {
+      b.snap.controllers = [controller(1, { status: "connected", device: "Pixel · Chrome", skin: "ninjoy" })];
+    });
+    const values = [...root.querySelectorAll(".info dd")].map((d) => d.textContent);
+    expect(values.at(-1)).toBe("Ninjoy");
   });
 
   it("moves the window from the title bar and hides to the tray on close, explaining it once", async () => {

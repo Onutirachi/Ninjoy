@@ -311,6 +311,11 @@ impl Session {
         }
     }
 
+    /// A file of a skin in the library (previews and validation in the app).
+    pub fn skin_file(&self, id: &str, path: &str) -> Option<Vec<u8>> {
+        self.shared.skins.read(id, path)
+    }
+
     /// Tells open pages to look at the library again (a skin was added or removed).
     pub fn skins_changed(&self) {
         self.shared.skins_changed();

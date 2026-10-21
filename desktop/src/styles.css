@@ -1147,3 +1147,17 @@ button.chip:hover {
     visibility: hidden;
   }
 }
+
+/* the default skin stands out; broken skins are listed but cannot be chosen */
+.skin[aria-pressed="true"] {
+  box-shadow: var(--shadow-m), inset 0 0 0 2px var(--accent);
+}
+
+.skin.broken {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.skin.broken small {
+  color: var(--warn);
+}
