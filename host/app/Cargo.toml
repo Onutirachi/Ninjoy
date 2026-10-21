@@ -16,5 +16,10 @@ serde = { version = "1", features = ["derive"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 
+[features]
+# load the window from the built desktop/ files (not the Vite dev server), also in debug builds
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
