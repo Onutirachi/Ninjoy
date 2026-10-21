@@ -156,6 +156,10 @@ describe("desktop window", () => {
     expect(touch.getAttribute("visibility")).toBe("visible");
     expect(Number(touch.getAttribute("cx"))).toBeCloseTo(42.5 + 79.5, 1);
     expect(text(root, ".gyro-vals")).toBe("gyro 10.0 20.0 30.0 °/s");
+    expect(pad.querySelector('[data-stick="left"]')!.getAttribute("visibility")).toBe("visible");
+    bridge.liveState = { ...bridge.liveState!, sticks: [0, 0, 0, 0] };
+    await app.frame(1050);
+    expect(pad.querySelector('[data-stick="left"]')!.getAttribute("visibility")).toBe("hidden"); // no dot while the stick rests
     bridge.liveState = { ...bridge.liveState!, gyro: false, rate: null, accel: null };
     await app.frame(1100);
     expect(text(root, ".gyro-vals")).toBe("gyroscope off");

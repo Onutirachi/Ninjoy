@@ -1,6 +1,7 @@
 /** The Ninjoy window: title bar, controller list and details, skins page, settings. */
 
 import logoNinja from "../../assets/brand/logo-ninja.svg?raw";
+import logoFull from "../../assets/brand/logo-full.svg?raw";
 import logoWord from "../../assets/brand/logo-word.svg?raw";
 import preview from "../../skins/ninjoy/preview.png";
 import type { Bridge, ControllerView, Language, Settings, Snapshot, Theme } from "./bridge.ts";
@@ -40,7 +41,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
   const watermark = el("div", { className: "watermark", innerHTML: logoNinja, ariaHidden: "true" });
   root.replaceChildren(watermark, app);
   if (o.splash) {
-    const splash = el("div", { className: "splash", innerHTML: logoWord, ariaHidden: "true" });
+    const splash = el("div", { className: "splash", innerHTML: logoFull, ariaHidden: "true" });
     root.append(splash);
     setTimeout(() => splash.remove(), SPLASH_MS);
   }

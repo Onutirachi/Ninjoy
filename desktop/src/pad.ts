@@ -9,6 +9,8 @@ const BUTTONS = ["cross", "circle", "square", "triangle", "up", "down", "left", 
 const STICKS = { left: [61.29, 61.29], right: [103.22, 61.29] } as const;
 /** the stick dots move inside their round areas (radius 18.87) */
 const STICK_TRAVEL = 15.5;
+/** a stick this close to the center shows no dot */
+const STICK_REST = 0.03;
 const TRIGGER_TOP = 80.2;
 const TRIGGER_LEN = 38;
 /** the touchpad well in drawing units */
@@ -26,8 +28,8 @@ const PAD_SVG = `<svg class="pad" viewBox="-6 -6 176.5 113.6" aria-hidden="true"
   <path class="well" d="M155.63 42.42c4.63,0 8.39,3.76 8.39,8.39l0 20.96c0,4.63 -3.76,8.39 -8.39,8.39 -4.63,0 -8.39,-3.76 -8.39,-8.39l0 -20.96c0,-4.63 3.76,-8.39 8.39,-8.39z"/><rect class="trig" data-trig="1" clip-path="url(#clip-r2)" x="146.7" y="80.2" width="18" height="0"/>
   <circle class="ctl" data-b="l1" cx="29.85" cy="50.81" r="8.39"/><circle class="ctl" data-b="l3" cx="29.85" cy="71.77" r="8.39"/>
   <circle class="ctl" data-b="r1" cx="134.67" cy="50.81" r="8.39"/><circle class="ctl" data-b="r3" cx="134.67" cy="71.77" r="8.39"/>
-  <circle class="well" cx="61.29" cy="61.29" r="18.87"/><circle class="dot" data-stick="left" cx="61.29" cy="61.29" r="2.6"/>
-  <circle class="well" cx="103.22" cy="61.29" r="18.87"/><circle class="dot" data-stick="right" cx="103.22" cy="61.29" r="2.6"/>
+  <circle class="well" cx="61.29" cy="61.29" r="18.87"/><circle class="dot" data-stick="left" cx="61.29" cy="61.29" r="2.6" visibility="hidden"/>
+  <circle class="well" cx="103.22" cy="61.29" r="18.87"/><circle class="dot" data-stick="right" cx="103.22" cy="61.29" r="2.6" visibility="hidden"/>
   <path class="ctl" data-b="share" d="M66.55 101.12c1.73,0 3.14,-1.41 3.14,-3.14l0 -10.48c0,-1.73 -1.41,-3.15 -3.14,-3.15 -1.73,0 -3.15,1.42 -3.15,3.15l0 10.48c0,1.73 1.42,3.14 3.15,3.14z"/><circle class="ctl" data-b="ps" cx="82.27" cy="92.74" r="8.39"/><path class="ctl" data-b="options" d="M97.96 101.12c1.73,0 3.15,-1.41 3.15,-3.14l0 -10.48c0,-1.73 -1.42,-3.15 -3.15,-3.15 -1.73,0 -3.14,1.42 -3.14,3.15l0 10.48c0,1.73 1.41,3.14 3.14,3.14z"/>
 </svg>`;
 
@@ -49,6 +51,7 @@ export function createPad() {
         const y = s ? s.sticks[i * 2 + 1]! / 32767 : 0;
         stick.setAttribute("cx", String(cx + x * STICK_TRAVEL));
         stick.setAttribute("cy", String(cy + y * STICK_TRAVEL));
+        stick.setAttribute("visibility", Math.hypot(x, y) > STICK_REST ? "visible" : "hidden");
       });
       triggers.forEach((r, i) => {
         const f = s ? s.triggers[i]! / 255 : 0;
@@ -92,10 +95,16 @@ export function createMotion(preview: string, offText: () => string) {
         return;
       }
       const [ax, ay, az] = s.accel;
-      // gravity is noisy: follow it smoothly instead of jumping with every sample
+      // tilt toward or away (around the screen's width) and sideways; the sideways angle uses
+      // the whole remaining gravity, so it stays steady with the screen facing the ceiling
+      const deg = 180 / Math.PI;
+      const targetPitch = Math.atan2(az, ay) * deg;
+      const targetRoll = Math.atan2(-ax, Math.hypot(ay, az)) * deg;
+      // gravity is noisy: follow it smoothly, the short way around
       const smooth = 1 - Math.exp(-dt / 0.12);
-      pitch += ((Math.atan2(az, ay) * 180) / Math.PI - pitch) * smooth;
-      roll += ((Math.atan2(-ax, ay) * 180) / Math.PI - roll) * smooth;
+      const turn = (from: number, to: number) => ((((to - from) % 360) + 540) % 360) - 180;
+      pitch += turn(pitch, targetPitch) * smooth;
+      roll += turn(roll, targetRoll) * smooth;
       yaw = (yaw + s.rate[1] * dt) * 0.98;
       phone.style.transform = `rotateX(${-12 + pitch}deg) rotateY(${yaw}deg) rotateZ(${roll}deg)`;
       values.textContent = `gyro ${s.rate.map((v) => v.toFixed(1)).join(" ")} °/s`;
