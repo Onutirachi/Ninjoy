@@ -5,6 +5,7 @@ import type { Controller } from "../dom/controller.ts";
 import { autoSize } from "../engine/layout.ts";
 import { stickZones, tapsVibrate, triggerZones, type Language, type Vibration } from "../engine/settings.ts";
 import type { I18n } from "../i18n/index.ts";
+import type { SkinIndex } from "../skins.ts";
 import { icons } from "./icons.ts";
 import { button, choices, el, iconButton, pct, slider, switchRow } from "./widgets.ts";
 
@@ -19,10 +20,14 @@ export interface MenuOptions {
   onEditLayout(): void;
   /** the joined controller's number, shown in the header */
   slot?(): number | null;
+  /** the host's skins, the one in use and this phone's choice (null = the host's default) */
+  skins?(): { index: SkinIndex; current: string; chosen: string | null; previewUrl(id: string, path: string): string } | null;
+  /** the player picked a skin (null = follow the host's default) */
+  onSkin?(id: string | null): void;
   parent?: HTMLElement;
 }
 
-const SECTIONS = ["layout", "touch", "motion", "vibration", "general"] as const;
+const SECTIONS = ["layout", "touch", "motion", "vibration", "skins", "general"] as const;
 type Section = (typeof SECTIONS)[number];
 
 /** Short zone labels: the section headings already say "Sticks" / "Triggers". */
@@ -166,6 +171,28 @@ export function createMenu(o: MenuOptions) {
       strength.el,
     ];
 
+    // ----- skins: the host's library; the choice stays on this phone
+    const library = o.skins?.() ?? null;
+    const skinChoices: Node[] = [];
+    if (library) {
+      const { index, current, chosen } = library;
+      const nameOf = (id: string) => index.skins.find((s) => s.id === id)?.name ?? id;
+      const group = el("div", { className: "nj-choices nj-skins", role: "radiogroup", ariaLabel: t("menu.section.skins") });
+      const option = (value: string, title: string, sub: string, id: string | null) => {
+        const input = el("input", { type: "radio", name: "nj-skin", value, checked: value === (chosen ?? "") });
+        input.addEventListener("change", () => input.checked && o.onSkin?.(value || null));
+        const tags: Node[] = [];
+        if (id && id === index.default) tags.push(el("span", { className: "nj-tag nj-tag-plain", textContent: t("menu.skins.default") }));
+        if (id && id === current) tags.push(el("span", { className: "nj-tag nj-tag-plain", textContent: t("menu.skins.inUse") }));
+        const entry = id ? index.skins.find((s) => s.id === id) : undefined;
+        const preview = entry?.preview ? [el("img", { className: "nj-skin-preview", src: library.previewUrl(entry.id, entry.preview), alt: "" })] : [];
+        group.append(el("label", { className: "nj-choice nj-skin" }, [input, ...preview, el("span", {}, [el("strong", { textContent: title }, tags), el("small", { textContent: sub })])]));
+      };
+      option("", t("menu.skins.hostDefault", { name: nameOf(index.default) }), t("menu.skins.follow"), null);
+      for (const s of index.skins) option(s.id, s.name, t("menu.skins.by", { author: s.author }), s.id);
+      skinChoices.push(group);
+    }
+
     // ----- general
     const general = [
       el("div", { className: "nj-actions" }, [
@@ -188,11 +215,13 @@ export function createMenu(o: MenuOptions) {
       }),
     ];
 
-    const content: Record<Section, Node[]> = { layout, touch, motion, vibration, general };
+    const content: Record<Section, Node[]> = { layout, touch, motion, vibration, skins: skinChoices, general };
     const hints: Partial<Record<Section, string>> = {
-      layout: t("menu.layout.hint"), touch: t("menu.touch.hint"), motion: t("menu.motion.hint"), vibration: t("menu.vibration.hint"),
+      layout: t("menu.layout.hint"), touch: t("menu.touch.hint"), motion: t("menu.motion.hint"), vibration: t("menu.vibration.hint"), skins: t("menu.skins.hint"),
     };
-    const tabs = SECTIONS.map((key) => {
+    // the skins section only when the host has a library
+    const sections = SECTIONS.filter((key) => key !== "skins" || library !== null);
+    const tabs = sections.map((key) => {
       const tab = el("button", { type: "button", className: "nj-tab", role: "tab", id: `nj-tab-${key}`, ariaSelected: String(key === section) }, [
         el("span", { className: "nj-icon", innerHTML: icons[key], ariaHidden: "true" }),
         el("span", { textContent: t(`menu.section.${key}`) }),
@@ -205,7 +234,7 @@ export function createMenu(o: MenuOptions) {
       });
       return tab;
     });
-    const panels = SECTIONS.map((key) => {
+    const panels = sections.map((key) => {
       const panel = el("section", { className: "nj-section", role: "tabpanel", id: `nj-section-${key}`, hidden: key !== section }, [
         el("h3", { textContent: t(`menu.section.${key}`) }),
         ...(hints[key] ? [el("p", { className: "nj-hint", textContent: hints[key] })] : []),

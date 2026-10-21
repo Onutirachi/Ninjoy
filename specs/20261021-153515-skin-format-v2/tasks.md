@@ -16,8 +16,8 @@
 
 - [X] T005 [P] Session tests: index lists embedded + folder skins, skips unreadable/broken, serves files (no path escape), default and `SKINS_CHANGED`, `SKIN` recorded in the slot; protocol vectors for the new messages
 - [X] T006 `host/session`: library, routes, messages; devhost `--skins`
-- [ ] T007 [P] Controller tests: loads the chosen skin from the host, falls back to the default with a notice, switches at runtime without reconnecting, layout per skin id, menu Skin section, follows `SKINS_CHANGED`
-- [ ] T008 `controller/src`: host loader, storage by id, switchable controller in `main.ts`, menu section
+- [X] T007 [P] Controller tests: loads the chosen skin from the host, falls back to the default with a notice, switches at runtime without reconnecting, layout per skin id, menu Skin section, follows `SKINS_CHANGED`
+- [X] T008 `controller/src`: host loader, storage by id, switchable controller in `main.ts`, menu section
 - [ ] T009 [P] App core and desktop tests: default skin persisted and applied, snapshot skins and controller skin, broken skins reported; Skins tab lists, sets default, shows broken; no Arcade placeholder; details show the skin
 - [ ] T010 `host/app-core`, `host/app` commands, `desktop/src/skins.ts`
 

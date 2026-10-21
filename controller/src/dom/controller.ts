@@ -27,7 +27,7 @@ export interface Platform {
 }
 
 /** Things the page explains when the device cannot do them. */
-export type NoticeKey = "noFullscreen" | "noVibration" | "motionDenied" | "noMotion" | "motionInsecure";
+export type NoticeKey = "noFullscreen" | "noVibration" | "motionDenied" | "noMotion" | "motionInsecure" | "skinMissing";
 
 export interface ControllerOptions {
   skin: ResolvedSkin;
@@ -35,6 +35,8 @@ export interface ControllerOptions {
   root: HTMLElement;
   /** defaults to localStorage; null keeps everything in memory */
   storage?: Storage | null;
+  /** the skin's id in the host's library (layout edits are kept per skin); default "ninjoy" */
+  skinId?: string;
   /** vibration/fullscreen/motion adapters (tests stub them) */
   platform?: Partial<Platform>;
   /** the skin's menu control was tapped */
@@ -116,8 +118,9 @@ export function createController(options: ControllerOptions): Controller {
   const notify = (key: NoticeKey) => options.onNotice?.(key);
   const store = createStore(options.storage === undefined ? globalThis.localStorage ?? null : options.storage);
   let settings = settingsFromStorage(store.loadSettings());
-  let edits: Record<string, LayoutEdit> = store.loadLayout(skin.meta);
-  const overrides: Record<string, ControlOverride> = store.loadOverrides(skin.meta);
+  const skinId = options.skinId ?? "ninjoy";
+  let edits: Record<string, LayoutEdit> = store.loadLayout(skinId);
+  const overrides: Record<string, ControlOverride> = store.loadOverrides(skinId);
 
   const rendered = render(skin, root);
   const hitTester = new HitTester();
@@ -435,7 +438,7 @@ export function createController(options: ControllerOptions): Controller {
     edits: () => edits,
     change(group, edit, done) {
       edits = { ...edits, [group]: edit };
-      if (done) store.saveLayout(skin.meta, edits);
+      if (done) store.saveLayout(skinId, edits);
       relayout();
       editChanged();
     },
@@ -517,12 +520,12 @@ export function createController(options: ControllerOptions): Controller {
     setOverride(id, override) {
       if (override) overrides[id] = override;
       else delete overrides[id];
-      store.saveOverrides(skin.meta, overrides);
+      store.saveOverrides(skinId, overrides);
       update();
     },
     resetLayout() {
       edits = {};
-      store.saveLayout(skin.meta, edits);
+      store.saveLayout(skinId, edits);
       relayout();
       editChanged();
     },

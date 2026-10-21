@@ -873,6 +873,7 @@ body {
   margin: 0 0 12px 12px;
   padding: 8px;
   overflow-y: auto;
+  scrollbar-width: none; /* still scrolls on short screens, without a bar */
   border-radius: 20px;
   background: var(--m-bg);
   box-shadow: var(--m-shadow-m);
@@ -1433,6 +1434,7 @@ body {
 
   .nj-tab {
     justify-content: center;
+    min-height: 40px;
     padding: 0;
   }
 
@@ -1464,4 +1466,29 @@ body {
   color: oklch(0.72 0.012 250);
   font-size: 13px;
   text-align: center;
+}
+
+/* skins in the menu: a preview next to each name */
+.nj-skins {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 24px;
+}
+
+.nj-skin {
+  align-items: center;
+}
+
+.nj-skin-preview {
+  flex: none;
+  width: 88px;
+  aspect-ratio: 1600 / 720;
+  border-radius: 8px;
+  background: #000;
+  object-fit: cover;
+}
+
+.nj-menu .nj-tag-plain {
+  background: oklch(0.68 0.15 245 / 0.16);
+  color: oklch(0.68 0.15 245);
 }

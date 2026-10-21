@@ -13,18 +13,18 @@ function memoryStorage(): Storage {
   };
 }
 
-const skin = { name: "Ninjoy", version: "0.1.0" };
+const skin = "arcade";
 
 describe("device storage", () => {
-  it("uses versioned keys per skin", () => {
+  it("uses versioned keys per skin id", () => {
     const storage = memoryStorage();
     const store = createStore(storage);
     store.saveSettings({ finger: 20 });
     store.saveLayout(skin, { g: { dx: 1, dy: 2, scale: 1 } });
     store.saveOverrides(skin, { l2: { inherit: false } });
     expect(storage.getItem("ninjoy.v1.settings")).toBe('{"finger":20}');
-    expect(storage.getItem("ninjoy.v1.layout.Ninjoy@0.1.0")).toBe('{"g":{"dx":1,"dy":2,"scale":1}}');
-    expect(storage.getItem("ninjoy.v1.overrides.Ninjoy@0.1.0")).toBe('{"l2":{"inherit":false}}');
+    expect(storage.getItem("ninjoy.v1.layout.arcade")).toBe('{"g":{"dx":1,"dy":2,"scale":1}}');
+    expect(storage.getItem("ninjoy.v1.overrides.arcade")).toBe('{"l2":{"inherit":false}}');
     expect(store.loadLayout(skin)).toEqual({ g: { dx: 1, dy: 2, scale: 1 } });
   });
 

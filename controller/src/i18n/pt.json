@@ -92,5 +92,13 @@
   "menu.zone.stickMax": "Zona de 100% (borda)",
   "menu.zone.minForce": "Força mínima",
   "menu.zone.triggerMax": "Zona de 100% (topo)",
-  "start.rotateTip": "Dica: desative a rotação automática do celular para a tela não virar durante o jogo."
+  "start.rotateTip": "Dica: desative a rotação automática do celular para a tela não virar durante o jogo.",
+  "menu.section.skins": "Skins",
+  "menu.skins.hint": "Skins instaladas no computador. Sua escolha fica salva neste celular.",
+  "menu.skins.hostDefault": "Padrão do host ({name})",
+  "menu.skins.follow": "Segue a escolha do computador",
+  "menu.skins.by": "por {author}",
+  "menu.skins.default": "padrão",
+  "menu.skins.inUse": "em uso",
+  "notice.skinMissing": "Sua skin não está mais neste computador, então a padrão está sendo usada."
 }

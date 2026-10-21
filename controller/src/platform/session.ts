@@ -30,6 +30,8 @@ export interface SessionOptions {
   onFeedback?(feedback: Feedback): void;
   /** round-trip time measured by the host, ms */
   onRtt?(ms: number): void;
+  /** the host's skins or default skin changed */
+  onSkinsChanged?(): void;
   /** injectable for tests */
   createSocket?: (url: string) => WebSocket;
   doc?: Pick<Document, "visibilityState" | "addEventListener" | "removeEventListener">;
@@ -54,6 +56,8 @@ export function createSession(o: SessionOptions) {
   /** no automatic reconnect after kick, opened elsewhere or a version mismatch */
   let stopped = false;
   let status: SessionStatus = { kind: "connecting" };
+  /** the skin this page uses, told to the host after every join ("" = the default) */
+  let skin = "";
 
   const setStatus = (s: SessionStatus) => {
     status = s;
@@ -81,6 +85,7 @@ export function createSession(o: SessionOptions) {
         retryMs = RETRY_FIRST_MS;
         setStatus({ kind: "joined", slot: joined });
         sendState();
+        send(encoder.skin(skin));
         break;
       case "in-use":
         setStatus({ kind: "in-use", slot: message.requested });
@@ -103,6 +108,9 @@ export function createSession(o: SessionOptions) {
       case "ping":
         send(encoder.pong(message.nonce));
         if (message.lastRtt) o.onRtt?.(message.lastRtt / 10);
+        break;
+      case "skins-changed":
+        o.onSkinsChanged?.();
         break;
     }
   };
@@ -175,6 +183,11 @@ export function createSession(o: SessionOptions) {
       setStatus({ kind: "list" });
       if (socket?.readyState === WebSocket.OPEN) greet();
       else connect();
+    },
+    /** The skin this page uses ("" = the host's default); the host is told now and on every join. */
+    setSkin(id: string) {
+      skin = id;
+      if (joined) send(encoder.skin(id));
     },
     /** Sends a new controller state at once (call on every change). */
     send(state: ControllerState) {
