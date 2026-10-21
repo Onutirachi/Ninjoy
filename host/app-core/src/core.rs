@@ -382,13 +382,18 @@ impl AppCore {
         self.changed();
     }
 
+    /// The address phones open (and the QR code): the plain one, which explains the certificate
+    /// warning the first time and goes straight to the secure controller once it is accepted.
     fn url(&self, host: &str, number: u16) -> String {
         let a = self.session.addresses();
-        match a.secure_port {
-            Some(443) => format!("https://{host}/{number}"),
-            Some(port) => format!("https://{host}:{port}/{number}"),
-            None if a.plain_port == 80 => format!("http://{host}/{number}?plain"),
-            None => format!("http://{host}:{}/{number}?plain", a.plain_port),
+        let base = match a.plain_port {
+            80 => format!("http://{host}/{number}"),
+            port => format!("http://{host}:{port}/{number}"),
+        };
+        if a.secure_port.is_some() {
+            base
+        } else {
+            format!("{base}?plain")
         }
     }
 

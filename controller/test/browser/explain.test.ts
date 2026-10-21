@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createI18n } from "../../src/i18n/index.ts";
-import { explainLinks, renderExplain } from "../../src/ui/explain.ts";
+import { explainLinks, renderExplain, secureReachable } from "../../src/ui/explain.ts";
 
 const target = { hostname: "192.168.0.10", pathname: "/3", port: "", securePort: 443 };
 
@@ -29,5 +29,18 @@ describe("plain-address explanation page", () => {
     const links = [...page.querySelectorAll("a")];
     expect(links.map((a) => a.href)).toEqual(["http://192.168.0.10/3?plain"]);
     expect(page.textContent).toContain("not available");
+  });
+
+  it("skips the explanation once the phone accepted the certificate", async () => {
+    const asked: string[] = [];
+    const ok = (async (url: string) => (asked.push(url), new Response())) as unknown as typeof fetch;
+    const untrusted = (async () => {
+      throw new TypeError("certificate not trusted");
+    }) as unknown as typeof fetch;
+    const silent = (() => new Promise(() => {})) as unknown as typeof fetch;
+    expect(await secureReachable("https://192.168.0.10:8443/3", 50, ok)).toBe(true);
+    expect(asked).toEqual(["https://192.168.0.10:8443/skins/index.json"]);
+    expect(await secureReachable("https://192.168.0.10/3", 50, untrusted)).toBe(false);
+    expect(await secureReachable("https://192.168.0.10/3", 50, silent)).toBe(false); // gives up
   });
 });

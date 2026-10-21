@@ -42,6 +42,20 @@ export function renderExplain(i18n: I18n, target: ExplainTarget): HTMLElement {
   ]);
 }
 
+/**
+ * Whether this phone already accepted the PC's certificate: a request to the secure address
+ * only gets through once it did (an untrusted certificate fails the request).
+ */
+export async function secureReachable(secure: string, timeoutMs = 2000, request: typeof fetch = fetch): Promise<boolean> {
+  const probe = new URL("/skins/index.json", secure).href;
+  const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), timeoutMs));
+  const attempt = request(probe, { mode: "no-cors", cache: "no-store" }).then(
+    () => true,
+    () => false,
+  );
+  return Promise.race([attempt, timeout]);
+}
+
 function securePortFromPage(): number | null {
   const value = document.querySelector<HTMLMetaElement>('meta[name="ninjoy-secure-port"]')?.content ?? "";
   if (value === "") return 443; // development server
@@ -55,5 +69,13 @@ if (document.getElementById("app")) {
   document.documentElement.lang = i18n.locale;
   const screens = createScreens();
   const { hostname, pathname, port } = location;
-  screens.show({ body: renderExplain(i18n, { hostname, pathname, port, securePort: securePortFromPage() }) });
+  const target = { hostname, pathname, port, securePort: securePortFromPage() };
+  const { secure } = explainLinks(target);
+  // the QR code and typed addresses land here: phones that already accepted the certificate go
+  // straight to the controller, the others first learn about the warning
+  screens.show({ message: i18n.t("session.connecting"), pulse: true });
+  void (secure ? secureReachable(secure) : Promise.resolve(false)).then((ok) => {
+    if (ok && secure) location.replace(secure);
+    else screens.show({ body: renderExplain(i18n, target) });
+  });
 }
