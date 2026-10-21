@@ -128,7 +128,22 @@ fn quit(app: &AppHandle) {
     app.exit(0);
 }
 
+/// WebKitGTK's DMA-BUF renderer fails on many Wayland setups (NVIDIA among them) with "Error 71
+/// (Protocol error) dispatching to Wayland display" and no window; the older renderer works
+/// everywhere. The user's own value wins.
+#[cfg(target_os = "linux")]
+fn webview_workarounds() {
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        // SAFETY: called first thing in main, before any other thread reads the environment
+        unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") };
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn webview_workarounds() {}
+
 fn main() {
+    webview_workarounds();
     let args: Vec<String> = std::env::args().skip(1).collect();
     // `ninjoy create 3` and friends talk to the running app and exit
     if let Some(code) = cli::run(&args) {
