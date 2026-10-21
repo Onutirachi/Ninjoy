@@ -1,0 +1,20 @@
+[package]
+name = "ninjoy"
+description = "Ninjoy desktop app: phones on the LAN become controllers on this computer."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+ninjoy-app-core.workspace = true
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-autostart = "2"
+serde = { version = "1", features = ["derive"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }

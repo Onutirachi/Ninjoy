@@ -135,6 +135,31 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     root.append(popover);
   };
 
+  /** The first close explains that Ninjoy stays in the tray (once per computer). */
+  const close = () => {
+    let told = true;
+    try {
+      told = localStorage.getItem("ninjoy-tray-notice") === "1";
+    } catch {
+      // no storage: do not insist
+    }
+    if (told) return bridge.close();
+    closePopover();
+    const { t } = i18n;
+    const ok = el("button", { type: "button", className: "pill create", textContent: t("tray.ok") });
+    ok.addEventListener("click", () => {
+      try {
+        localStorage.setItem("ninjoy-tray-notice", "1");
+      } catch {
+        // fine
+      }
+      closePopover();
+      bridge.close();
+    });
+    popover = el("section", { className: "popover tray", role: "dialog", ariaLabel: t("tray.title") }, [el("h2", { textContent: t("tray.title") }), el("p", { textContent: t("tray.notice") }), ok]);
+    root.append(popover);
+  };
+
   const quality = (rtt: number | null) => (rtt === null ? 0 : rtt < 15 ? 3 : rtt < 40 ? 2 : 1);
 
   const renderList = () => {
@@ -227,7 +252,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
       el("div", { className: "win" }, [
         winButton("", t("window.minimize"), icons.minimize, () => bridge.minimize()),
         winButton("", t("window.maximize"), icons.maximize, () => bridge.toggleMaximize()),
-        winButton("close", t("window.close"), icons.close, () => bridge.close()),
+        winButton("close", t("window.close"), icons.close, close),
       ]),
     ]);
     // the window moves by its title bar (Tauri)
