@@ -8,6 +8,6 @@ mod store;
 
 pub use crate::core::{
     AddressesView, AppCore, ControllerView, CoreConfig, CoreError, DriverView, LiveView, SkinView,
-    Snapshot, qr_svg,
+    Snapshot, data_dir, qr_svg,
 };
 pub use store::{Language, Saved, Settings, Theme};

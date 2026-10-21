@@ -210,3 +210,10 @@ check the d-pad directions in Steam's test screen while the analog stick stays c
 - The canvas stays 1600 × 720 (20:9).
 - The phone's layout edits are already per device; making them per skin only adds the skin id to
   their key.
+- The app keeps its data (settings, certificate, skin library) in a `data` folder beside the
+  program, so copying the program's folder backs everything up; when that folder cannot be
+  written (installed for every user, a read-only image) it uses the user's data folder. The first
+  run with the folder beside the program copies the user's data folder into it.
+- Games send lightbar colors as LED intensities (often dim, like `64 0 0`); the phone and the host
+  window show them with the brightest channel at full, keeping the hue, so they read on a screen
+  as they look on a real controller.

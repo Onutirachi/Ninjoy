@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, UNIX_EPOCH};
 
@@ -25,16 +25,67 @@ pub struct CoreConfig {
 }
 
 impl CoreConfig {
-    /// The user's data folder, default ports and the platform's virtual controller backend.
+    /// The data folder (see [`data_dir`]), default ports and the platform's virtual controller
+    /// backend.
     pub fn for_user() -> Self {
+        let user = directories::ProjectDirs::from("", "", "Ninjoy")
+            .map(|d| d.data_dir().to_path_buf())
+            .unwrap_or_else(|| PathBuf::from("ninjoy-data"));
+        let beside = std::env::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(|d| d.join("data")));
         Self {
-            data_dir: directories::ProjectDirs::from("", "", "Ninjoy")
-                .map(|d| d.data_dir().to_path_buf())
-                .unwrap_or_else(|| PathBuf::from("ninjoy-data")),
+            data_dir: beside.map_or(user.clone(), |beside| data_dir(&beside, &user)),
             session: SessionConfig::default(),
             backend: ninjoy_devices::open_default(),
         }
     }
+}
+
+/// Where the app keeps its settings, certificate and skins: a `data` folder beside the program,
+/// so copying the program's folder backs up everything; the user's data folder when the
+/// program's folder cannot be written (installed for every user, a read-only image). The first
+/// time the folder beside the program is used, the user's data folder is copied into it, so
+/// phones keep trusting the certificate.
+pub fn data_dir(beside: &Path, user: &Path) -> PathBuf {
+    if beside.is_dir() {
+        return beside.to_path_buf();
+    }
+    if std::fs::create_dir_all(beside).is_err() || !writable(beside) {
+        let _ = std::fs::remove_dir(beside);
+        return user.to_path_buf();
+    }
+    if user.is_dir()
+        && let Err(e) = copy_dir(user, beside)
+    {
+        tracing::warn!(
+            "could not copy {} to {}: {e}",
+            user.display(),
+            beside.display()
+        );
+    }
+    beside.to_path_buf()
+}
+
+fn writable(dir: &Path) -> bool {
+    let probe = dir.join(".ninjoy-write-test");
+    let ok = std::fs::write(&probe, b"").is_ok();
+    let _ = std::fs::remove_file(probe);
+    ok
+}
+
+fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(to)?;
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let target = to.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_dir(&entry.path(), &target)?;
+        } else {
+            std::fs::copy(entry.path(), target)?;
+        }
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
