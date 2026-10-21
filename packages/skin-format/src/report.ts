@@ -23,6 +23,8 @@ export const REPORT_CODES = {
   "anchor-ignored": ["control", "group"],
   "outside-canvas": ["control"],
   "invalid-tuning": ["control", "field"],
+  "fixed-mixed-group": ["group"],
+  "needs-format-2": ["feature"],
   "no-menu": [],
   "no-preview": [],
   "unused-file": ["file"],
