@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-20
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: The Ninjoy desktop app for Windows and Linux, built on the LAN session and the virtual
 DualShock 4 backend: the interface approved in the host UI prototype (controller list with
