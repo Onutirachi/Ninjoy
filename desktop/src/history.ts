@@ -1,7 +1,7 @@
 /**
  * The input history, like a fighting game's training mode: every press (a button, a d-pad
- * direction, a stick pushed one way) enters on the right, big; older ones move left, smaller and
- * fainter. Under each, how many frames (60 per second) it was held; a press still held stays lit
+ * direction, a stick pushed one way) fades in on the right, big; older ones slide left, smaller
+ * and fainter, centered on one line. Under each, how many frames (60 per second) it was held; a press still held stays lit
  * and keeps counting.
  */
 
@@ -70,26 +70,33 @@ export function createHistory() {
     update(s: LiveView | null, now: number) {
       const next = s ? heldInputs(s) : new Set<string>();
       for (const item of items) if (item.end === null && !next.has(item.name)) item.end = now;
-      for (const name of next) {
-        if (held.has(name)) continue;
-        // a new press grows in on the right, pushing the others left
+      const added = [...next].filter((name) => !held.has(name));
+      // where the shown presses are now, to slide them to their new places
+      const before = added.length ? new Map(items.map((i) => [i, i.el.getBoundingClientRect().left])) : null;
+      for (const name of added) {
+        // a new press fades in on the right, pushing the others left
         const icon = el("span", { className: "icon" });
         icon.innerHTML = HISTORY_ICONS[name] ?? name;
         const box = icon.querySelector("svg")?.viewBox.baseVal;
         const label = el("small");
-        const item = el("span", { className: `in in-${name} entering` }, [icon, label]);
+        const item = el("span", { className: `in in-${name}` }, [icon, label]);
         // icons keep their drawn size: sticks are taller than buttons
         if (box) {
           item.style.setProperty("--u", String(box.height / BUTTON_HEIGHT));
           item.style.setProperty("--w", String(box.width / BUTTON_HEIGHT));
         }
         strip.append(item);
-        requestAnimationFrame(() => requestAnimationFrame(() => item.classList.remove("entering")));
         items.unshift({ name, start: now, end: null, el: item, frames: label });
         if (items.length > ITEMS) items.pop()!.el.remove();
       }
       held = next;
       place(now);
+      if (before) {
+        for (const [item, left] of before) {
+          const dx = left - item.el.getBoundingClientRect().left;
+          if (dx && item.el.isConnected) item.el.animate?.([{ transform: `translateX(${dx}px)` }, { transform: "none" }], { duration: 160, easing: "ease-out" });
+        }
+      }
     },
   };
 }

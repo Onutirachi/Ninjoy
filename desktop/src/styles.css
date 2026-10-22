@@ -800,44 +800,47 @@ button.chip:hover {
   stroke: none;
 }
 
-/* the input history under the split: the newest press on the right, big; older ones smaller and
-   fainter to the left, each with the frames it was held under it */
+/* the input history under the split, as wide as it: the newest press on the right, big; older
+   ones smaller and fainter to the left, centered on one line (a cone), each with the frames it was
+   held under it */
 .history {
-  /* a button's height; stick icons are taller */
-  --h: clamp(34px, 5.2cqh, 58px);
+  container-type: inline-size;
   display: flex;
   flex: none;
-  align-items: flex-end;
+  align-items: center;
   justify-content: flex-end;
-  gap: clamp(4px, 0.5cqw, 10px);
   width: min(70%, 640px);
-  height: calc(var(--h) * 1.75 + 22px);
+  aspect-ratio: 6.6;
   margin: 0 auto;
   overflow: hidden;
 }
 
 .history .in {
+  /* a button's height, so twelve presses fill the strip; stick icons are taller */
+  --h: calc(100cqw / 14.3);
   display: flex;
   flex: none;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  transition: opacity 0.2s linear;
+  gap: calc(var(--h) * 0.08);
+  margin-left: calc(var(--h) * 0.14);
+  animation: nj-history-in 0.18s ease-out;
 }
 
-/* every icon sits centered in a box tall enough for a stick icon, so the frame counts line up */
+@keyframes nj-history-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* every icon sits centered in a box tall enough for a stick icon */
 .history .icon {
   display: flex;
   align-items: center;
   justify-content: center;
   width: calc(var(--h) * var(--s, 1) * var(--w, 1.56));
   height: calc(var(--h) * var(--s, 1) * 1.75);
-  transition: width 0.15s ease-out, height 0.15s ease-out;
-}
-
-/* a new press grows in, so the others slide left */
-.history .entering .icon {
-  width: 0;
+  transition: width 0.16s ease-out, height 0.16s ease-out;
 }
 
 .history svg {
@@ -849,7 +852,7 @@ button.chip:hover {
 
 .history small {
   color: var(--text-faint);
-  font: 700 calc(11px + 3px * var(--s, 1)) / 1 var(--ff-display);
+  font: 700 calc(var(--h) * var(--s, 1) * 0.3) / 1 var(--ff-display);
   font-variant-numeric: tabular-nums;
 }
 
