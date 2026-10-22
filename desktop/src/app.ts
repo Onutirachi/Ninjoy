@@ -211,7 +211,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
       details = renderDetails(ctx, c);
       detail.replaceChildren(details.el);
     }
-    details.update(c, latency.get(c.number) ?? [], now(), (id) => snapshot.skins.find((s) => s.id === id)?.name ?? id);
+    details.update(c, latency.get(c.number) ?? [], now(), (id) => snapshot.skins.find((s) => s.id === id));
   };
 
   const select = (n: number) => {

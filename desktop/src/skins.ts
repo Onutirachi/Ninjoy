@@ -8,7 +8,8 @@ import type { I18n } from "./i18n/index.ts";
 /** Preview images as object URLs, kept per skin version. */
 const previews = new Map<string, Promise<string | null>>();
 
-function preview(bridge: Bridge, s: SkinView): Promise<string | null> {
+/** A skin's preview image as an object URL (null without one). */
+export function skinPreview(bridge: Bridge, s: SkinView): Promise<string | null> {
   const key = `${s.id}@${s.version}`;
   if (!previews.has(key)) {
     previews.set(
@@ -61,7 +62,7 @@ export function renderSkins(o: { i18n: I18n; bridge: Bridge; skins: SkinView[]; 
   const { t } = o.i18n;
   const cards = o.skins.map((s) => {
     const img = el("img", { alt: "" });
-    void preview(o.bridge, s).then((url) => {
+    void skinPreview(o.bridge, s).then((url) => {
       if (url) img.src = url;
     });
     const by = s.bundled ? t("skins.official", { author: s.author, version: s.version }) : t("skins.byAuthor", { author: s.author, version: s.version });

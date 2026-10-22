@@ -188,19 +188,52 @@ describe("desktop window", () => {
     expect(text(root, ".gyro-vals")).toBe("gyroscope off");
   });
 
-  it("shows latency now, average and peak, the vibration and the lightbar", async () => {
+  it("shows cards instead of the QR code while a phone plays: latency, phone, connection, address", async () => {
     await start((b) => {
-      b.snap.controllers = [controller(1, { status: "connected", device: "Pixel · Chrome", rttMs: 5, rumble: [0.5, 0], lightbar: [255, 0, 0] })];
+      b.snap.controllers = [
+        controller(1, { status: "connected", device: "Pixel 8 · Chrome", rttMs: 5, connectedSince: NOW - 75 * 60000, lightbar: [255, 0, 0], url: "http://192.168.0.10/1", nameUrl: "http://ninjoy.local/1" }),
+      ];
     });
     for (const rtt of [5, 9, 7]) {
       bridge.snap.controllers[0]!.rttMs = rtt;
       await app.tick();
     }
-    const values = [...root.querySelectorAll(".info dd")].map((d) => d.textContent);
-    expect(values.slice(0, 3)).toEqual(["7 ms", "7 ms", "9 ms"]);
-    expect(values[4]).toBe("Vibrating");
-    expect(values[5]).toBe("#ff0000");
+    expect(root.querySelector(".qr")).toBeNull(); // someone plays: no QR code to scan
+    expect(text(root, ".card.latency .big")).toBe("7 ms");
+    expect(text(root, ".card.latency small")).toBe("average 7 ms · peak 9 ms");
     expect(root.querySelector(".spark .line")!.getAttribute("d")).toMatch(/^M0,/);
+    expect(text(root, ".card.device .state")).toBe("Pixel 8");
+    expect(text(root, ".card.device small")).toBe("Chrome");
+    expect(text(root, ".card.connection .state")).toBe("1 h 15 min");
+    expect(text(root, ".card-addr")).toBe("192.168.0.10/1ninjoy.local/1");
+    expect(root.querySelector(".card.vibration")).toBeNull();
+    // kicked: waiting again, the QR code comes back
+    bridge.snap.controllers = [controller(1)];
+    await app.refresh();
+    expect(root.querySelector(".waiting-view .qr")).not.toBeNull();
+  });
+
+  it("lists what the player pressed, newest first, with the frames each was held", async () => {
+    await start((b) => {
+      b.snap.controllers = [controller(1, { status: "connected", device: "Pixel · Chrome" })];
+    });
+    const live = (buttons: number, sticks: [number, number, number, number] = [0, 0, 0, 0]) => ({ buttons, sticks, triggers: [0, 0] as [number, number], gyro: false, touches: [], rate: null, accel: null });
+    const rows = () => [...root.querySelectorAll(".history li")].map((li) => [...li.children].map((c) => c.textContent).join(" "));
+    // down, down-forward, forward + square (a quarter circle and punch), then the stick alone
+    const steps: [number, ReturnType<typeof live>][] = [
+      [0, live(1 << 5)],
+      [100, live((1 << 5) | (1 << 7))],
+      [150, live((1 << 7) | (1 << 2))],
+      [250, live(0)],
+      [300, live(0, [0, -32767, 0, 0])],
+    ];
+    for (const [t, s] of steps) {
+      bridge.liveState = s;
+      await app.frame(NOW + t);
+    }
+    expect(rows()).toEqual(["1 ↑", "6 → □", "3 ↘", "6 ↓"]);
+    await app.frame(NOW + 400);
+    expect(rows()[0]).toBe("6 ↑"); // the row held keeps counting
   });
 
   it("refreshes when the app says something changed", async () => {
@@ -294,8 +327,8 @@ describe("desktop window", () => {
     await start((b) => {
       b.snap.controllers = [controller(1, { status: "connected", device: "Pixel · Chrome", skin: "ninjoy" })];
     });
-    const values = [...root.querySelectorAll(".info dd")].map((d) => d.textContent);
-    expect(values.at(-1)).toBe("Ninjoy");
+    expect(text(root, ".card.skin .state")).toBe("Ninjoy");
+    expect(text(root, ".card.skin small")).toMatch(/^Official · Ninjoy · v/);
   });
 
   it("moves the window from the title bar and hides to the tray on close, explaining it once", async () => {
