@@ -1,9 +1,12 @@
-/** The selected controller: header and actions, QR code, latency and state, live view. */
+/** The selected controller: header and actions, the QR code while waiting, then cards (latency,
+ * skin, address), the lightbar split, the input history and the live view with the turning phone. */
 
-import type { Bridge, ControllerView, LiveView } from "./bridge.ts";
+import type { Bridge, ControllerView, LiveView, SkinView } from "./bridge.ts";
 import { el, html, icons, lightbarCss, shortUrl } from "./dom.ts";
 import type { I18n } from "./i18n/index.ts";
 import { createMotion, createPad } from "./pad.ts";
+import { createHistory } from "./history.ts";
+import { skinPreview } from "./skins.ts";
 
 export interface DetailsContext {
   bridge: Bridge;
@@ -45,6 +48,7 @@ export function renderDetails(ctx: DetailsContext, c: ControllerView) {
   const padChip = el("span", { className: "pill" });
   const action = el("button", { className: "pill danger", type: "button" }, [html(waiting ? icons.trash : icons.leave), el("span", { textContent: t(waiting ? "action.remove" : "action.kick") })]);
   action.addEventListener("click", () => void (waiting ? ctx.bridge.remove(c.number) : ctx.bridge.kick(c.number)));
+  const addresses = (className: string) => el("div", { className }, [shortUrl(c.url), ...(c.nameUrl ? [el("small", { textContent: shortUrl(c.nameUrl) })] : [])]);
   root.append(
     el("div", { className: "detail-head" }, [
       el("span", { className: "bar" }),
@@ -53,22 +57,9 @@ export function renderDetails(ctx: DetailsContext, c: ControllerView) {
     ]),
   );
 
-  const qr = (size: string) => {
-    const box = el("div", { className: `qr ${size}` });
-    void ctx.qr(c.url).then((svg) => (box.innerHTML = svg));
-    return box;
-  };
-  const addresses = () => el("div", { className: "addr" }, [shortUrl(c.url), ...(c.nameUrl ? [el("small", { textContent: shortUrl(c.nameUrl) })] : [])]);
-
-  const values = {
-    latency: el("dd"),
-    average: el("dd"),
-    peak: el("dd"),
-    gyro: el("dd"),
-    vibration: el("dd"),
-    lightbar: el("dd"),
-    skin: el("dd"),
-  };
+  // latency: now, average, peak and the recent graph
+  const latencyNow = el("strong", { className: "big" });
+  const latencySummary = el("small");
   const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
   line.classList.add("line");
   const fill = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -78,65 +69,77 @@ export function renderDetails(ctx: DetailsContext, c: ControllerView) {
   spark.setAttribute("viewBox", "0 0 100 40");
   spark.setAttribute("preserveAspectRatio", "none");
   spark.append(fill, line);
+  // what the player pressed, newest on top
+  const history = createHistory();
+  // skin: preview and name
+  const skinImage = el("img", { alt: "" });
+  const skinName = el("strong", { className: "state" });
+  const skinAuthor = el("small");
+
+  const card = (className: string, title: Parameters<I18n["t"]>[0], body: Node[]) => el("section", { className: `card ${className}` }, [el("h2", { textContent: t(title) }), ...body]);
 
   const pad = createPad();
   const motion = createMotion(ctx.preview, () => ctx.i18n().t("motion.off"));
 
   if (waiting) {
-    root.append(el("div", { className: "waiting-view" }, [el("div", {}, [qr("big"), el("h1", { textContent: t("waiting.title") }), el("p", { textContent: t("waiting.hint") }), addresses()])]));
+    const qr = el("div", { className: "qr big" });
+    void ctx.qr(c.url).then((svg) => (qr.innerHTML = svg));
+    root.append(el("div", { className: "waiting-view" }, [el("div", {}, [qr, el("h1", { textContent: t("waiting.title") }), el("p", { textContent: t("waiting.hint") }), addresses("addr")])]));
   } else {
-    const row = (key: Parameters<I18n["t"]>[0], dd: HTMLElement) => [el("dt", { textContent: t(key) }), dd];
     root.append(
-      el("div", { className: "quad" }, [
-        el("section", { className: "area qr-area" }, [qr(""), addresses()]),
-        el("section", { className: "area info-area" }, [
-          el("dl", { className: "info" }, [
-            ...row("info.latency", values.latency),
-            ...row("info.average", values.average),
-            ...row("info.peak", values.peak),
-            ...row("info.gyro", values.gyro),
-            ...row("info.vibration", values.vibration),
-            ...row("info.lightbar", values.lightbar),
-            ...row("info.skin", values.skin),
-          ]),
-          spark,
-        ]),
+      el("div", { className: "cards" }, [
+        card("latency", "card.latency", [el("div", { className: "row" }, [latencyNow, latencySummary]), spark]),
+        card("skin", "card.skin", [skinImage, el("div", {}, [skinName, skinAuthor])]),
+        card("address", "card.address", [addresses("card-addr")]),
       ]),
+      // the split glows with the controller's lightbar, like the bar on the controller
+      el("div", { className: "split" }),
+      history.el,
       el("div", { className: "duo" }, [el("section", { className: "area live-area" }, [pad.el]), motion.el]),
     );
   }
 
+  let shownSkin: string | null = null;
   return {
     el: root,
     status: c.status,
     number: c.number,
-    update(c: ControllerView, samples: number[], now: number, skinName: (id: string) => string = (id) => id) {
+    update(c: ControllerView, samples: number[], now: number, skinOf: (id: string) => SkinView | undefined = () => undefined) {
       const { t } = ctx.i18n();
-      values.skin.textContent = c.skin ? skinName(c.skin) : "—";
       const device = c.device ?? "";
+      const minutes = c.connectedSince ? Math.floor((now - c.connectedSince) / 60000) : 0;
       if (c.status === "waiting") meta.textContent = t("detail.waiting");
       else if (c.status === "reconnecting") meta.textContent = t("detail.reconnecting", { device, n: c.holdLeft ?? 0 });
-      else {
-        const minutes = c.connectedSince ? Math.floor((now - c.connectedSince) / 60000) : 0;
-        meta.textContent = minutes < 1 ? t("detail.connectedNow", { device }) : t("detail.connectedFor", { device, n: minutes });
-      }
+      else meta.textContent = minutes < 1 ? t("detail.connectedNow", { device }) : t("detail.connectedFor", { device, n: minutes });
+
       root.parentElement?.style.setProperty("--lightbar", lightbarCss(c.lightbar, c.number));
       padChip.replaceChildren(html(icons.gamepad), t(c.pad === "plugged" ? "pad.plugged" : "pad.missing"));
       padChip.title = c.padError ?? "";
+
       const stats = latencyStats(samples);
       const ms = (v: number) => t("value.ms", { n: Math.round(v) });
-      values.latency.textContent = c.status === "connected" && stats ? ms(stats.now) : "—";
-      values.average.textContent = stats ? ms(stats.average) : "—";
-      values.peak.textContent = stats ? ms(stats.peak) : "—";
+      latencyNow.textContent = c.status === "connected" && stats ? ms(stats.now) : "—";
+      latencySummary.textContent = stats ? t("latency.summary", { average: ms(stats.average), peak: ms(stats.peak) }) : "";
       line.setAttribute("d", stats?.line ?? "");
       fill.setAttribute("d", stats?.fill ?? "");
-      values.gyro.textContent = t(c.gyro ? "value.on" : "value.off");
-      const rumbling = !!c.rumble && (c.rumble[0] > 0 || c.rumble[1] > 0);
-      values.vibration.textContent = t(rumbling ? "value.rumbling" : "value.still");
-      values.lightbar.replaceChildren(el("span", { className: "swatch", style: `background:${lightbarCss(c.lightbar, c.number)}` }), c.lightbar ? `#${c.lightbar.map((v) => v.toString(16).padStart(2, "0")).join("")}` : "—");
+
+      const skin = c.skin ? skinOf(c.skin) : undefined;
+      skinName.textContent = skin?.name ?? c.skin ?? "—";
+      skinAuthor.textContent = skin ? t(skin.bundled ? "skins.official" : "skins.byAuthor", { author: skin.author, version: skin.version }) : "";
+      const key = skin ? `${skin.id}@${skin.version}` : null;
+      if (key !== shownSkin) {
+        shownSkin = key;
+        const show = (url: string | null) => {
+          skinImage.src = url ?? ctx.preview;
+          motion.setPreview(url ?? ctx.preview);
+        };
+        if (skin) void skinPreview(ctx.bridge, skin).then((url) => shownSkin === key && show(url));
+        else show(null);
+      }
     },
     live(s: LiveView | null, now: number) {
       pad.update(s);
+      history.update(s, now);
       motion.update(s, now);
     },
   };

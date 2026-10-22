@@ -729,13 +729,181 @@ button.chip:hover {
   margin-left: auto;
 }
 
-.quad {
+/* the cards of a controller in use: latency, vibration and skin */
+.cards {
   display: grid;
-  grid-template-columns: auto clamp(380px, 30cqw, 620px);
-  justify-content: center;
-  align-items: start;
-  gap: 0 clamp(72px, 7cqw, 160px);
-  padding-top: clamp(10px, 3cqh, 48px);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: clamp(12px, 1.4cqw, 24px);
+  padding-top: clamp(4px, 1.5cqh, 24px);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: clamp(14px, 1.4cqw, 24px);
+  border-radius: var(--radius-m);
+  background: var(--bg-light);
+  box-shadow: var(--shadow-m);
+}
+
+.card h2 {
+  color: var(--text-faint);
+  font: 700 12px var(--ff);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.card .big {
+  color: var(--text);
+  font: 700 clamp(28px, 2.6cqw, 44px) / 1 var(--ff-display);
+}
+
+.card .state {
+  display: block;
+  color: var(--text);
+  font: 700 clamp(17px, 1.4cqw, 24px) / 1.25 var(--ff-display);
+  overflow-wrap: anywhere;
+}
+
+.card small {
+  color: var(--text-faint);
+  font-weight: 600;
+}
+
+.card.latency .row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+/* the graph fills what the row leaves; the skin card sets the row's height */
+.spark {
+  flex: 1 1 0;
+  width: 100%;
+  height: 0;
+  min-height: 36px;
+  margin-top: 4px;
+}
+
+.spark path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.spark .fill {
+  fill: color-mix(in oklch, var(--accent) 16%, transparent);
+  stroke: none;
+}
+
+/* the input history under the split, as wide as it (the maintainer's prototype: a 1000 px track,
+   70 px icons) */
+.history {
+  container-type: inline-size;
+  position: relative;
+  flex: none;
+  width: min(70%, 640px);
+  aspect-ratio: 1000 / 100;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.history .in {
+  position: absolute;
+  top: 0;
+  right: 1.5cqw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4cqw;
+  transform-origin: center 3.5cqw;
+  transition:
+    transform 0.15s ease-in-out,
+    opacity 0.15s ease-in-out;
+}
+
+.history.resizing .in {
+  transition: none;
+}
+
+.history svg {
+  display: block;
+  width: calc(7cqw * var(--a, 1.55));
+  height: 7cqw;
+}
+
+.history small {
+  color: var(--text-faint);
+  font: 700 1.6cqw / 1 var(--ff-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.history .held small {
+  color: var(--accent);
+}
+
+.history .b {
+  fill: #1f4a6b;
+}
+
+.history .t {
+  fill: #266697;
+}
+
+.history .l {
+  fill: #c7d5e0;
+}
+
+/* still held: lit like a pressed control on the phone */
+.history .held .b,
+.history .held .t {
+  fill: #227dc3;
+}
+
+.history .held .l {
+  fill: #fff;
+}
+
+/* the skin card shows the preview as on the Skins page, the name under it */
+.card.skin img {
+  width: 100%;
+  aspect-ratio: 1600 / 720;
+  border-radius: 10px;
+  background: #000;
+  object-fit: cover;
+}
+
+.card.skin div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-addr {
+  color: var(--text);
+  font: 700 clamp(15px, 1.2cqw, 20px) / 1.3 var(--ff-display);
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+
+.card-addr small {
+  display: block;
+  font-family: var(--ff);
+}
+
+/* the split between the cards and the live view glows with the controller's lightbar */
+.split {
+  flex: none;
+  width: min(70%, 640px);
+  height: 8px;
+  margin: 0 auto;
+  border-radius: 4px;
+  background: var(--lightbar);
+  box-shadow: 0 0 14px var(--lightbar), 0 0 2px var(--lightbar);
 }
 
 .duo {
@@ -745,7 +913,6 @@ button.chip:hover {
   justify-content: center;
   gap: clamp(56px, 6cqw, 140px);
   min-height: 0;
-  margin-top: auto;
 }
 
 .area {
@@ -767,70 +934,11 @@ button.chip:hover {
   height: auto;
 }
 
-.qr-area .qr {
-  width: clamp(255px, min(24cqw, 40cqh), 460px);
-  padding: 14px;
-  border-radius: 18px;
-}
-
 .addr {
   color: var(--text);
   font: 700 17px var(--ff);
   text-align: center;
   user-select: text;
-}
-
-.qr-area .addr {
-  width: clamp(255px, min(24cqw, 40cqh), 460px);
-  font-size: clamp(17px, 1.4cqw, 24px);
-  margin-top: 14px;
-}
-
-.info {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  row-gap: clamp(16px, 2.6cqh, 34px);
-  padding-top: 6px;
-}
-
-.info dt {
-  color: var(--text-faint);
-  font-size: clamp(16px, 1.3cqw, 22px);
-  font-weight: 600;
-}
-
-.info dd {
-  margin: 0;
-  color: var(--text);
-  font: 700 clamp(18px, 1.5cqw, 26px) / 1.3 var(--ff-display);
-  text-align: right;
-}
-
-.swatch {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin-right: 6px;
-  border-radius: 4px;
-  vertical-align: -1px;
-}
-
-.spark {
-  width: 100%;
-  height: clamp(52px, 9cqh, 120px);
-  margin-top: clamp(26px, 4cqh, 56px);
-}
-
-.spark path {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-}
-
-.spark .fill {
-  fill: color-mix(in oklch, var(--accent) 16%, transparent);
-  stroke: none;
 }
 
 /* live controller drawing */
@@ -869,80 +977,14 @@ button.chip:hover {
 }
 
 .motion .scene {
-  display: grid;
-  place-items: center;
+  display: block;
   width: calc(var(--w) * 1.41);
   height: calc(var(--w) * 0.88);
-  perspective: calc(var(--w) * 3.5);
 }
 
-.phone3d {
-  --h: calc(var(--w) * 0.465);
-  --d: calc(var(--w) * 0.06);
-  position: relative;
-  width: var(--w);
-  height: var(--h);
-  transform: rotateX(-12deg);
-  transform-style: preserve-3d;
-}
-
-.face {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  backface-visibility: hidden;
-}
-
-.face.front,
-.face.back {
-  width: var(--w);
-  height: var(--h);
-  margin: calc(var(--h) / -2) 0 0 calc(var(--w) / -2);
-  border-radius: 12px;
-}
-
-.face.front {
-  background: #000 var(--preview) center / 88% auto no-repeat;
-  box-shadow: inset 0 0 0 3px #1b1f24;
-  transform: translateZ(calc(var(--d) / 2));
-}
-
-.face.back {
-  background: oklch(0.3 0.02 var(--hue));
-  transform: rotateY(180deg) translateZ(calc(var(--d) / 2));
-}
-
-.face.top,
-.face.bottom {
-  width: calc(var(--w) - 16px);
-  height: var(--d);
-  margin: calc(var(--d) / -2) 0 0 calc((var(--w) - 16px) / -2);
-  background: oklch(0.38 0.02 var(--hue));
-}
-
-.face.top {
-  transform: rotateX(90deg) translateZ(calc(var(--h) / 2));
-}
-
-.face.bottom {
-  background: oklch(0.24 0.02 var(--hue));
-  transform: rotateX(-90deg) translateZ(calc(var(--h) / 2));
-}
-
-.face.left,
-.face.right {
-  width: var(--d);
-  height: calc(var(--h) - 16px);
-  margin: calc((var(--h) - 16px) / -2) 0 0 calc(var(--d) / -2);
-  background: oklch(0.32 0.02 var(--hue));
-}
-
-.face.left {
-  transform: rotateY(-90deg) translateZ(calc(var(--w) / 2));
-}
-
-.face.right {
-  transform: rotateY(90deg) translateZ(calc(var(--w) / 2));
+/* gyroscope off: the phone rests in place, faded */
+.motion.off .scene {
+  opacity: 0.4;
 }
 
 .gyro-vals {
