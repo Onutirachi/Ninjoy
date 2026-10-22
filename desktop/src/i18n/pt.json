@@ -60,14 +60,5 @@
   "card.latency": "Latência",
   "card.skin": "Skin",
   "latency.summary": "média {average} · pico {peak}",
-  "card.device": "Aparelho",
-  "card.connection": "Conectado",
-  "card.address": "Endereço",
-  "connection.now": "agora",
-  "connection.minutes": "{n} min",
-  "connection.hours": "{h} h {m} min",
-  "connection.since": "desde {time}",
-  "connection.reconnecting": "Reconectando",
-  "connection.left": "{n} s restantes",
-  "card.inputs": "Histórico de comandos"
+  "card.address": "Endereço"
 }

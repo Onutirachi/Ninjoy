@@ -188,7 +188,7 @@ describe("desktop window", () => {
     expect(text(root, ".gyro-vals")).toBe("gyroscope off");
   });
 
-  it("shows cards instead of the QR code while a phone plays: latency, phone, connection, address", async () => {
+  it("shows cards instead of the QR code while a phone plays: latency, skin and address", async () => {
     await start((b) => {
       b.snap.controllers = [
         controller(1, { status: "connected", device: "Pixel 8 · Chrome", rttMs: 5, connectedSince: NOW - 75 * 60000, lightbar: [255, 0, 0], url: "http://192.168.0.10/1", nameUrl: "http://ninjoy.local/1" }),
@@ -202,9 +202,6 @@ describe("desktop window", () => {
     expect(text(root, ".card.latency .big")).toBe("7 ms");
     expect(text(root, ".card.latency small")).toBe("average 7 ms · peak 9 ms");
     expect(root.querySelector(".spark .line")!.getAttribute("d")).toMatch(/^M0,/);
-    expect(text(root, ".card.device .state")).toBe("Pixel 8");
-    expect(text(root, ".card.device small")).toBe("Chrome");
-    expect(text(root, ".card.connection .state")).toBe("1 h 15 min");
     expect(text(root, ".card-addr")).toBe("192.168.0.10/1ninjoy.local/1");
     expect(root.querySelector(".card.vibration")).toBeNull();
     // kicked: waiting again, the QR code comes back
@@ -213,27 +210,34 @@ describe("desktop window", () => {
     expect(root.querySelector(".waiting-view .qr")).not.toBeNull();
   });
 
-  it("lists what the player pressed, newest first, with the frames each was held", async () => {
+  it("shows each press in the input history, newest on the right, fading out after a while", async () => {
     await start((b) => {
       b.snap.controllers = [controller(1, { status: "connected", device: "Pixel · Chrome" })];
     });
     const live = (buttons: number, sticks: [number, number, number, number] = [0, 0, 0, 0]) => ({ buttons, sticks, triggers: [0, 0] as [number, number], gyro: false, touches: [], rate: null, accel: null });
-    const rows = () => [...root.querySelectorAll(".history li")].map((li) => [...li.children].map((c) => c.textContent).join(" "));
-    // down, down-forward, forward + square (a quarter circle and punch), then the stick alone
+    const shown = () => [...root.querySelectorAll<HTMLElement>(".history .in")].map((i) => i.className.replace("in in-", "").replace(" held", "*"));
     const steps: [number, ReturnType<typeof live>][] = [
-      [0, live(1 << 5)],
-      [100, live((1 << 5) | (1 << 7))],
-      [150, live((1 << 7) | (1 << 2))],
-      [250, live(0)],
-      [300, live(0, [0, -32767, 0, 0])],
+      [0, live(1 << 5)], // d-pad down
+      [100, live((1 << 5) | (1 << 7))], // + right: only the new press enters
+      [150, live((1 << 7) | (1 << 2))], // down released, square pressed
+      [250, live(0, [0, -32767, 0, 0])], // left stick up
+      [300, live(0)],
     ];
     for (const [t, s] of steps) {
       bridge.liveState = s;
       await app.frame(NOW + t);
     }
-    expect(rows()).toEqual(["1 ↑", "6 → □", "3 ↘", "6 ↓"]);
+    expect(shown()).toEqual(["down", "right", "square", "ls-up"]);
+    bridge.liveState = live(1 << 0);
     await app.frame(NOW + 400);
-    expect(rows()[0]).toBe("6 ↑"); // the row held keeps counting
+    expect(shown()).toEqual(["down", "right", "square", "ls-up", "cross*"]); // held: lit
+    const sizes = () => [...root.querySelectorAll<HTMLElement>(".history .in")].map((i) => Number(i.style.getPropertyValue("--s")));
+    expect(sizes()).toEqual([...sizes()].sort((a, b) => a - b)); // older ones smaller
+    // released, then gone a few seconds later
+    bridge.liveState = live(0);
+    await app.frame(NOW + 500);
+    await app.frame(NOW + 6000);
+    expect(shown()).toEqual([]);
   });
 
   it("refreshes when the app says something changed", async () => {

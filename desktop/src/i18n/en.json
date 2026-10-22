@@ -60,14 +60,5 @@
   "card.latency": "Latency",
   "card.skin": "Skin",
   "latency.summary": "average {average} · peak {peak}",
-  "card.device": "Phone",
-  "card.connection": "Connected",
-  "card.address": "Address",
-  "connection.now": "just now",
-  "connection.minutes": "{n} min",
-  "connection.hours": "{h} h {m} min",
-  "connection.since": "since {time}",
-  "connection.reconnecting": "Reconnecting",
-  "connection.left": "{n} s left",
-  "card.inputs": "Input history"
+  "card.address": "Address"
 }

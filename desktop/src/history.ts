@@ -1,96 +1,89 @@
 /**
- * The input history, like a fighting game's training mode: one row per change of what is held
- * (direction and buttons), newest on top, with how many frames (60 per second) it was held.
+ * The input history, like a fighting game's training mode: every press (a button, a d-pad
+ * direction, a stick pushed one way) enters on the right, big; older ones move left, smaller and
+ * fainter, and fade out after a few seconds. A press still held stays lit.
  */
 
 import type { LiveView } from "./bridge.ts";
 import { el } from "./dom.ts";
+import { HISTORY_ICONS } from "./history-icons.ts";
 
 /** DualShock 4 button bits, in the session's order (see pad.ts). */
 const BITS = ["cross", "circle", "square", "triangle", "up", "down", "left", "right", "l1", "r1", "l2", "r2", "l3", "r3", "share", "options", "ps", "touchpad"];
 
-/** The order buttons are listed in a row. */
-const ORDER = ["square", "cross", "circle", "triangle", "l1", "r1", "l2", "r2", "l3", "r3", "share", "options", "ps", "touchpad"];
+const ITEMS = 12;
+/** a stick counts as pushed past this much of its travel */
+const STICK_PUSH = 0.5;
+/** how long a press stays before fading out, and the fade */
+const STAY_MS = 4000;
+const FADE_MS = 1000;
 
-/**
- * Icons by name. Placeholders until the drawn icons arrive: each value is the markup shown inside
- * the icon's badge (text now, an inline SVG later).
- */
-export const HISTORY_ICONS: Record<string, string> = {
-  up: "↑", upright: "↗", right: "→", downright: "↘", down: "↓", downleft: "↙", left: "←", upleft: "↖",
-  square: "□", cross: "✕", circle: "○", triangle: "△",
-  l1: "L1", r1: "R1", l2: "L2", r2: "R2", l3: "L3", r3: "R3",
-  share: "SH", options: "OP", ps: "PS", touchpad: "TP",
-};
-
-const ROWS = 8;
-const FRAME_MS = 1000 / 60;
-/** the left stick counts as a direction past this much of its travel */
-const STICK_DIRECTION = 0.5;
-
-/** The direction held (d-pad first, else the left stick), as one of 8 names, or null. */
-export function directionOf(s: LiveView): string | null {
-  const held = (name: string) => (s.buttons & (1 << BITS.indexOf(name))) !== 0;
-  let x = (held("right") ? 1 : 0) - (held("left") ? 1 : 0);
-  let y = (held("down") ? 1 : 0) - (held("up") ? 1 : 0);
-  if (!x && !y) {
-    const sx = s.sticks[0] / 32767;
-    const sy = s.sticks[1] / 32767;
-    if (Math.hypot(sx, sy) > STICK_DIRECTION) {
-      const sector = Math.round(Math.atan2(sy, sx) / (Math.PI / 4));
-      x = Math.round(Math.cos((sector * Math.PI) / 4));
-      y = Math.round(Math.sin((sector * Math.PI) / 4));
-    }
-  }
-  if (!x && !y) return null;
-  return (y < 0 ? "up" : y > 0 ? "down" : "") + (x > 0 ? "right" : x < 0 ? "left" : "");
+/** A stick's direction (4 ways, the stronger axis), or null near the center. */
+function stickDirection(x: number, y: number): string | null {
+  if (Math.hypot(x, y) < STICK_PUSH) return null;
+  return Math.abs(x) > Math.abs(y) ? (x > 0 ? "right" : "left") : y > 0 ? "down" : "up";
 }
 
-/** The buttons held, in display order (directions apart). */
-export function buttonsOf(s: LiveView): string[] {
-  return ORDER.filter((name) => (s.buttons & (1 << BITS.indexOf(name))) !== 0);
+/** Everything held now, by icon name: buttons, d-pad directions and stick directions. */
+export function heldInputs(s: LiveView): Set<string> {
+  const held = new Set(BITS.filter((_, bit) => (s.buttons & (1 << bit)) !== 0));
+  const left = stickDirection(s.sticks[0] / 32767, s.sticks[1] / 32767);
+  const right = stickDirection(s.sticks[2] / 32767, s.sticks[3] / 32767);
+  if (left) held.add(`ls-${left}`);
+  if (right) held.add(`rs-${right}`);
+  return held;
 }
 
-interface Entry {
-  inputs: string[];
-  start: number;
-  end: number | null;
+interface Item {
+  name: string;
+  at: number;
+  el: HTMLElement;
 }
 
 export function createHistory() {
-  const list = el("ol", { className: "history" });
-  const entries: Entry[] = [];
-  let held = "";
-  const frames = (e: Entry, now: number) => {
-    const n = Math.max(1, Math.round(((e.end ?? now) - e.start) / FRAME_MS));
-    return n > 99 ? "99+" : String(n);
+  const strip = el("div", { className: "history" });
+  const items: Item[] = []; // newest first
+  let held = new Set<string>();
+
+  /** size and opacity by age (position) and time */
+  const place = (now: number) => {
+    items.forEach((item, k) => {
+      const lit = held.has(item.name) && k === items.findIndex((i) => i.name === item.name);
+      // a held press stays; the time counts from its release
+      const age = lit ? 0 : now - item.at;
+      const fade = age < STAY_MS ? 1 : Math.max(0, 1 - (age - STAY_MS) / FADE_MS);
+      item.el.style.setProperty("--s", String(Math.max(0.45, 1 - k * 0.07)));
+      item.el.style.opacity = String(Math.max(0, 1 - k * 0.08) * fade);
+      item.el.classList.toggle("held", lit);
+    });
+    // gone from view: drop them
+    while (items.length && Number(items.at(-1)!.el.style.opacity) === 0) items.pop()!.el.remove();
   };
-  const badge = (name: string) => {
-    const b = el("span", { className: `in in-${name}` });
-    b.innerHTML = HISTORY_ICONS[name] ?? name;
-    return b;
-  };
-  const render = (now: number) =>
-    list.replaceChildren(
-      ...entries.map((e) => el("li", { className: e.end === null ? "held" : "" }, [el("b", { textContent: frames(e, now) }), ...e.inputs.map(badge)])),
-    );
 
   return {
-    el: list,
+    el: strip,
     update(s: LiveView | null, now: number) {
-      const dir = s ? directionOf(s) : null;
-      const inputs = [...(dir ? [dir] : []), ...(s ? buttonsOf(s) : [])];
-      const key = inputs.join(" ");
-      if (key !== held) {
-        held = key;
-        if (entries[0] && entries[0].end === null) entries[0].end = now;
-        if (inputs.length) entries.unshift({ inputs, start: now, end: null });
-        entries.length = Math.min(entries.length, ROWS);
-        render(now);
-      } else if (entries[0]?.end === null) {
-        // only the row being held keeps counting
-        list.firstElementChild!.firstElementChild!.textContent = frames(entries[0], now);
+      const next = s ? heldInputs(s) : new Set<string>();
+      for (const name of next) {
+        if (held.has(name)) continue;
+        // a new press enters on the right
+        const item = el("span", { className: `in in-${name}` });
+        item.innerHTML = HISTORY_ICONS[name] ?? name;
+        // icons keep their drawn size: sticks are taller than buttons
+        const svg = item.querySelector("svg");
+        if (svg) item.style.setProperty("--u", String(svg.viewBox.baseVal.height / 1.61));
+        strip.append(item);
+        items.unshift({ name, at: now, el: item });
+        if (items.length > ITEMS) items.pop()!.el.remove();
       }
+      for (const name of held) {
+        if (!next.has(name)) {
+          const item = items.find((i) => i.name === name);
+          if (item) item.at = now; // released: start its time
+        }
+      }
+      held = next;
+      place(now);
     },
   };
 }

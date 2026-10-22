@@ -1,5 +1,5 @@
 /** The selected controller: header and actions, the QR code while waiting, then cards (latency,
- * input history, skin; phone, connection, address), the lightbar split and the live view with the turning phone. */
+ * skin, address), the lightbar split, the input history and the live view with the turning phone. */
 
 import type { Bridge, ControllerView, LiveView, SkinView } from "./bridge.ts";
 import { el, html, icons, lightbarCss, shortUrl } from "./dom.ts";
@@ -76,12 +76,6 @@ export function renderDetails(ctx: DetailsContext, c: ControllerView) {
   const skinName = el("strong", { className: "state" });
   const skinAuthor = el("small");
 
-  // the phone, how long it has been connected, and where it connects
-  const model = el("strong", { className: "state" });
-  const browser = el("small");
-  const connectedFor = el("strong", { className: "state" });
-  const connectedSince = el("small");
-
   const card = (className: string, title: Parameters<I18n["t"]>[0], body: Node[]) => el("section", { className: `card ${className}` }, [el("h2", { textContent: t(title) }), ...body]);
 
   const pad = createPad();
@@ -95,14 +89,12 @@ export function renderDetails(ctx: DetailsContext, c: ControllerView) {
     root.append(
       el("div", { className: "cards" }, [
         card("latency", "card.latency", [el("div", { className: "row" }, [latencyNow, latencySummary]), spark]),
-        card("inputs", "card.inputs", [history.el]),
         card("skin", "card.skin", [skinImage, el("div", {}, [skinName, skinAuthor])]),
-        card("device", "card.device", [model, browser]),
-        card("connection", "card.connection", [connectedFor, connectedSince]),
         card("address", "card.address", [addresses("card-addr")]),
       ]),
       // the split glows with the controller's lightbar, like the bar on the controller
       el("div", { className: "split" }),
+      history.el,
       el("div", { className: "duo" }, [el("section", { className: "area live-area" }, [pad.el]), motion.el]),
     );
   }
@@ -120,19 +112,6 @@ export function renderDetails(ctx: DetailsContext, c: ControllerView) {
       else if (c.status === "reconnecting") meta.textContent = t("detail.reconnecting", { device, n: c.holdLeft ?? 0 });
       else meta.textContent = minutes < 1 ? t("detail.connectedNow", { device }) : t("detail.connectedFor", { device, n: minutes });
 
-      // "Galaxy S23 · Chrome": the model, then the browser
-      const [phone, ...rest] = device.split(" · ");
-      model.textContent = phone || "—";
-      browser.textContent = rest.join(" · ");
-      if (c.status === "reconnecting") {
-        connectedFor.textContent = t("connection.reconnecting");
-        connectedSince.textContent = t("connection.left", { n: c.holdLeft ?? 0 });
-      } else {
-        connectedFor.textContent = minutes < 1 ? t("connection.now") : minutes < 60 ? t("connection.minutes", { n: minutes }) : t("connection.hours", { h: Math.floor(minutes / 60), m: minutes % 60 });
-        connectedSince.textContent = c.connectedSince
-          ? t("connection.since", { time: new Date(c.connectedSince).toLocaleTimeString(ctx.i18n().locale === "pt" ? "pt-BR" : "en-US", { hour: "2-digit", minute: "2-digit" }) })
-          : "";
-      }
       root.parentElement?.style.setProperty("--lightbar", lightbarCss(c.lightbar, c.number));
       padChip.replaceChildren(html(icons.gamepad), t(c.pad === "plugged" ? "pad.plugged" : "pad.missing"));
       padChip.title = c.padError ?? "";

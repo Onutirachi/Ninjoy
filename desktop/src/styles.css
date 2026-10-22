@@ -732,7 +732,7 @@ button.chip:hover {
 /* the cards of a controller in use: latency, vibration and skin */
 .cards {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr);
   gap: clamp(12px, 1.4cqw, 24px);
   padding-top: clamp(4px, 1.5cqh, 24px);
 }
@@ -800,60 +800,54 @@ button.chip:hover {
   stroke: none;
 }
 
-/* the input history: frames held, then the direction and buttons */
-.card.inputs {
-  overflow: hidden;
-}
-
+/* the input history under the split: the newest press on the right, big; older ones smaller and
+   fainter to the left */
 .history {
+  /* a button's height; stick icons are taller */
+  --h: clamp(26px, 4cqh, 46px);
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  overflow: hidden;
-}
-
-.history li {
-  display: flex;
+  flex: none;
   align-items: center;
-  gap: 5px;
-  color: var(--text-faint);
-  font: 700 12px / 1 var(--ff-display);
-}
-
-.history li:not(:first-child) {
-  opacity: 0.75;
-}
-
-.history b {
-  width: 3ch;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.history .held b {
-  color: var(--accent);
+  justify-content: flex-end;
+  gap: clamp(2px, 0.4cqw, 8px);
+  width: min(70%, 640px);
+  height: calc(var(--h) * 1.8);
+  margin: 0 auto;
+  overflow: hidden;
 }
 
 .history .in {
-  display: inline-grid;
-  place-items: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 4px;
-  border-radius: 6px;
-  background: var(--pad);
-  color: var(--text);
-  font: 700 11px var(--ff-display);
+  flex: none;
+  height: calc(var(--h) * var(--s, 1) * var(--u, 1));
+  transition: width 0.12s ease, height 0.12s ease, opacity 0.2s linear;
 }
 
-.history .in svg {
-  width: 16px;
-  height: 16px;
+.history svg {
+  display: block;
+  width: auto;
+  height: 100%;
+}
+
+.history .b {
+  fill: #1f4a6b;
+}
+
+.history .t {
+  fill: #266697;
+}
+
+.history .l {
+  fill: #c7d5e0;
+}
+
+/* still held: lit like a pressed control on the phone */
+.history .held .b,
+.history .held .t {
+  fill: #227dc3;
+}
+
+.history .held .l {
+  fill: #fff;
 }
 
 /* the skin card shows the preview as on the Skins page, the name under it */
@@ -886,7 +880,7 @@ button.chip:hover {
 /* the split between the cards and the live view glows with the controller's lightbar */
 .split {
   flex: none;
-  width: min(60%, 520px);
+  width: min(70%, 640px);
   height: 8px;
   margin: 0 auto;
   border-radius: 4px;
