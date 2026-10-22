@@ -826,6 +826,10 @@ button.chip:hover {
     opacity 0.15s ease-in-out;
 }
 
+.history.resizing .in {
+  transition: none;
+}
+
 .history svg {
   display: block;
   width: calc(7cqw * var(--a, 1.55));

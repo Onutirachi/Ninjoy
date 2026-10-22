@@ -75,6 +75,16 @@ export function createHistory() {
     });
   };
 
+  // places are in pixels: a resized or maximized window places everything again, at once
+  let lastWidth = 0;
+  new ResizeObserver(() => {
+    if (strip.clientWidth === lastWidth) return;
+    lastWidth = strip.clientWidth;
+    strip.classList.add("resizing");
+    place();
+    requestAnimationFrame(() => strip.classList.remove("resizing"));
+  }).observe(strip);
+
   return {
     el: strip,
     update(s: LiveView | null, now: number) {

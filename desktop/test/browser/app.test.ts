@@ -237,6 +237,14 @@ describe("desktop window", () => {
     const scales = () => [...root.querySelectorAll<HTMLElement>(".history .in")].map((i) => Number(/scale\(([\d.]+)\)/.exec(i.style.transform)![1]));
     expect(scales()).toEqual([...scales()].sort((a, b) => a - b)); // older ones smaller
     expect(scales().at(-1)).toBe(1);
+    // a resized window places them again for the new width
+    const second = () => root.querySelectorAll<HTMLElement>(".history .in")[3]!.style.transform;
+    root.style.width = "1600px";
+    await new Promise((r) => setTimeout(r, 50));
+    const wide = second();
+    root.style.width = "700px";
+    await new Promise((r) => setTimeout(r, 50));
+    expect(second()).not.toBe(wide);
     // idle for a long time: the history stays
     bridge.liveState = live(0);
     await app.frame(NOW + 60000);
