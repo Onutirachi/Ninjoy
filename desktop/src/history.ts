@@ -1,6 +1,6 @@
 /**
  * The input history, like a fighting game's training mode: every press (a button, a d-pad
- * direction, a stick pushed one way) fades in on the right, big; older ones slide left, smaller
+ * direction, a stick pushed one way) slides in on the right, big; older ones slide left, smaller
  * and fainter, centered on one line. Under each, how many frames (60 per second) it was held; a press still held stays lit
  * and keeps counting.
  */
@@ -92,9 +92,15 @@ export function createHistory() {
       held = next;
       place(now);
       if (before) {
+        const slide = { duration: 160, easing: "ease-out" };
         for (const [item, left] of before) {
           const dx = left - item.el.getBoundingClientRect().left;
-          if (dx && item.el.isConnected) item.el.animate?.([{ transform: `translateX(${dx}px)` }, { transform: "none" }], { duration: 160, easing: "ease-out" });
+          if (dx && item.el.isConnected) item.el.animate?.([{ transform: `translateX(${dx}px)` }, { transform: "none" }], slide);
+        }
+        // the new presses slide in from the right with the others, fading in
+        for (const item of items.slice(0, added.length)) {
+          const width = item.el.getBoundingClientRect().width;
+          item.el.animate?.([{ transform: `translateX(${width}px)`, opacity: 0 }, { transform: "none" }], slide);
         }
       }
     },
