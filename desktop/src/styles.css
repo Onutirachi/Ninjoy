@@ -801,31 +801,60 @@ button.chip:hover {
 }
 
 /* the input history under the split: the newest press on the right, big; older ones smaller and
-   fainter to the left */
+   fainter to the left, each with the frames it was held under it */
 .history {
   /* a button's height; stick icons are taller */
-  --h: clamp(26px, 4cqh, 46px);
+  --h: clamp(34px, 5.2cqh, 58px);
   display: flex;
   flex: none;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
-  gap: clamp(2px, 0.4cqw, 8px);
+  gap: clamp(4px, 0.5cqw, 10px);
   width: min(70%, 640px);
-  height: calc(var(--h) * 1.8);
+  height: calc(var(--h) * 1.75 + 22px);
   margin: 0 auto;
   overflow: hidden;
 }
 
 .history .in {
+  display: flex;
   flex: none;
-  height: calc(var(--h) * var(--s, 1) * var(--u, 1));
-  transition: width 0.12s ease, height 0.12s ease, opacity 0.2s linear;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.2s linear;
+}
+
+/* every icon sits centered in a box tall enough for a stick icon, so the frame counts line up */
+.history .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--h) * var(--s, 1) * var(--w, 1.56));
+  height: calc(var(--h) * var(--s, 1) * 1.75);
+  transition: width 0.15s ease-out, height 0.15s ease-out;
+}
+
+/* a new press grows in, so the others slide left */
+.history .entering .icon {
+  width: 0;
 }
 
 .history svg {
   display: block;
-  width: auto;
-  height: 100%;
+  flex: none;
+  width: 100%;
+  height: calc(100% * var(--u, 1) / 1.75);
+}
+
+.history small {
+  color: var(--text-faint);
+  font: 700 calc(11px + 3px * var(--s, 1)) / 1 var(--ff-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.history .held small {
+  color: var(--accent);
 }
 
 .history .b {

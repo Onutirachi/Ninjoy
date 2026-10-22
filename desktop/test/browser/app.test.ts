@@ -210,12 +210,13 @@ describe("desktop window", () => {
     expect(root.querySelector(".waiting-view .qr")).not.toBeNull();
   });
 
-  it("shows each press in the input history, newest on the right, fading out after a while", async () => {
+  it("shows each press in the input history, newest on the right, with the frames it was held", async () => {
     await start((b) => {
       b.snap.controllers = [controller(1, { status: "connected", device: "Pixel · Chrome" })];
     });
     const live = (buttons: number, sticks: [number, number, number, number] = [0, 0, 0, 0]) => ({ buttons, sticks, triggers: [0, 0] as [number, number], gyro: false, touches: [], rate: null, accel: null });
-    const shown = () => [...root.querySelectorAll<HTMLElement>(".history .in")].map((i) => i.className.replace("in in-", "").replace(" held", "*"));
+    const shown = () =>
+      [...root.querySelectorAll<HTMLElement>(".history .in")].map((i) => `${i.className.replace(/in in-| entering/g, "").replace(" held", "*")} ${i.querySelector("small")!.textContent}`);
     const steps: [number, ReturnType<typeof live>][] = [
       [0, live(1 << 5)], // d-pad down
       [100, live((1 << 5) | (1 << 7))], // + right: only the new press enters
@@ -227,17 +228,17 @@ describe("desktop window", () => {
       bridge.liveState = s;
       await app.frame(NOW + t);
     }
-    expect(shown()).toEqual(["down", "right", "square", "ls-up"]);
+    expect(shown()).toEqual(["down 9", "right 9", "square 6", "ls-up 3"]);
     bridge.liveState = live(1 << 0);
     await app.frame(NOW + 400);
-    expect(shown()).toEqual(["down", "right", "square", "ls-up", "cross*"]); // held: lit
+    await app.frame(NOW + 500);
+    expect(shown().at(-1)).toBe("cross* 6"); // held: lit and still counting
     const sizes = () => [...root.querySelectorAll<HTMLElement>(".history .in")].map((i) => Number(i.style.getPropertyValue("--s")));
     expect(sizes()).toEqual([...sizes()].sort((a, b) => a - b)); // older ones smaller
-    // released, then gone a few seconds later
+    // idle for a long time: the history stays
     bridge.liveState = live(0);
-    await app.frame(NOW + 500);
-    await app.frame(NOW + 6000);
-    expect(shown()).toEqual([]);
+    await app.frame(NOW + 60000);
+    expect(shown()).toHaveLength(5);
   });
 
   it("refreshes when the app says something changed", async () => {
