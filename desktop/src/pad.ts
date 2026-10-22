@@ -79,7 +79,7 @@ export function createMotion(preview: string, offText: () => string) {
   const image = new Image();
   image.src = preview;
   const values = el("small", { className: "gyro-vals" });
-  const root = el("section", { className: "area motion" }, [canvas, values]);
+  const root = el("section", { className: "area motion off" }, [canvas, values]);
   let yaw = 0;
   let pitch = 0;
   let roll = 0;
@@ -90,16 +90,22 @@ export function createMotion(preview: string, offText: () => string) {
   new ResizeObserver(draw).observe(canvas);
   return {
     el: root,
+    /** the skin shown on the phone's screen */
+    setPreview(url: string) {
+      if (image.src !== new URL(url, location.href).href) image.src = url;
+    },
     update(s: LiveView | null, now: number) {
       const dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
       last = now;
       if (!s?.gyro || !s.rate || !s.accel) {
         yaw = 0;
         angles = [-12, 0, 0];
+        root.classList.add("off");
         draw();
         values.textContent = offText();
         return;
       }
+      root.classList.remove("off");
       const [ax, ay, az] = s.accel;
       // tilt toward or away (around the screen's width) and sideways; the sideways angle uses
       // the whole remaining gravity, so it stays steady with the screen facing the ceiling
