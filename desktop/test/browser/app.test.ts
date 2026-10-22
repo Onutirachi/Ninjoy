@@ -216,7 +216,7 @@ describe("desktop window", () => {
     });
     const live = (buttons: number, sticks: [number, number, number, number] = [0, 0, 0, 0]) => ({ buttons, sticks, triggers: [0, 0] as [number, number], gyro: false, touches: [], rate: null, accel: null });
     const shown = () =>
-      [...root.querySelectorAll<HTMLElement>(".history .in")].map((i) => `${i.className.replace(/in in-| entering/g, "").replace(" held", "*")} ${i.querySelector("small")!.textContent}`);
+      [...root.querySelectorAll<HTMLElement>(".history .in")].map((i) => `${i.className.replace("in in-", "").replace(" held", "*")} ${i.querySelector("small")!.textContent}`);
     const steps: [number, ReturnType<typeof live>][] = [
       [0, live(1 << 5)], // d-pad down
       [100, live((1 << 5) | (1 << 7))], // + right: only the new press enters
@@ -233,8 +233,10 @@ describe("desktop window", () => {
     await app.frame(NOW + 400);
     await app.frame(NOW + 500);
     expect(shown().at(-1)).toBe("cross* 6"); // held: lit and still counting
-    const sizes = () => [...root.querySelectorAll<HTMLElement>(".history .in")].map((i) => Number(i.style.getPropertyValue("--s")));
-    expect(sizes()).toEqual([...sizes()].sort((a, b) => a - b)); // older ones smaller
+    await new Promise((r) => setTimeout(r, 50)); // placed on the next frames
+    const scales = () => [...root.querySelectorAll<HTMLElement>(".history .in")].map((i) => Number(/scale\(([\d.]+)\)/.exec(i.style.transform)![1]));
+    expect(scales()).toEqual([...scales()].sort((a, b) => a - b)); // older ones smaller
+    expect(scales().at(-1)).toBe(1);
     // idle for a long time: the history stays
     bridge.liveState = live(0);
     await app.frame(NOW + 60000);

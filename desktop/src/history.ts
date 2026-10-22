@@ -1,8 +1,9 @@
 /**
- * The input history, like a fighting game's training mode: every press (a button, a d-pad
- * direction, a stick pushed one way) slides in on the right, big; older ones slide left, smaller
- * and fainter, centered on one line. Under each, how many frames (60 per second) it was held; a press still held stays lit
- * and keeps counting.
+ * The input history, like a fighting game's training mode (after the maintainer's prototype,
+ * drafts/animationhistory): every press (a button, a d-pad direction, a stick pushed one way)
+ * fades in on the right; older ones move left, smaller around their centers (a cone) and fainter,
+ * until the tenth fades out. Under each, how many frames (60 per second) it was held; a press still
+ * held stays lit and keeps counting.
  */
 
 import type { LiveView } from "./bridge.ts";
@@ -12,13 +13,17 @@ import { HISTORY_ICONS } from "./history-icons.ts";
 /** DualShock 4 button bits, in the session's order (see pad.ts). */
 const BITS = ["cross", "circle", "square", "triangle", "up", "down", "left", "right", "l1", "r1", "l2", "r2", "l3", "r3", "share", "options", "ps", "touchpad"];
 
-const ITEMS = 12;
-const SLIDE_MS = 220;
+const ITEMS = 10;
+/** the oldest press's size */
+const MIN_SCALE = 0.5;
+/** the gap after the newest press, as a share of the strip's width (smaller ones get less) */
+const GAP = 0.016;
+/** how far a new press starts to the right, as a share of the strip's width */
+const ENTER = 0.025;
+const LEAVE_MS = 300;
 const FRAME_MS = 1000 / 60;
 /** a stick counts as pushed past this much of its travel */
 const STICK_PUSH = 0.5;
-/** a button icon's height in drawing units (stick icons are taller) */
-const BUTTON_HEIGHT = 1.61;
 
 /** A stick's direction (4 ways, the stronger axis), or null near the center. */
 function stickDirection(x: number, y: number): string | null {
@@ -55,14 +60,18 @@ export function createHistory() {
     return n > 99 ? "99+" : String(n);
   };
 
-  /** older presses move left, smaller and fainter; the held ones stay lit and keep counting */
-  const place = (now: number) => {
+  /** newest on the right; each older one left of it, smaller around its center and fainter */
+  const place = () => {
+    const width = strip.clientWidth;
+    let offset = 0;
     items.forEach((item, k) => {
-      item.el.style.setProperty("--s", String(Math.max(0.5, 1 - k * 0.06)));
-      item.el.style.opacity = String(Math.max(0.15, 1 - k * 0.08));
-      item.el.classList.toggle("held", item.end === null);
-      const count = frames(item, now);
-      if (item.frames.textContent !== count) item.frames.textContent = count;
+      const scale = 1 - (k / (ITEMS - 1)) * (1 - MIN_SCALE);
+      const w = item.el.offsetWidth;
+      // it shrinks around its center: move it right by what it loses on that side, so the gap
+      // to the newer one stays even whatever the icons' widths
+      item.el.style.transform = `translateX(${-offset + (w * (1 - scale)) / 2}px) scale(${scale})`;
+      item.el.style.opacity = String(Math.max(0, 1 - k / (ITEMS - 1)));
+      offset += (w + GAP * width) * scale;
     });
   };
 
@@ -72,46 +81,30 @@ export function createHistory() {
       const next = s ? heldInputs(s) : new Set<string>();
       for (const item of items) if (item.end === null && !next.has(item.name)) item.end = now;
       const added = [...next].filter((name) => !held.has(name));
-      // where the shown presses are now, to slide them to their new places
-      const before = added.length ? new Map(items.map((i) => [i, i.el.getBoundingClientRect().left])) : null;
-      const leaving: Item[] = [];
       for (const name of added) {
-        // a new press fades in on the right, pushing the others left
-        const icon = el("span", { className: "icon" });
-        icon.innerHTML = HISTORY_ICONS[name] ?? name;
-        const box = icon.querySelector("svg")?.viewBox.baseVal;
         const label = el("small");
-        const item = el("span", { className: `in in-${name}` }, [icon, label]);
-        // icons keep their drawn size: sticks are taller than buttons
-        if (box) {
-          item.style.setProperty("--u", String(box.height / BUTTON_HEIGHT));
-          item.style.setProperty("--w", String(box.width / BUTTON_HEIGHT));
-        }
+        const item = el("span", { className: `in in-${name}` }, [label]);
+        item.insertAdjacentHTML("afterbegin", HISTORY_ICONS[name] ?? name);
+        const box = item.querySelector("svg")?.viewBox.baseVal;
+        if (box?.height) item.style.setProperty("--a", String(box.width / box.height));
+        // a new press starts a little to the right, transparent, and moves in with the others
+        item.style.transform = `translateX(${ENTER * strip.clientWidth}px)`;
+        item.style.opacity = "0";
         strip.append(item);
         items.unshift({ name, start: now, end: null, el: item, frames: label });
-        if (items.length > ITEMS) leaving.push(items.pop()!);
+        if (items.length > ITEMS) {
+          const gone = items.pop()!;
+          gone.el.style.opacity = "0";
+          setTimeout(() => gone.el.remove(), LEAVE_MS);
+        }
       }
+      if (added.length) requestAnimationFrame(() => requestAnimationFrame(place));
       held = next;
-      place(now);
-      if (before) {
-        const slide = { duration: SLIDE_MS, easing: "ease-out" };
-        for (const [item, left] of before) {
-          if (!items.includes(item)) continue;
-          const dx = left - item.el.getBoundingClientRect().left;
-          if (dx) item.el.animate?.([{ transform: `translateX(${dx}px)` }, { transform: "none" }], slide);
-        }
-        // the new presses slide in from close by on the right, fading in, with the others
-        for (const item of items.slice(0, added.length)) {
-          const width = item.el.getBoundingClientRect().width;
-          item.el.animate?.([{ transform: `translateX(${width * 0.4}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], slide);
-        }
-      }
-      // the oldest slide out to the left, fading out, then go
-      for (const item of leaving) {
-        const { width } = item.el.getBoundingClientRect();
-        const out = item.el.animate?.([{ opacity: item.el.style.opacity || "1" }, { transform: `translateX(${-width}px)`, opacity: 0 }], { duration: SLIDE_MS, easing: "ease-in", fill: "forwards" });
-        if (out) out.onfinish = () => item.el.remove();
-        else item.el.remove();
+      // the held ones stay lit and keep counting
+      for (const item of items) {
+        item.el.classList.toggle("held", item.end === null);
+        const count = frames(item, now);
+        if (item.frames.textContent !== count) item.frames.textContent = count;
       }
     },
   };

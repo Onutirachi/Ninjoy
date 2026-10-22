@@ -800,55 +800,41 @@ button.chip:hover {
   stroke: none;
 }
 
-/* the input history under the split, as wide as it: the newest press on the right, big; older
-   ones smaller and fainter to the left, centered on one line (a cone), each with the frames it was
-   held under it */
+/* the input history under the split, as wide as it (the maintainer's prototype: a 1000 px track,
+   70 px icons) */
 .history {
   container-type: inline-size;
-  display: flex;
+  position: relative;
   flex: none;
-  align-items: center;
-  justify-content: flex-end;
   width: min(70%, 640px);
-  aspect-ratio: 7.2;
+  aspect-ratio: 1000 / 100;
   margin: 0 auto;
   overflow: hidden;
-  /* the oldest press fades into the left edge instead of being cut */
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%);
-  mask-image: linear-gradient(to right, transparent, #000 6%);
 }
 
 .history .in {
-  /* a button's height, so twelve presses fill the strip; stick icons are taller */
-  --h: calc(100cqw / 15.6);
+  position: absolute;
+  top: 0;
+  right: 1.5cqw;
   display: flex;
-  flex: none;
   flex-direction: column;
   align-items: center;
-  gap: calc(var(--h) * 0.08);
-  margin-left: calc(var(--h) * 0.14);
-}
-
-/* every icon sits centered in a box tall enough for a stick icon */
-.history .icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(var(--h) * var(--s, 1) * var(--w, 1.56));
-  height: calc(var(--h) * var(--s, 1) * 1.75);
-  transition: width 0.16s ease-out, height 0.16s ease-out;
+  gap: 0.4cqw;
+  transform-origin: center 3.5cqw;
+  transition:
+    transform 0.15s ease-in-out,
+    opacity 0.15s ease-in-out;
 }
 
 .history svg {
   display: block;
-  flex: none;
-  width: 100%;
-  height: calc(100% * var(--u, 1) / 1.75);
+  width: calc(7cqw * var(--a, 1.55));
+  height: 7cqw;
 }
 
 .history small {
   color: var(--text-faint);
-  font: 700 calc(var(--h) * var(--s, 1) * 0.3) / 1 var(--ff-display);
+  font: 700 1.6cqw / 1 var(--ff-display);
   font-variant-numeric: tabular-nums;
 }
 
