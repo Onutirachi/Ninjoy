@@ -13,6 +13,7 @@ import { HISTORY_ICONS } from "./history-icons.ts";
 const BITS = ["cross", "circle", "square", "triangle", "up", "down", "left", "right", "l1", "r1", "l2", "r2", "l3", "r3", "share", "options", "ps", "touchpad"];
 
 const ITEMS = 12;
+const SLIDE_MS = 220;
 const FRAME_MS = 1000 / 60;
 /** a stick counts as pushed past this much of its travel */
 const STICK_PUSH = 0.5;
@@ -73,6 +74,7 @@ export function createHistory() {
       const added = [...next].filter((name) => !held.has(name));
       // where the shown presses are now, to slide them to their new places
       const before = added.length ? new Map(items.map((i) => [i, i.el.getBoundingClientRect().left])) : null;
+      const leaving: Item[] = [];
       for (const name of added) {
         // a new press fades in on the right, pushing the others left
         const icon = el("span", { className: "icon" });
@@ -87,21 +89,29 @@ export function createHistory() {
         }
         strip.append(item);
         items.unshift({ name, start: now, end: null, el: item, frames: label });
-        if (items.length > ITEMS) items.pop()!.el.remove();
+        if (items.length > ITEMS) leaving.push(items.pop()!);
       }
       held = next;
       place(now);
       if (before) {
-        const slide = { duration: 160, easing: "ease-out" };
+        const slide = { duration: SLIDE_MS, easing: "ease-out" };
         for (const [item, left] of before) {
+          if (!items.includes(item)) continue;
           const dx = left - item.el.getBoundingClientRect().left;
-          if (dx && item.el.isConnected) item.el.animate?.([{ transform: `translateX(${dx}px)` }, { transform: "none" }], slide);
+          if (dx) item.el.animate?.([{ transform: `translateX(${dx}px)` }, { transform: "none" }], slide);
         }
-        // the new presses slide in from the right with the others, fading in
+        // the new presses slide in from close by on the right, fading in, with the others
         for (const item of items.slice(0, added.length)) {
           const width = item.el.getBoundingClientRect().width;
-          item.el.animate?.([{ transform: `translateX(${width}px)`, opacity: 0 }, { transform: "none" }], slide);
+          item.el.animate?.([{ transform: `translateX(${width * 0.4}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], slide);
         }
+      }
+      // the oldest slide out to the left, fading out, then go
+      for (const item of leaving) {
+        const { width } = item.el.getBoundingClientRect();
+        const out = item.el.animate?.([{ opacity: item.el.style.opacity || "1" }, { transform: `translateX(${-width}px)`, opacity: 0 }], { duration: SLIDE_MS, easing: "ease-in", fill: "forwards" });
+        if (out) out.onfinish = () => item.el.remove();
+        else item.el.remove();
       }
     },
   };
