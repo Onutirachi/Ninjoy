@@ -4,30 +4,42 @@
 
 ## State
 
-Specification written and clarified; no plan yet. The clarification changes are not committed
-yet (waiting for the maintainer's validation).
+Spec clarified (committed and pushed as `fcf715f`). Plan written: [plan.md](plan.md),
+[research.md](research.md), [data-model.md](data-model.md), [contracts/](contracts/),
+[quickstart.md](quickstart.md). The plan and the spec changes made during planning are not
+committed yet: they wait for the maintainer's review.
 
 ## Done in the last session
 
-- Ran `/speckit-clarify` (6 questions, see the spec's Clarifications section).
+- `/speckit-clarify`: 6 questions (see the spec's Clarifications section).
+- `/speckit-plan`. During planning:
+  - the maintainer chose the system-wide port permission (sysctl);
+  - the spec gained the "phones after a port change" edge case and the open hold in FR-010.
 
 ## Decisions
 
-- The setup is one button for everything, approved by the maintainer.
-- Controller permission goes to whoever is logged in at the PC's local session (no logout needed).
-- The firewall opening accepts only private local network ranges, for the ports and mDNS.
-- No undo in the app: the README documents how to remove each item; packages handle it later.
-- A port change restarts only the phone server, right away (no "Restart now" button), with a
-  short notice that connected phones have to reconnect. Virtual controllers stay connected for
-  games. Phones rejoin by scanning their controller's QR code again, with no follow mechanism
-  (this replaces the old FR-010 question).
-- The Linux items are checked at start, after a setup run and each time the status panel opens.
+- One button for everything (pkexec, one password). The script it runs is also what the panel
+  shows as manual commands.
+- Controller permission: a udev `uaccess` rule (whoever is at the local session) plus `uhid` in
+  modules-load.
+- Firewall: ufw or firewalld, open only to the ranges `net::is_lan` accepts, for the ports and
+  mDNS. ufw rules cannot be read without root, so `linux-setup.json` records them.
+- Ports below 1024: `net.ipv4.ip_unprivileged_port_start` in `/etc/sysctl.d/99-ninjoy.conf`.
+- A port change restarts only the phone servers, right away, with a notice. The slots and pads
+  stay. Controllers that had a phone become an "open hold" for any phone, because a new port is
+  a new origin (new device id, and the player's settings on the phone start fresh).
+- No undo in the app; the README documents it.
+- The checks run at start, after Configure and each time the status panel opens.
 
 ## Open questions
 
-- None blocking. Ideas for later specs: Steam Cloud sync for the Steam build (skins and
-  preferences only; ports, certificate and the Linux setup stay per machine).
+- None blocking. Ideas for later specs:
+  - "Player profiles", next after this spec: named profiles on the phone, exported and imported
+    as a file. Details in `drafts/HANDOFF.md`. When it lands, the port-change notice recommends
+    exporting, and the page is told the host moved.
+  - Steam Cloud sync for the Steam build (skins and preferences only).
 
 ## Next step
 
-Commit the clarified spec after the maintainer validates it, then run `/speckit-plan`.
+Maintainer reviews the plan → commit (the spec changes amend the spec commit; the plan is its
+own commit) → `/speckit-tasks`.
