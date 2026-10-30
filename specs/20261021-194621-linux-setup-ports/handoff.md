@@ -4,10 +4,7 @@
 
 ## State
 
-Spec clarified (committed and pushed as `fcf715f`). Plan written: [plan.md](plan.md),
-[research.md](research.md), [data-model.md](data-model.md), [contracts/](contracts/),
-[quickstart.md](quickstart.md). The plan and the spec changes made during planning are not
-committed yet: they wait for the maintainer's review.
+Spec, plan and [tasks.md](tasks.md) (30 tasks) approved, committed and pushed. No code yet.
 
 ## Done in the last session
 
@@ -41,5 +38,5 @@ committed yet: they wait for the maintainer's review.
 
 ## Next step
 
-Maintainer reviews the plan → commit (the spec changes amend the spec commit; the plan is its
-own commit) → `/speckit-tasks`.
+Optionally `/speckit-analyze`. Then, after the maintainer's explicit approval to write code,
+`/speckit-implement` starting with Phase 2 (T001–T010).
