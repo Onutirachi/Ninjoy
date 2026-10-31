@@ -20,6 +20,7 @@ use crate::store::{Settings, Store};
 pub struct CoreConfig {
     /// where `app.json` (and the session's certificate, unless set) live
     pub data_dir: PathBuf,
+    /// its port lists are what the Automatic ports setting tries
     pub session: SessionConfig,
     pub backend: Result<Box<dyn Backend>, Unavailable>,
 }
@@ -260,6 +261,9 @@ impl AppCore {
             .clone();
         let _ = std::fs::create_dir_all(skins_dir);
         session_config.grace = Duration::from_secs(settings.hold_seconds.into());
+        // the configured lists are what Automatic tries
+        session_config.secure_ports = settings.ports.secure_ports(&session_config.secure_ports);
+        session_config.plain_ports = settings.ports.plain_ports(&session_config.plain_ports);
 
         let hub = DeviceHub::new(config.backend);
         let session = Session::start(session_config, Arc::new(Sink { hub: hub.clone() }))
@@ -416,7 +420,7 @@ impl AppCore {
                 let (status, hold_left) = match s.status {
                     SlotStatus::Waiting => ("waiting", None),
                     SlotStatus::Connected => ("connected", None),
-                    SlotStatus::Held { until } => (
+                    SlotStatus::Held { until, .. } => (
                         "reconnecting",
                         Some(until.saturating_duration_since(now).as_secs()),
                     ),

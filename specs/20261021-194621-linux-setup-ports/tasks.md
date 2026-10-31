@@ -12,37 +12,38 @@ No new crate, dependency or CI step.
 
 Port setting, server restart and the setup module's pure parts. US1 and US3 both need them.
 
-- [ ] T001 [P] Tests in `host/app-core/src/store.rs` (unit). `PortsSetting`:
+- [X] T001 [P] Tests in `host/app-core/src/store.rs` (unit). `PortsSetting`:
   - an `app.json` without `ports` loads as `{ mode: "automatic", secure: 443, plain: 80 }`;
   - `validate()` refuses the same port for both (`PortsError::Same`) and a port outside 1–65535
     (`PortsError::OutOfRange`; 0 is out of range);
-  - port lists: Automatic → `[443, 8443]` / `[80, 8080]`; Custom → `[secure]` / `[plain]`;
+  - port lists: Automatic → the session's configured lists (`[443, 8443]` / `[80, 8080]` by
+    default, port 0 in tests); Custom → `[secure]` / `[plain]`;
   - `wanted_low_port()`: Automatic → `Some(80)`; Custom 9443/9080 → `None`; Custom 443/9080 →
     `Some(443)`.
-- [ ] T002 Implement `PortsSetting` (`mode`: `"automatic"` | `"custom"`, `secure`, `plain`;
+- [X] T002 Implement `PortsSetting` (`mode`: `"automatic"` | `"custom"`, `secure`, `plain`;
   serde camelCase, `#[serde(default)]`) as `Settings.ports` in `host/app-core/src/store.rs`.
   Make `AppCore::start` build `SessionConfig.secure_ports`/`plain_ports` from it in
   `host/app-core/src/core.rs`.
-- [ ] T003 [P] Tests in `host/session/src/slots.rs` (unit), for `open_all_held(until)`:
+- [X] T003 [P] Tests in `host/session/src/slots.rs` (unit), for `open_all_held(until)`:
   - it turns every Connected or Held slot into `Held { until, open: true }` and clears its
     connection;
   - Waiting slots are unchanged;
   - a later `leave(number, old_conn, …)` returns false;
   - `join` gives an open-held slot to any device (`resumed: false`);
   - an open hold expires like a normal hold.
-- [ ] T004 Implement the open hold in `host/session/src/slots.rs`:
+- [X] T004 Implement the open hold in `host/session/src/slots.rs`:
   - add `open: bool` to `SlotStatus::Held`, and update every match (`host/session/src`,
     `host/app-core/src/core.rs`);
   - add `open_all_held`;
   - in `join`, accept any device for an open hold.
-- [ ] T005 [P] Tests in `host/session/tests/session.rs`, with `restart_servers`:
+- [X] T005 [P] Tests in `host/session/tests/session.rs`, with `restart_servers`:
   - with ports 0 (any free port): the new `addresses()` differ;
   - a connected test client is closed, and its slot becomes an open hold with the same number;
   - a second client with another device id joins that number;
   - no `Freed` event is emitted;
   - with a port held by another listener: the call returns `StartError::Bind` naming the port,
     and the session still answers on the previous ports.
-- [ ] T006 Implement `Session::restart_servers(secure_ports, plain_ports) -> Result<Addresses, StartError>`
+- [X] T006 Implement `Session::restart_servers(secure_ports, plain_ports) -> Result<Addresses, StartError>`
   in `host/session/src/lib.rs`:
   - move the tasks, the stop signal, the announcement and the addresses into a `Servers` value
     behind a mutex, and change `addresses()` to return a clone;
@@ -50,7 +51,7 @@ Port setting, server restart and the setup module's pure parts. US1 and US3 both
     close the connections with a new `Control::Close` (a normal close, not the kicked screen),
     stop, bind the new ports, fall back to the previous ports on error, announce again;
   - add `Control::Close` in `host/session/src/shared.rs` and `host/session/src/connection.rs`.
-- [ ] T007 [P] Tests in `host/app-core/src/setup.rs` (unit, all platforms), for the script and
+- [X] T007 [P] Tests in `host/app-core/src/setup.rs` (unit, all platforms), for the script and
   the manual commands built from a list of missing items, matching
   [contracts/system.md](contracts/system.md):
   - each block prints `ninjoy-item <id> ok|failed <reason>`;
@@ -61,28 +62,30 @@ Port setting, server restart and the setup module's pure parts. US1 and US3 both
   - the manual commands are the same commands prefixed with `sudo`;
   - result parsing: `ninjoy-item` lines map to `done`/`failed` with the reason, and an item
     without a line is `failed` ("no result").
-- [ ] T008 [P] Tests in `host/app-core/src/setup.rs` (unit, all platforms) for the parsers:
+- [X] T008 [P] Tests in `host/app-core/src/setup.rs` (unit, all platforms) for the parsers:
   - the effective persisted `net.ipv4.ip_unprivileged_port_start` from fake `sysctl.d` folders
     (the same file name in an earlier folder wins; name order; `/etc/sysctl.conf` last);
   - `ENABLED=yes` in `ufw.conf`;
   - `firewall-cmd --get-active-zones` output to zone names;
   - Ninjoy rich rules recognized in `--list-rich-rules` output;
   - `modules.builtin` containing `uhid`.
-- [ ] T009 In `host/devices/src/uhid.rs`, add:
+- [X] T009 In `host/devices/src/uhid_rules.rs` (compiled on every platform, because the setup
+  script is built and tested everywhere; `uhid.rs` is Linux-only), add:
+  - `MODULE = "uhid"` and `UDEV_RULE` (moved from `uhid.rs`);
   - `UDEV_RULE_FILE = "/etc/udev/rules.d/71-ninjoy-uhid.rules"`;
   - `MODULES_LOAD_FILE = "/etc/modules-load.d/ninjoy.conf"`;
   - `TOUCHPAD_RULE` (copy the exact text proven on the CachyOS test PC, see research R2);
-  - `TOUCHPAD_RULE_FILE = "/etc/udev/rules.d/72-ninjoy-touchpad.rules"`;
-  - `can_open() -> bool`.
+  - `TOUCHPAD_RULE_FILE = "/etc/udev/rules.d/72-ninjoy-touchpad.rules"`.
 
-  Update `open()`'s `Unavailable.fix` to point to the Configure button.
-- [ ] T010 Create `host/app-core/src/setup.rs` (exported from `lib.rs`):
+  In `host/devices/src/uhid.rs`, add `can_open() -> bool` and update `open()`'s
+  `Unavailable.fix` to point to the Configure button.
+- [X] T010 Create `host/app-core/src/setup.rs` (exported from `lib.rs`):
   - the types `SetupItem`, `SetupView`, `SetupRecord` as in [data-model.md](data-model.md),
     serde camelCase;
   - script and manual commands generation; result parsing; the parsers;
   - `linux-setup.json` read and write (`{ "ufw": { "secure", "plain" } | null }`).
 
-  Rule texts come from `ninjoy_devices::uhid` (T009).
+  Rule texts come from `ninjoy_devices::uhid_rules` (T009).
 
 **Checkpoint**: `cargo test --workspace` passes; ports and restart work from code.
 
@@ -132,11 +135,16 @@ appear without a restart.
   - when the hub has no backend and the controllers item is done, call `open_default()` and
     `hub.set_backend(…, &session slot numbers)`;
   - after Configure in Automatic mode, if low ports are now allowed and the plain port is not
-    80, call `restart_servers` with the Automatic lists;
+    80, call `restart_servers` with the Automatic lists. Put that decision in a pure function
+    (`should_move_to_low_ports(ports, low_allowed, running_plain) -> bool`);
   - `Snapshot.setup`: the last view on Linux (a first check at start), `None` on Windows;
   - `changed()` after each.
-- [ ] T016 [P] [US1] Tests in `host/app-core/tests/core.rs`: the snapshot has `setup: null` off
-  Linux (`#[cfg(not(target_os = "linux"))]`); the snapshot's `settings.ports` defaults.
+- [ ] T016 [P] [US1] Tests:
+  - in `host/app-core/tests/core.rs`: the snapshot has `setup: null` off Linux
+    (`#[cfg(not(target_os = "linux"))]`); the snapshot's `settings.ports` defaults;
+  - in `host/app-core/src/core.rs` (unit, all platforms), `should_move_to_low_ports`: Automatic
+    + low ports allowed + running on 8080 → true; already on 80 → false; low ports not allowed
+    → false; Custom → false (US3 scenario 3).
 - [ ] T017 [US1] Add the Tauri commands `setup_check` and `setup_configure` in
   `host/app/src/main.rs`. Run `setup_configure` on a blocking thread
   (`tauri::async_runtime::spawn_blocking`), because pkexec waits for the user.
@@ -145,8 +153,9 @@ appear without a restart.
   - opening the panel calls `setupCheck`;
   - missing items are listed with their explanations and one Configure button;
   - after Configure, done/failed are shown, with each failed item's reason and commands;
-  - `cancelled` shows the cancelled message;
-  - `noPrompt` shows all commands with a copy button;
+  - `cancelled` shows the cancelled message and all commands with a copy button (FR-007);
+  - `noPrompt` shows the no-prompt message and all commands with a copy button;
+  - with no firewall item, the firewall help is shown;
   - with every item done there is no Configure button and the panel says "ready";
   - `portsMoved` shows the moved notice;
   - on Windows (`setup: null`) the panel is as today.
@@ -167,8 +176,10 @@ appear without a restart.
 **Independent test**: quickstart "Linux PC", step 5, plus a real DS4/DualSense plugged in.
 
 - [ ] T020 [US2] On the CachyOS PC, check that `TOUCHPAD_RULE` (T009) matches the proven rule
-  with `udevadm info` on a Ninjoy touchpad event node. Check that a real DS4/DualSense touchpad
-  does not match (its `uniq` is not `02:4e:4a:*`). Adjust `host/devices/src/uhid.rs` if needed.
+  (`/etc/udev/rules.d/72-ninjoy-touchpad.rules` there; T009 used the contract's text because the
+  PC was off) and, with `udevadm info`, a Ninjoy touchpad event node. Check that a real
+  DS4/DualSense touchpad does not match (its `uniq` is not `02:4e:4a:*`). Adjust
+  `host/devices/src/uhid_rules.rs` if needed.
 - [ ] T021 [US2] Manual check after Configure: slide on the touchpad. The pointer does not move,
   and Steam Input still reports the touchpad (record the result in `handoff.md`).
 

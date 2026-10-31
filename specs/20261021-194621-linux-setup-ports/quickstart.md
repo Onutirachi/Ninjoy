@@ -18,8 +18,8 @@ Then build and start the app (README).
 
 1. **Missing items**: the chip warns. The panel lists controllers, touchpad, ports and firewall
    (if ufw is enabled), each with an explanation and one Configure button.
-2. **Cancel**: press Configure and dismiss the prompt. The panel says it was cancelled, and the
-   items are still missing.
+2. **Cancel**: press Configure and dismiss the prompt. The panel says it was cancelled, shows the
+   terminal commands with a copy button, and the items are still missing.
 3. **Configure**: press it and type the password once.
    - Every item turns done.
    - The chip turns ok.

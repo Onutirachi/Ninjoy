@@ -500,3 +500,57 @@ async fn the_host_measures_the_round_trip_and_tells_the_page() {
         other => panic!("expected a ping, got {other:?}"),
     }
 }
+
+// ---------- Linux setup and ports: restarting the phone servers ----------
+
+#[tokio::test]
+async fn restarting_the_servers_moves_the_ports_and_keeps_the_numbers() {
+    let host = start_host(SessionConfig::default()).await;
+    let mut events = host.session.events();
+    let before = host.session.addresses();
+    let (mut page, one) = Page::join(host.port, 0, device(1)).await;
+    host.session.create_slot_at(3).unwrap();
+
+    let after = host
+        .session
+        .restart_servers(vec![0], vec![0])
+        .await
+        .expect("servers restart");
+    assert_ne!(after.plain_port, before.plain_port);
+    assert_eq!(host.session.addresses(), after);
+    assert_eq!(page.recv().await, None, "the old connection is closed");
+    let slots = host.session.slots();
+    assert!(
+        matches!(slots[0].status, SlotStatus::Held { open: true, .. }),
+        "{:?}",
+        slots[0].status
+    );
+    assert_eq!(slots[1].status, SlotStatus::Waiting);
+
+    // the page at the new address has a new device id
+    let (_again, number) = Page::join(after.plain_port, one, device(9)).await;
+    assert_eq!(number, one);
+    while let Ok(e) = events.try_recv() {
+        assert!(!matches!(e, SessionEvent::Freed { .. }), "{e:?}");
+    }
+}
+
+#[tokio::test]
+async fn a_taken_port_keeps_the_running_servers() {
+    let host = start_host(SessionConfig::default()).await;
+    let taken = std::net::TcpListener::bind("0.0.0.0:0").unwrap();
+    let taken_port = taken.local_addr().unwrap().port();
+    let before = host.session.addresses();
+
+    match host
+        .session
+        .restart_servers(vec![0], vec![taken_port])
+        .await
+    {
+        Err(ninjoy_session::StartError::Bind { ports, .. }) => assert_eq!(ports, [taken_port]),
+        other => panic!("expected a bind error, got {other:?}"),
+    }
+    assert_eq!(host.session.addresses(), before);
+    let (_page, one) = Page::join(host.port, 0, device(1)).await;
+    assert_eq!(one, 1);
+}

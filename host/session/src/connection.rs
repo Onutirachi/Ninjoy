@@ -20,7 +20,8 @@ use crate::state::ControllerState;
 pub const HELLO_DEADLINE: Duration = Duration::from_secs(5);
 pub const PING_INTERVAL: Duration = Duration::from_secs(1);
 
-/// WebSocket close code for malformed data (RFC 6455).
+/// WebSocket close codes (RFC 6455).
+const NORMAL_CLOSE: u16 = 1000;
 const INVALID_DATA: u16 = 1007;
 
 struct Joined {
@@ -156,6 +157,12 @@ pub(crate) async fn run(shared: Arc<Shared>, socket: WebSocket, user_agent: Stri
                 Control::Replaced => {
                     send!(HostMessage::OpenedElsewhere);
                     break Exit::Done;
+                }
+                Control::Close => {
+                    let _ = tx.send(Message::Close(Some(CloseFrame { code: NORMAL_CLOSE, reason: "".into() }))).await;
+                    // a slot this connection still owns (it joined while the servers were
+                    // moving) is held as usual; the others are already held for any device
+                    break Exit::Lost;
                 }
             },
             Ok(()) = list_rx.changed(), if listing.is_some() => {

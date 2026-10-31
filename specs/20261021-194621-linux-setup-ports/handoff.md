@@ -4,14 +4,26 @@
 
 ## State
 
-Spec, plan and [tasks.md](tasks.md) (30 tasks) approved, committed and pushed. No code yet.
+Spec, plan and [tasks.md](tasks.md) (30 tasks) approved, committed and pushed. Phase 2
+(T001–T010) is implemented, validated and committed. It passes the full CI set on Windows and
+on the Ubuntu 26.04 test VM (see `drafts/HANDOFF.md` for access).
 
 ## Done in the last session
 
-- `/speckit-clarify`: 6 questions (see the spec's Clarifications section).
-- `/speckit-plan`. During planning:
-  - the maintainer chose the system-wide port permission (sysctl);
-  - the spec gained the "phones after a port change" edge case and the open hold in FR-010.
+- `/speckit-analyze`: no critical issue. Applied: the commands are also shown when the password
+  prompt is cancelled (FR-007, contract and T018); a pure `should_move_to_low_ports` with a unit
+  test (T015/T016); a UI test for the unknown-firewall help (T018). Left as is: no automated test
+  of hiding the ports item (C4), and the chip warning on any `driver.ok == false` (I1).
+- Phase 2:
+  - `PortsSetting` in `store.rs`. Automatic uses the session config's port lists (port 0 in
+    tests), Custom exactly the chosen ports.
+  - Open hold (`Held { until, open }`) in `slots.rs`; the controller list shows it as waiting.
+  - `Session::restart_servers`: a taken port is refused before anything is touched (probe
+    bind), and the servers go back to the previous ports if binding still fails. The mDNS name
+    is re-registered with the new port, without probing again. `Control::Close` closes pages
+    normally.
+  - `ninjoy_devices::uhid_rules` (every platform) holds the rule texts; `uhid::can_open()`.
+  - `app-core/src/setup.rs`: types, script, manual commands, result parsing, parsers, record.
 
 ## Decisions
 
@@ -30,6 +42,9 @@ Spec, plan and [tasks.md](tasks.md) (30 tasks) approved, committed and pushed. N
 
 ## Open questions
 
+- The CachyOS PC is out of service: `TOUCHPAD_RULE` uses the contract's text, not compared
+  with the file proven there. T020 checks it on the Ubuntu VM instead.
+
 - None blocking. Ideas for later specs:
   - "Player profiles", next after this spec: named profiles on the phone, exported and imported
     as a file. Details in `drafts/HANDOFF.md`. When it lands, the port-change notice recommends
@@ -38,5 +53,4 @@ Spec, plan and [tasks.md](tasks.md) (30 tasks) approved, committed and pushed. N
 
 ## Next step
 
-Optionally `/speckit-analyze`. Then, after the maintainer's explicit approval to write code,
-`/speckit-implement` starting with Phase 2 (T001–T010).
+Phase 3 (US1, T011–T019). The Ubuntu VM has nothing set up yet: test Configure there.

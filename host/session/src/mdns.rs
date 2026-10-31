@@ -29,8 +29,27 @@ pub fn choose_name(base: &str, mut taken: impl FnMut(&str) -> bool) -> Option<St
 pub(crate) struct Announcement {
     daemon: ServiceDaemon,
     fullname: String,
+    /// the instance name, e.g. "ninjoy"
+    name: String,
     /// e.g. "ninjoy.local"
     pub host: String,
+}
+
+impl Announcement {
+    /// Announces the same name with new addresses and port (the servers moved); no probing.
+    pub(crate) fn update(&mut self, ips: &[Ipv4Addr], port: u16) -> Result<(), String> {
+        let addresses: Vec<IpAddr> = ips.iter().map(|ip| IpAddr::V4(*ip)).collect();
+        let info = ServiceInfo::new(
+            SERVICE_TYPE,
+            &self.name,
+            &format!("{}.", self.host),
+            &addresses[..],
+            port,
+            None,
+        )
+        .map_err(|e| e.to_string())?;
+        self.daemon.register(info).map_err(|e| e.to_string())
+    }
 }
 
 impl Drop for Announcement {
@@ -77,6 +96,7 @@ pub(crate) fn announce(base: &str, ips: &[Ipv4Addr], port: u16) -> Result<Announ
     Ok(Announcement {
         daemon,
         fullname,
+        name: name.clone(),
         host: format!("{name}.local"),
     })
 }

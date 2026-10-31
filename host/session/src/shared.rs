@@ -68,6 +68,8 @@ pub(crate) enum Control {
     Kick,
     /// the same device opened the slot elsewhere: tell this one and close
     Replaced,
+    /// the servers are moving: close normally (the page shows it is reconnecting)
+    Close,
 }
 
 /// Per-slot data written by the owning connection. The lock also serializes sink calls.
@@ -164,6 +166,13 @@ impl Shared {
     pub fn skins_changed(&self) {
         for tx in lock(&self.conns).values() {
             let _ = tx.try_send(Control::Send(HostMessage::SkinsChanged));
+        }
+    }
+
+    /// Closes every open page (the servers are moving to other ports).
+    pub fn close_all(&self) {
+        for tx in lock(&self.conns).values() {
+            let _ = tx.try_send(Control::Close);
         }
     }
 

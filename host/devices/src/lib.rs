@@ -8,6 +8,7 @@ pub mod ds4;
 mod hub;
 #[cfg(target_os = "linux")]
 pub mod uhid;
+pub mod uhid_rules;
 #[cfg(windows)]
 pub mod vigem;
 

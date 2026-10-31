@@ -50,8 +50,12 @@ no agent or no `pkexec`. In both cases nothing changed.
   - lists the items with their state and a one-line explanation;
   - shows one Configure button while any item is missing, and "ready" when none is;
   - after a run, shows each failed item's reason and its commands;
-  - for `noPrompt`, shows `allCommands` with a copy button;
-  - for `cancelled`, says the setup was cancelled.
+  - for `noPrompt`, says no password prompt is available and shows `allCommands` with a copy
+    button;
+  - for `cancelled`, says the setup was cancelled and shows `allCommands` with a copy button
+    (FR-007);
+  - with no firewall item, the panel's help mentions checking the firewall if phones cannot
+    connect.
 - **Settings**: a Ports row with Automatic / Custom; in Custom, the secure and plain inputs and
   a Save button. Invalid input shows the reason inline.
 - **Notice**: when `portsMoved` is true, a short message says connected phones must scan their

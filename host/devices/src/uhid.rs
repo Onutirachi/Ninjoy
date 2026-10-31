@@ -10,8 +10,11 @@ use crate::backend::{Backend, DeviceError, OnFeedback, Pad, Unavailable};
 use crate::ds4::{self, Report};
 
 pub const PATH: &str = "/dev/uhid";
-/// The rule that lets the logged-in user create virtual pads.
-pub const UDEV_RULE: &str = r#"KERNEL=="uhid", MODE="0660", TAG+="uaccess""#;
+
+/// Whether this process may create UHID devices now (the setup check).
+pub fn can_open() -> bool {
+    OpenOptions::new().read(true).write(true).open(PATH).is_ok()
+}
 
 const UHID_DESTROY: u32 = 1;
 const UHID_STOP: u32 = 3;
@@ -51,13 +54,11 @@ pub fn open() -> Result<UhidBackend, Unavailable> {
         Ok(_) => Ok(UhidBackend),
         Err(e) if e.kind() == ErrorKind::PermissionDenied => Err(Unavailable {
             reason: format!("No permission to create virtual controllers ({PATH})"),
-            fix: format!(
-                "Add the udev rule {UDEV_RULE} to /etc/udev/rules.d/71-ninjoy.rules, run \"sudo udevadm control --reload && sudo udevadm trigger\" and start Ninjoy again."
-            ),
+            fix: "Press Configure in the virtual controller status.".into(),
         }),
         Err(e) => Err(Unavailable {
             reason: format!("{PATH} is not available ({e})"),
-            fix: "Load the kernel's UHID support (\"sudo modprobe uhid\") and start Ninjoy again."
+            fix: "Press Configure in the virtual controller status; it loads the kernel's UHID support."
                 .into(),
         }),
     }

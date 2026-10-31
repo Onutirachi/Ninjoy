@@ -17,7 +17,7 @@ pub mod tls;
 
 use std::net::{Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, SystemTime};
 
 use tokio::net::TcpListener;
@@ -116,10 +116,41 @@ pub struct SlotInfo {
 /// A running session: servers, slots and connections.
 pub struct Session {
     shared: Arc<Shared>,
-    addresses: Addresses,
+    config: SessionConfig,
+    addresses: Mutex<Addresses>,
+    /// the phone servers; replaced when the ports change
+    servers: tokio::sync::Mutex<Servers>,
+    announcement: Mutex<Option<mdns::Announcement>>,
+    stop_expiry: watch::Sender<bool>,
+    expiry: JoinHandle<()>,
+}
+
+/// The running phone servers (plain and secure).
+struct Servers {
     stop: watch::Sender<bool>,
     tasks: Vec<JoinHandle<()>>,
-    announcement: Option<mdns::Announcement>,
+}
+
+impl Servers {
+    fn none() -> Self {
+        Self {
+            stop: watch::channel(false).0,
+            tasks: Vec::new(),
+        }
+    }
+
+    /// Stops accepting and waits (briefly) for the servers to let go of their ports.
+    async fn stop(self) {
+        let _ = self.stop.send(true);
+        for mut task in self.tasks {
+            if tokio::time::timeout(Duration::from_secs(2), &mut task)
+                .await
+                .is_err()
+            {
+                task.abort();
+            }
+        }
+    }
 }
 
 impl Session {
@@ -133,52 +164,16 @@ impl Session {
             config.loss_timeout,
             config.skins_dir.clone(),
         ));
-        let (stop, stop_rx) = watch::channel(false);
-
-        let secure_port_cell = Arc::new(OnceLock::new());
-        let plain = bind(&config.plain_ports).await?;
-        let plain_port = plain.local_addr().map(|a| a.port()).unwrap_or_default();
-        let app = server::router(AppState {
-            shared: shared.clone(),
-            web_root: config.web_root.clone(),
-            plain: true,
-            secure_port: secure_port_cell.clone(),
-        });
-        let mut stop_plain = stop_rx.clone();
-        let serve_plain = tokio::spawn(async move {
-            let service = app.into_make_service_with_connect_info::<SocketAddr>();
-            let shutdown = async move {
-                let _ = stop_plain.wait_for(|stopped| *stopped).await;
-            };
-            if let Err(error) = axum::serve(plain, service)
-                .with_graceful_shutdown(shutdown)
-                .await
-            {
-                tracing::error!(%error, "plain server stopped");
-            }
-        });
-
         let ips = net::reachable_addresses();
-        let mut tasks = vec![serve_plain];
-        let secure_port = match start_secure(
+        let (servers, secure_port, plain_port) = start_servers(
             &config,
             &shared,
             &ips,
-            secure_port_cell.clone(),
-            stop_rx.clone(),
+            &config.secure_ports,
+            &config.plain_ports,
+            false,
         )
-        .await
-        {
-            Ok((port, task)) => {
-                tasks.push(task);
-                Some(port)
-            }
-            Err(error) => {
-                tracing::error!(%error, "HTTPS is not available; motion sensors will not work");
-                None
-            }
-        };
-        let _ = secure_port_cell.set(secure_port);
+        .await?;
 
         let announcement = if config.announce {
             let (name, addresses) = (config.local_name.clone(), ips.clone());
@@ -196,7 +191,8 @@ impl Session {
             None
         };
 
-        tasks.push(tokio::spawn(expire_held_slots(shared.clone(), stop_rx)));
+        let (stop_expiry, stop_rx) = watch::channel(false);
+        let expiry = tokio::spawn(expire_held_slots(shared.clone(), stop_rx));
         let addresses = Addresses {
             name: announcement.as_ref().map(|a| a.host.clone()),
             ips,
@@ -206,15 +202,102 @@ impl Session {
         tracing::info!(?addresses, "session started");
         Ok(Session {
             shared,
-            addresses,
-            stop,
-            tasks,
-            announcement,
+            config,
+            addresses: Mutex::new(addresses),
+            servers: tokio::sync::Mutex::new(servers),
+            announcement: Mutex::new(announcement),
+            stop_expiry,
+            expiry,
         })
     }
 
-    pub fn addresses(&self) -> &Addresses {
-        &self.addresses
+    pub fn addresses(&self) -> Addresses {
+        lock(&self.addresses).clone()
+    }
+
+    /// Moves the phone servers to new ports; the slots and the virtual pads stay. Pages are
+    /// closed, and every controller that had a phone is held for any phone for the hold time,
+    /// because the page at the new address has a new device id. When a new port cannot be used,
+    /// the servers keep (or go back to) the previous ports and the error names the port.
+    pub async fn restart_servers(
+        &self,
+        secure_ports: Vec<u16>,
+        plain_ports: Vec<u16>,
+    ) -> Result<Addresses, StartError> {
+        let mut servers = self.servers.lock().await;
+        let previous = self.addresses();
+        let ours: Vec<u16> = previous
+            .secure_port
+            .into_iter()
+            .chain([previous.plain_port])
+            .collect();
+        // a port another program holds is refused before anything is touched
+        usable(&plain_ports, &ours).await?;
+        usable(&secure_ports, &ours).await?;
+
+        let until = tokio::time::Instant::now() + self.shared.grace();
+        let held = self.shared.with_table(|t| t.open_all_held(until));
+        for &slot in &held {
+            self.shared.neutralize(slot);
+        }
+        self.shared.close_all();
+        std::mem::replace(&mut *servers, Servers::none())
+            .stop()
+            .await;
+        // a page that connected meanwhile
+        self.shared.close_all();
+        for slot in held {
+            self.shared.emit(SessionEvent::Disconnected { slot });
+        }
+
+        let ips = net::reachable_addresses();
+        let started = start_servers(
+            &self.config,
+            &self.shared,
+            &ips,
+            &secure_ports,
+            &plain_ports,
+            true,
+        )
+        .await;
+        let (new_servers, secure_port, plain_port) = match started {
+            Ok(started) => started,
+            Err(error) => {
+                tracing::warn!(%error, "going back to the previous ports");
+                let secure: Vec<u16> = previous.secure_port.into_iter().collect();
+                match start_servers(
+                    &self.config,
+                    &self.shared,
+                    &ips,
+                    &secure,
+                    &[previous.plain_port],
+                    false,
+                )
+                .await
+                {
+                    Ok((back, ..)) => *servers = back,
+                    Err(again) => {
+                        tracing::error!(%again, "the phone servers could not start again")
+                    }
+                }
+                return Err(error);
+            }
+        };
+        *servers = new_servers;
+        if let Some(announcement) = lock(&self.announcement).as_mut()
+            && let Err(error) = announcement.update(&ips, secure_port.unwrap_or(plain_port))
+        {
+            tracing::warn!(%error, "the local name keeps its previous port");
+        }
+        let addresses = Addresses {
+            name: previous.name,
+            ips,
+            secure_port,
+            plain_port,
+        };
+        *lock(&self.addresses) = addresses.clone();
+        tracing::info!(?addresses, "servers moved");
+        Ok(addresses)
     }
 
     /// Snapshot of every slot, sorted by number.
@@ -342,10 +425,9 @@ impl Session {
 
     pub async fn shutdown(self) {
         drop(self.announcement);
-        let _ = self.stop.send(true);
-        for task in self.tasks {
-            let _ = task.await;
-        }
+        self.servers.into_inner().stop().await;
+        let _ = self.stop_expiry.send(true);
+        let _ = self.expiry.await;
     }
 }
 
@@ -368,6 +450,94 @@ impl FeedbackHandle {
     }
 }
 
+/// Starts the plain server and, when it can, the secure one. Without `secure_required`, a
+/// secure server that cannot start only leaves the session without HTTPS.
+async fn start_servers(
+    config: &SessionConfig,
+    shared: &Arc<Shared>,
+    ips: &[Ipv4Addr],
+    secure_ports: &[u16],
+    plain_ports: &[u16],
+    secure_required: bool,
+) -> Result<(Servers, Option<u16>, u16), StartError> {
+    let (stop, stop_rx) = watch::channel(false);
+    let secure_port_cell = Arc::new(OnceLock::new());
+    let plain = bind(plain_ports).await?;
+    let plain_port = plain.local_addr().map(|a| a.port()).unwrap_or_default();
+    let app = server::router(AppState {
+        shared: shared.clone(),
+        web_root: config.web_root.clone(),
+        plain: true,
+        secure_port: secure_port_cell.clone(),
+    });
+    let mut stop_plain = stop_rx.clone();
+    let serve_plain = tokio::spawn(async move {
+        let service = app.into_make_service_with_connect_info::<SocketAddr>();
+        let shutdown = async move {
+            let _ = stop_plain.wait_for(|stopped| *stopped).await;
+        };
+        if let Err(error) = axum::serve(plain, service)
+            .with_graceful_shutdown(shutdown)
+            .await
+        {
+            tracing::error!(%error, "plain server stopped");
+        }
+    });
+    let mut servers = Servers {
+        stop,
+        tasks: vec![serve_plain],
+    };
+
+    let secure_port = match start_secure(
+        config,
+        secure_ports,
+        shared,
+        ips,
+        secure_port_cell.clone(),
+        stop_rx,
+    )
+    .await
+    {
+        Ok((port, task)) => {
+            servers.tasks.push(task);
+            Some(port)
+        }
+        Err(SecureError::Bind(error)) if secure_required => {
+            servers.stop().await;
+            return Err(error);
+        }
+        Err(error) => {
+            tracing::error!(%error, "HTTPS is not available; motion sensors will not work");
+            None
+        }
+    };
+    let _ = secure_port_cell.set(secure_port);
+    Ok((servers, secure_port, plain_port))
+}
+
+/// Whether one of `ports` can be listened on: a free one, 0 (any), or one of `ours` (the
+/// running servers let go of it).
+async fn usable(ports: &[u16], ours: &[u16]) -> Result<(), StartError> {
+    if ports.is_empty() {
+        return Ok(());
+    }
+    let mut last_error = None;
+    for &port in ports {
+        if port == 0 || ours.contains(&port) {
+            return Ok(());
+        }
+        match TcpListener::bind((Ipv4Addr::UNSPECIFIED, port)).await {
+            Ok(_) => return Ok(()),
+            Err(error) => last_error = Some(error),
+        }
+    }
+    let source = last_error.unwrap_or_else(|| std::io::Error::other("no port configured"));
+    Err(StartError::Bind {
+        ports: ports.to_vec(),
+        source,
+    })
+}
+
 async fn bind(ports: &[u16]) -> Result<TcpListener, StartError> {
     let mut last_error = None;
     for &port in ports {
@@ -386,16 +556,37 @@ async fn bind(ports: &[u16]) -> Result<TcpListener, StartError> {
     })
 }
 
+enum SecureError {
+    Bind(StartError),
+    Other(std::io::Error),
+}
+
+impl std::fmt::Display for SecureError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bind(error) => error.fmt(f),
+            Self::Other(error) => error.fmt(f),
+        }
+    }
+}
+
+impl From<std::io::Error> for SecureError {
+    fn from(error: std::io::Error) -> Self {
+        Self::Other(error)
+    }
+}
+
 /// The HTTPS server with the per-install certificate.
 async fn start_secure(
     config: &SessionConfig,
+    ports: &[u16],
     shared: &Arc<Shared>,
     ips: &[Ipv4Addr],
     secure_port: Arc<OnceLock<Option<u16>>>,
     mut stop: watch::Receiver<bool>,
-) -> std::io::Result<(u16, JoinHandle<()>)> {
-    if config.secure_ports.is_empty() {
-        return Err(std::io::Error::other("no secure port configured"));
+) -> Result<(u16, JoinHandle<()>), SecureError> {
+    if ports.is_empty() {
+        return Err(std::io::Error::other("no secure port configured").into());
     }
     // rustls is built without a default crypto provider (see Cargo.toml)
     let _ = rustls::crypto::ring::default_provider().install_default();
@@ -409,10 +600,7 @@ async fn start_secure(
         cert.key_pem.into_bytes(),
     )
     .await?;
-    let listener = bind(&config.secure_ports)
-        .await
-        .map_err(std::io::Error::other)?
-        .into_std()?;
+    let listener = bind(ports).await.map_err(SecureError::Bind)?.into_std()?;
     let port = listener.local_addr()?.port();
     let app = server::router(AppState {
         shared: shared.clone(),

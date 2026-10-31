@@ -4,10 +4,11 @@
 pub mod channel;
 pub mod cli;
 mod core;
+pub mod setup;
 mod store;
 
 pub use crate::core::{
     AddressesView, AppCore, ControllerView, CoreConfig, CoreError, DriverView, LiveView, SkinView,
     Snapshot, data_dir, qr_svg,
 };
-pub use store::{Language, Saved, Settings, Theme};
+pub use store::{Language, PortsError, PortsMode, PortsSetting, Saved, Settings, Theme};

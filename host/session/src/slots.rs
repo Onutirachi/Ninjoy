@@ -18,9 +18,11 @@ pub enum SlotStatus {
     /// created by the host, no device yet
     Waiting,
     Connected,
-    /// the device dropped; the slot is kept for it until `until`
+    /// the device dropped; the slot is kept for it until `until`. An `open` hold (the servers
+    /// moved to new ports, where the page has a new device id) is kept for any device.
     Held {
         until: Instant,
+        open: bool,
     },
 }
 
@@ -208,7 +210,7 @@ impl SlotTable {
         };
         let same_device = slot.device == Some(device);
         let joined = match slot.status {
-            SlotStatus::Waiting => {
+            SlotStatus::Waiting | SlotStatus::Held { open: true, .. } => {
                 *slot = connected(now);
                 Join::Joined {
                     slot: number,
@@ -244,7 +246,7 @@ impl SlotTable {
     pub fn leave(&mut self, number: u16, conn: ConnId, until: Instant) -> bool {
         match self.slots.get_mut(&number) {
             Some(slot) if slot.conn == Some(conn) => {
-                slot.status = SlotStatus::Held { until };
+                slot.status = SlotStatus::Held { until, open: false };
                 slot.conn = None;
                 self.changed();
                 true
@@ -258,7 +260,7 @@ impl SlotTable {
         let expired: Vec<u16> = self
             .slots
             .iter()
-            .filter(|(_, s)| matches!(s.status, SlotStatus::Held { until } if until <= now))
+            .filter(|(_, s)| matches!(s.status, SlotStatus::Held { until, .. } if until <= now))
             .map(|(n, _)| *n)
             .collect();
         for n in &expired {
@@ -268,6 +270,24 @@ impl SlotTable {
             self.changed();
         }
         expired
+    }
+
+    /// Every slot with a device (connected or held) is held until `until` for any device, and
+    /// loses its connection, so the old connection can no longer release it. Returns their
+    /// numbers.
+    pub fn open_all_held(&mut self, until: Instant) -> Vec<u16> {
+        let mut opened = Vec::new();
+        for (&number, slot) in &mut self.slots {
+            if slot.status != SlotStatus::Waiting {
+                slot.status = SlotStatus::Held { until, open: true };
+                slot.conn = None;
+                opened.push(number);
+            }
+        }
+        if !opened.is_empty() {
+            self.changed();
+        }
+        opened
     }
 
     /// Removes the player of `number` at once; returns the connection to tell, if any.
@@ -284,7 +304,10 @@ impl SlotTable {
             .map(|(&slot, s)| ListEntry {
                 slot,
                 status: match s.status {
-                    SlotStatus::Waiting => ListStatus::Waiting,
+                    // an open hold takes any device, like a waiting slot
+                    SlotStatus::Waiting | SlotStatus::Held { open: true, .. } => {
+                        ListStatus::Waiting
+                    }
                     SlotStatus::Connected => ListStatus::Connected,
                     SlotStatus::Held { .. } if device.is_some() && s.device == device => {
                         ListStatus::HeldForYou
@@ -409,6 +432,34 @@ mod tests {
         assert!(t.leave(1, 12, start + Duration::from_secs(60)));
         assert_eq!(t.expire(start + Duration::from_secs(60)), vec![1]);
         assert_eq!(t.lowest_free(), 1);
+    }
+
+    #[test]
+    fn an_open_hold_takes_any_device_and_expires_like_a_hold() {
+        let mut t = SlotTable::new();
+        let start = Instant::now();
+        let until = start + Duration::from_secs(60);
+        t.join(1, A, 10, now());
+        t.join(2, B, 11, now());
+        t.leave(2, 11, start + Duration::from_secs(5));
+        t.create_at(3).unwrap();
+        t.join(4, C, 12, now());
+        assert_eq!(t.open_all_held(until), vec![1, 2, 4]);
+        for n in [1, 2, 4] {
+            let slot = t.get(n).unwrap();
+            assert_eq!(slot.status, SlotStatus::Held { until, open: true });
+            assert_eq!(slot.conn, None);
+        }
+        assert_eq!(t.get(3).unwrap().status, SlotStatus::Waiting);
+        // the old connection's loss no longer applies
+        assert!(!t.leave(1, 10, start + Duration::from_secs(5)));
+        assert_eq!(t.list(Some(C))[0].status, ListStatus::Waiting);
+        // any device takes it, as a new player
+        assert_eq!(t.join(1, C, 20, now()), joined(1));
+        assert_eq!(t.get(1).unwrap().device, Some(C));
+        assert_eq!(t.join(2, B, 21, now()), joined(2));
+        assert!(t.expire(start + Duration::from_secs(59)).is_empty());
+        assert_eq!(t.expire(until), vec![4]);
     }
 
     #[test]

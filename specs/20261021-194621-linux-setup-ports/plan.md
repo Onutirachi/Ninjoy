@@ -77,7 +77,7 @@ the input path.
 
 | Principle | Check | Status |
 |---|---|---|
-| I. Real controller fidelity, backend boundary | The UHID rule texts and the uhid check live in `ninjoy_devices::uhid`. The hub only gains "receive a backend later". The touchpad rule matches Ninjoy's MAC prefix (`02:4e:4a`), so real pads are untouched. | Pass |
+| I. Real controller fidelity, backend boundary | The UHID rule texts live in `ninjoy_devices::uhid_rules` and the uhid check in `ninjoy_devices::uhid`. The hub only gains "receive a backend later". The touchpad rule matches Ninjoy's MAC prefix (`02:4e:4a`), so real pads are untouched. | Pass |
 | II. Zero-install, LAN-only | Phones still need only a browser. The firewall opening is limited to the same ranges `net::is_lan` accepts. Nothing leaves the LAN. | Pass |
 | III. Latency | No change to the input path. A server restart closes connections once; pads stay plugged with a neutral state. | Pass |
 | IV. Skins | Not touched. | Pass |
@@ -112,7 +112,8 @@ host/session/src/
 └── slots.rs      # Held { until, open }: an open hold takes any device; open_all_held()
 host/devices/src/
 ├── hub.rs        # backend in a OnceLock; set_backend() starts the pump and plugs existing slots
-└── uhid.rs       # rule texts, module name, can_open() (used by the setup check)
+├── uhid.rs       # can_open() (used by the setup check)
+└── uhid_rules.rs # rule texts, file paths and module name (every platform: the script is tested everywhere)
 host/app-core/src/
 ├── store.rs      # Settings.ports (PortsSetting), validation
 ├── core.rs       # ports → SessionConfig, apply ports (restart), setup view in the snapshot
