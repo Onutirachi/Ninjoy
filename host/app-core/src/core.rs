@@ -15,7 +15,8 @@ use ninjoy_session::{ControllerState, Feedback, Session, SessionConfig, StateSin
 use serde::Serialize;
 use tokio::sync::broadcast;
 
-use crate::store::{Settings, Store};
+use crate::setup::{ItemId, ItemState, SetupView};
+use crate::store::{AUTOMATIC_PLAIN, PortsMode, PortsSetting, Settings, Store};
 
 pub struct CoreConfig {
     /// where `app.json` (and the session's certificate, unless set) live
@@ -23,6 +24,9 @@ pub struct CoreConfig {
     /// its port lists are what the Automatic ports setting tries
     pub session: SessionConfig,
     pub backend: Result<Box<dyn Backend>, Unavailable>,
+    /// check the Linux setup items on this system (off in tests, which must not depend on the
+    /// machine they run on)
+    pub check_setup: bool,
 }
 
 impl CoreConfig {
@@ -39,6 +43,7 @@ impl CoreConfig {
             data_dir: beside.map_or(user.clone(), |beside| data_dir(&beside, &user)),
             session: SessionConfig::default(),
             backend: ninjoy_devices::open_default(),
+            check_setup: true,
         }
     }
 }
@@ -94,6 +99,8 @@ pub enum CoreError {
     NotFound(u16),
     Taken(u16),
     Invalid,
+    /// Linux does not let Ninjoy create virtual controllers yet
+    SetupNeeded,
 }
 
 impl fmt::Display for CoreError {
@@ -102,6 +109,9 @@ impl fmt::Display for CoreError {
             CoreError::NotFound(n) => write!(f, "there is no controller {n}"),
             CoreError::Taken(n) => write!(f, "controller {n} already exists"),
             CoreError::Invalid => f.write_str("controller numbers start at 1"),
+            CoreError::SetupNeeded => {
+                f.write_str("Ninjoy does not have permission to create virtual controllers")
+            }
         }
     }
 }
@@ -125,6 +135,27 @@ pub struct Snapshot {
     pub controllers: Vec<ControllerView>,
     /// the skin library, official skins first
     pub skins: Vec<SkinView>,
+    /// the Linux setup items; None on other systems
+    pub setup: Option<SetupView>,
+}
+
+/// What a Configure run did.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetupConfigureResult {
+    pub setup: Option<SetupView>,
+    /// the phone servers moved to other ports: phones must scan their QR code again
+    pub ports_moved: bool,
+}
+
+/// Whether the phone servers should move to the standard ports: Automatic, low ports now
+/// allowed, and still running on the alternate plain port.
+pub fn should_move_to_low_ports(
+    ports: &PortsSetting,
+    low_allowed: bool,
+    running_plain: u16,
+) -> bool {
+    ports.mode == PortsMode::Automatic && low_allowed && running_plain != AUTOMATIC_PLAIN
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -232,8 +263,21 @@ impl StateSink for Sink {
     }
 }
 
+/// The port lists the Automatic setting tries.
+struct AutomaticPorts {
+    secure: Vec<u16>,
+    plain: Vec<u16>,
+}
+
 pub struct AppCore {
     session: Session,
+    /// read by the Linux setup
+    #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+    data_dir: PathBuf,
+    check_setup: bool,
+    automatic: AutomaticPorts,
+    /// the last Linux setup check
+    setup: Mutex<Option<SetupView>>,
     hub: DeviceHub,
     store: Mutex<Store>,
     feedback: Arc<Mutex<HashMap<u16, Feedback>>>,
@@ -262,8 +306,12 @@ impl AppCore {
         let _ = std::fs::create_dir_all(skins_dir);
         session_config.grace = Duration::from_secs(settings.hold_seconds.into());
         // the configured lists are what Automatic tries
-        session_config.secure_ports = settings.ports.secure_ports(&session_config.secure_ports);
-        session_config.plain_ports = settings.ports.plain_ports(&session_config.plain_ports);
+        let automatic = AutomaticPorts {
+            secure: session_config.secure_ports.clone(),
+            plain: session_config.plain_ports.clone(),
+        };
+        session_config.secure_ports = settings.ports.secure_ports(&automatic.secure);
+        session_config.plain_ports = settings.ports.plain_ports(&automatic.plain);
 
         let hub = DeviceHub::new(config.backend);
         let session = Session::start(session_config, Arc::new(Sink { hub: hub.clone() }))
@@ -303,6 +351,10 @@ impl AppCore {
         let saved = store.saved.controllers.clone();
         let core = Arc::new(AppCore {
             session,
+            data_dir: config.data_dir,
+            check_setup: config.check_setup,
+            automatic,
+            setup: Mutex::new(None),
             hub,
             store: Mutex::new(store),
             feedback,
@@ -313,6 +365,7 @@ impl AppCore {
                 tracing::warn!(number, ?error, "could not recreate a saved controller");
             }
         }
+        core.setup_check();
         Ok(core)
     }
 
@@ -326,6 +379,9 @@ impl AppCore {
     }
 
     pub fn create(&self, number: Option<u16>) -> Result<u16, CoreError> {
+        if self.controllers_missing() {
+            return Err(CoreError::SetupNeeded);
+        }
         let number = match number {
             Some(n) => {
                 self.session
@@ -375,14 +431,185 @@ impl AppCore {
         lock(&self.store).saved.settings.clone()
     }
 
+    /// Checks the Linux setup items again (and starts the virtual pads if they are now
+    /// allowed). None on other systems.
+    pub fn setup_check(&self) -> Option<SetupView> {
+        if !self.check_setup {
+            return None;
+        }
+        let view = self.run_check(None)?;
+        self.after_setup(view.clone());
+        Some(view)
+    }
+
+    #[cfg(target_os = "linux")]
+    fn run_check(&self, outcome: Option<crate::setup::Outcome>) -> Option<SetupView> {
+        let settings = self.settings();
+        Some(SetupView::new(
+            crate::setup::check(&settings.ports, &settings.setup, &self.data_dir),
+            outcome,
+        ))
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn run_check(&self, _outcome: Option<crate::setup::Outcome>) -> Option<SetupView> {
+        None
+    }
+
+    /// Applies the missing Linux setup items (all, or only `items`) with one password prompt
+    /// (waits for the user), then moves the phone servers to the standard ports when that is
+    /// now allowed.
+    pub async fn setup_configure(
+        self: &Arc<Self>,
+        items: Option<Vec<ItemId>>,
+    ) -> SetupConfigureResult {
+        let core = self.clone();
+        let view = tokio::task::spawn_blocking(move || core.run_configure(items.as_deref()))
+            .await
+            .ok()
+            .flatten();
+        let Some(view) = view else {
+            return SetupConfigureResult {
+                setup: None,
+                ports_moved: false,
+            };
+        };
+        self.after_setup(view.clone());
+        let low_allowed = view
+            .items
+            .iter()
+            .any(|item| item.id == ItemId::Ports && item.state == ItemState::Done);
+        let ports = self.settings().ports;
+        let mut ports_moved = false;
+        if should_move_to_low_ports(&ports, low_allowed, self.session.addresses().plain_port) {
+            match self
+                .session
+                .restart_servers(
+                    ports.secure_ports(&self.automatic.secure),
+                    ports.plain_ports(&self.automatic.plain),
+                )
+                .await
+            {
+                Ok(_) => ports_moved = true,
+                Err(error) => tracing::warn!(%error, "the servers stay on their ports"),
+            }
+            self.changed();
+        }
+        SetupConfigureResult {
+            setup: Some(view),
+            ports_moved,
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn run_configure(&self, items: Option<&[ItemId]>) -> Option<SetupView> {
+        let settings = self.settings();
+        Some(crate::setup::configure(
+            &settings.ports,
+            &settings.setup,
+            &self.data_dir,
+            items,
+        ))
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn run_configure(&self, _items: Option<&[ItemId]>) -> Option<SetupView> {
+        None
+    }
+
+    /// Makes the controllers' touchpad a desktop mouse (`on`) or not, with one password prompt;
+    /// the setting changes only when that worked.
+    pub async fn setup_touchpad_mouse(self: &Arc<Self>, on: bool) -> SetupConfigureResult {
+        let core = self.clone();
+        let view = tokio::task::spawn_blocking(move || core.run_touchpad_mouse(on))
+            .await
+            .ok()
+            .flatten();
+        if let Some(view) = &view {
+            self.after_setup(view.clone());
+        }
+        SetupConfigureResult {
+            setup: view,
+            ports_moved: false,
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn run_touchpad_mouse(&self, on: bool) -> Option<SetupView> {
+        use crate::setup::RunError;
+        match crate::setup::set_touchpad_mouse(on) {
+            Ok(()) => {
+                let mut settings = self.settings();
+                settings.setup.touchpad_mouse = on;
+                lock(&self.store).set_settings(settings);
+                self.run_check(None)
+            }
+            Err(RunError::NotRun(outcome)) => self.run_check(Some(outcome)),
+            Err(RunError::Failed(reason)) => {
+                tracing::warn!(%reason, "the touchpad setting did not change");
+                self.run_check(None)
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn run_touchpad_mouse(&self, _on: bool) -> Option<SetupView> {
+        None
+    }
+
+    /// Linux does not let Ninjoy create virtual controllers yet: neither the PC nor phones may
+    /// create controllers games would not see.
+    fn controllers_missing(&self) -> bool {
+        lock(&self.setup).as_ref().is_some_and(|view| {
+            view.items
+                .iter()
+                .any(|item| item.id == ItemId::Controllers && item.state != ItemState::Done)
+        })
+    }
+
+    fn apply_phone_permission(&self) {
+        let allowed = self.settings().phones_can_create && !self.controllers_missing();
+        self.session.set_phones_can_create(allowed);
+    }
+
+    /// Keeps the view for the snapshot and starts the pads once the system allows them.
+    fn after_setup(&self, view: SetupView) {
+        #[cfg(target_os = "linux")]
+        {
+            let controllers = view
+                .items
+                .iter()
+                .any(|item| item.id == ItemId::Controllers && item.state == ItemState::Done);
+            if controllers && self.hub.backend_name().is_none() {
+                match ninjoy_devices::open_default() {
+                    Ok(backend) => {
+                        let slots: Vec<u16> =
+                            self.session.slots().iter().map(|s| s.number).collect();
+                        self.hub.set_backend(backend, &slots);
+                        tracing::info!("virtual controllers are now available");
+                    }
+                    Err(why) => tracing::warn!(%why, "virtual controllers are still unavailable"),
+                }
+            }
+        }
+        *lock(&self.setup) = Some(view);
+        self.apply_phone_permission();
+        self.changed();
+    }
+
+    /// Tests stand in for the Linux check on any system.
+    #[doc(hidden)]
+    pub fn inject_setup_view(&self, view: SetupView) {
+        self.after_setup(view);
+    }
+
     pub fn update_settings(&self, settings: Settings) {
         let settings = settings.clamped();
         self.session
             .set_grace(Duration::from_secs(settings.hold_seconds.into()));
-        self.session
-            .set_phones_can_create(settings.phones_can_create);
         self.session.set_default_skin(&settings.default_skin);
         lock(&self.store).set_settings(settings);
+        self.apply_phone_permission();
         self.changed();
     }
 
@@ -471,6 +698,7 @@ impl AppCore {
                 reason: self.hub.unavailable().map(|u| u.reason.clone()),
                 fix: self.hub.unavailable().map(|u| u.fix.clone()),
             },
+            setup: lock(&self.setup).clone(),
             settings: self.settings(),
             controllers,
             skins: self
@@ -558,5 +786,33 @@ pub fn qr_svg(text: &str) -> String {
             .quiet_zone(false)
             .build(),
         Err(_) => String::from("<svg xmlns=\"http://www.w3.org/2000/svg\"/>"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_servers_move_to_the_standard_ports_once_allowed() {
+        let automatic = PortsSetting::default();
+        assert!(should_move_to_low_ports(&automatic, true, 8080));
+        assert!(
+            !should_move_to_low_ports(&automatic, true, 80),
+            "already there"
+        );
+        assert!(
+            !should_move_to_low_ports(&automatic, false, 8080),
+            "not allowed"
+        );
+        let custom = PortsSetting {
+            mode: PortsMode::Custom,
+            secure: 443,
+            plain: 80,
+        };
+        assert!(
+            !should_move_to_low_ports(&custom, true, 8080),
+            "custom ports stay"
+        );
     }
 }

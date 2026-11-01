@@ -4,16 +4,19 @@ import logoNinja from "../../assets/brand/logo-ninja.svg?raw";
 import logoFull from "../../assets/brand/logo-full.svg?raw";
 import logoWord from "../../assets/brand/logo-word.svg?raw";
 import preview from "../../skins/ninjoy/preview.png";
-import type { Bridge, ControllerView, Language, Settings, Snapshot, Theme } from "./bridge.ts";
+import type { Bridge, ControllerView, Language, SetupItem, SetupView, Settings, Snapshot, Theme } from "./bridge.ts";
 import { renderDetails, renderEmpty } from "./details.ts";
 import { el, html, icons, lightbarCss, shortUrl } from "./dom.ts";
-import { createI18n, detectLanguage, type I18n } from "./i18n/index.ts";
+import { createI18n, detectLanguage, type I18n, type MessageKey } from "./i18n/index.ts";
+import { controllersMissing, isIgnored, orderedItems, pendingItems, renderStartScreen, wantsStartScreen } from "./setup.ts";
 import { checkLibrary, renderSkins } from "./skins.ts";
 
 /** Latency samples kept per controller (one per second). */
 const HISTORY = 60;
 /** The splash (like the phone's), at most this long. */
 export const SPLASH_MS = 1400;
+/** "All set!" stays this long before the main window. */
+export const ALL_SET_MS = 1500;
 
 export interface AppOptions {
   systemLanguages?: readonly string[];
@@ -21,6 +24,8 @@ export interface AppOptions {
   timers?: boolean;
   splash?: boolean;
   now?: () => number;
+  /** how long "All set!" stays (tests: 0) */
+  allSetMs?: number;
 }
 
 export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions = {}) {
@@ -29,6 +34,11 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
   let i18n: I18n = createI18n(detectLanguage(snapshot.settings.language, o.systemLanguages ?? navigator.languages));
   let selected: number | null = snapshot.controllers[0]?.number ?? null;
   let page: "controllers" | "skins" = "controllers";
+  /** Linux: the start screen while the system still needs setting up */
+  let screen: "start" | "main" = wantsStartScreen(snapshot.setup, snapshot.settings) ? "start" : "main";
+  let setupBusy = false;
+  let allSet = false;
+  const openItems = new Set<SetupItem["id"]>();
   const latency = new Map<number, number[]>();
   const qrCache = new Map<string, Promise<string>>();
   const qr = (url: string) => {
@@ -93,6 +103,23 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     return group;
   };
 
+  /** Linux: the controllers' touchpad as a desktop mouse; changing it asks for the password. */
+  const touchpadToggle = () => {
+    const { t } = i18n;
+    const input = el("input", { type: "checkbox", className: "switch", checked: snapshot.settings.setup.touchpadMouse, role: "switch", ariaLabel: t("settings.touchpadMouse") });
+    input.dataset.setting = "touchpadMouse";
+    input.addEventListener("change", async () => {
+      input.disabled = true;
+      const result = await bridge.setupTouchpadMouse(input.checked);
+      await refresh();
+      if (result.setup) snapshot = { ...snapshot, setup: result.setup };
+      // a cancelled prompt leaves the setting as it was
+      input.checked = snapshot.settings.setup.touchpadMouse;
+      input.disabled = false;
+    });
+    return el("label", { className: "field" }, [t("settings.touchpadMouse"), input]);
+  };
+
   const openSettings = () => {
     closePopover();
     const { t } = i18n;
@@ -122,20 +149,161 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
       toggle(t("settings.phones"), s.phonesCanCreate, "phonesCanCreate"),
       toggle(t("settings.startup"), s.startWithSystem, "startWithSystem"),
       toggle(t("settings.closeToTray"), s.closeToTray, "closeToTray"),
+      ...(snapshot.setup ? [touchpadToggle()] : []),
       el("div", { className: "row" }, [el("span", { className: "label", textContent: t("settings.network") }), el("div", { className: "field" }, [t("settings.address"), el("span", { textContent: address })])]),
     ]);
     root.append(popover);
   };
 
+  /** A short message at the bottom of the window (dismissed by a click, or after a while). */
+  const showNotice = (message: string) => {
+    root.querySelector(".notice")?.remove();
+    const notice = el("div", { className: "notice", role: "status", textContent: message });
+    notice.addEventListener("click", () => notice.remove());
+    root.append(notice);
+    setTimeout(() => notice.remove(), 12000);
+  };
+
+  /** Copies text for a terminal; false when the clipboard refused (the text stays selectable). */
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  /** The status panel's summary of the Linux setup: a light per item and the way to the start screen. */
+  const setupSummary = (setup: SetupView) => {
+    const { t } = i18n;
+    const rows = orderedItems(setup).map((item) => {
+      const row = el("li", {}, [
+        el("span", { className: "state", title: t(`setup.state.${item.state}` as MessageKey), ariaLabel: t(`setup.state.${item.state}` as MessageKey) }),
+        el("b", { textContent: t(`setup.${item.id}.title` as MessageKey) }),
+      ]);
+      row.dataset.item = item.id;
+      row.dataset.state = item.state;
+      if (isIgnored(item, snapshot.settings)) row.dataset.ignored = "";
+      return row;
+    });
+    const parts: HTMLElement[] = [el("ul", { className: "setup-items" }, rows)];
+    if (setup.ready) parts.unshift(el("p", { className: "ready", textContent: t("setup.readyText") }));
+    if (!setup.items.some((i) => i.id === "firewall")) parts.push(el("p", { className: "firewall-help", textContent: t("setup.firewallHelp") }));
+    if (!setup.ready) {
+      const see = el("button", { type: "button", className: "pill create see-setup", textContent: t("setup.seeSetup") });
+      see.addEventListener("click", () => openStart());
+      parts.push(see);
+    }
+    return parts;
+  };
+
+  /** The virtual controller status; on Linux, the setup (checked again each time it opens). */
   const openDriver = () => {
     closePopover();
     const { t } = i18n;
     const d = snapshot.driver;
-    popover = el("section", { className: "popover driver", role: "dialog", ariaLabel: t("driver.title") }, [
-      el("h2", { textContent: t("driver.title") }),
-      ...(d.ok ? [el("p", { textContent: t("driver.okText", { backend: d.backend ?? "" }) })] : [el("p", { textContent: d.reason ?? "" }), el("code", { textContent: d.fix ?? "" }), el("p", { textContent: t("driver.phones") })]),
-    ]);
+    // on Linux the setup items say what is missing; the backend's own reason is not translated
+    const status = d.ok ? [el("p", { textContent: t("driver.okText", { backend: d.backend ?? "" }) })] : snapshot.setup ? [el("p", { textContent: t("driver.phones") })] : [el("p", { textContent: d.reason ?? "" }), el("code", { textContent: d.fix ?? "" }), el("p", { textContent: t("driver.phones") })];
+    const title = t(snapshot.setup ? "setup.start.title" : "driver.title");
+    popover = el("section", { className: "popover driver", role: "dialog", ariaLabel: title }, [el("h2", { textContent: title }), ...status, ...(snapshot.setup ? setupSummary(snapshot.setup) : [])]);
     root.append(popover);
+  };
+
+  const showDriver = async () => {
+    openDriver();
+    if (!snapshot.setup) return;
+    await bridge.setupCheck();
+    await refresh();
+    render();
+    openDriver();
+  };
+
+  const openStart = () => {
+    closePopover();
+    screen = "start";
+    render();
+  };
+
+  /** After a check or a run: with everything done, "All set!" and then the main window. */
+  const afterSetup = () => {
+    if (screen === "start" && snapshot.setup?.ready && !allSet) {
+      allSet = true;
+      render();
+      setTimeout(() => {
+        allSet = false;
+        screen = "main";
+        render();
+      }, o.allSetMs ?? ALL_SET_MS);
+      return;
+    }
+    render();
+  };
+
+  const runConfigure = async (items: SetupItem["id"][] | null) => {
+    setupBusy = true;
+    render();
+    try {
+      const result = await bridge.setupConfigure(items);
+      await refresh();
+      if (result.setup) snapshot = { ...snapshot, setup: result.setup };
+      if (result.portsMoved) showNotice(i18n.t("notice.portsMoved"));
+    } finally {
+      setupBusy = false;
+    }
+    afterSetup();
+  };
+
+  /** The start screen follows the system: items done by hand in a terminal turn green too. */
+  let checking = false;
+  /** the setup the start screen shows, to redraw only when it changed */
+  let shownSetup = "";
+  const checkSetup = async () => {
+    if (checking || setupBusy) return;
+    checking = true;
+    try {
+      await bridge.setupCheck();
+      await refresh();
+      if (JSON.stringify(snapshot.setup) !== shownSetup || snapshot.setup?.ready) afterSetup();
+    } finally {
+      checking = false;
+    }
+  };
+
+  const skipSetup = () => {
+    screen = "main";
+    void setSettings({ setup: { ...snapshot.settings.setup, skippedRecommended: true } });
+    render();
+  };
+
+  const startScreen = () => {
+    shownSetup = JSON.stringify(snapshot.setup);
+    return renderStartScreen({
+      i18n,
+      setup: snapshot.setup!,
+      settings: snapshot.settings,
+      busy: setupBusy,
+      open: openItems,
+      allSet,
+      configure: (items) => void runConfigure(items),
+      copy: copyText,
+      skip: skipSetup,
+      ignore: (item, on) => {
+        const ignored = snapshot.settings.setup.ignored.filter((i) => i !== item);
+        void setSettings({ setup: { ...snapshot.settings.setup, ignored: on ? [...ignored, item] : ignored } });
+        render();
+      },
+    });
+  };
+
+  /** In place of the empty list while Linux does not let Ninjoy create controllers. */
+  const permissionNeeded = () => {
+    const { t } = i18n;
+    const see = el("button", { type: "button", className: "pill create see-setup", textContent: t("setup.seeSetup") });
+    see.addEventListener("click", () => openStart());
+    return el("div", { className: "empty-view permission" }, [
+      el("div", {}, [el("div", { className: "ninja", innerHTML: logoNinja }), el("h2", { textContent: t("permission.title") }), el("p", { textContent: t("permission.text"), style: "margin:6px 0 16px" }), see]),
+    ]);
   };
 
   /** The first close explains that Ninjoy stays in the tray (once per computer). */
@@ -204,7 +372,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     const c = snapshot.controllers.find((x) => x.number === selected);
     if (!c) {
       details = null;
-      detail.replaceChildren(renderEmpty(ctx));
+      detail.replaceChildren(controllersMissing(snapshot.setup) ? permissionNeeded() : renderEmpty(ctx));
       return;
     }
     if (!details || details.number !== c.number || details.status !== c.status) {
@@ -235,9 +403,12 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     document.documentElement.lang = i18n.locale;
     const a = snapshot.addresses;
     const network = el("span", { className: "chip" }, [html(icons.wifi), ...(a.name ? [el("code", { textContent: a.name }), el("span", { textContent: "·", style: "color:var(--text-faint)" })] : []), el("code", { textContent: a.ips[0] ?? t("title.noNetwork") })]);
-    const driver = el("button", { type: "button", className: `chip${snapshot.driver.ok ? "" : " warn"}` }, [el("span", { className: "dot" }), t(snapshot.driver.ok ? "driver.ok" : "driver.missing")]);
+    // on Linux the chip speaks for every setup item, not only the controllers
+    const ok = snapshot.setup ? pendingItems(snapshot.setup, snapshot.settings).length === 0 : snapshot.driver.ok;
+    const chipText = snapshot.setup ? (ok ? "setup.chip.ok" : "setup.chip.missing") : ok ? "driver.ok" : "driver.missing";
+    const driver = el("button", { type: "button", className: `chip${ok ? "" : " warn"}` }, [el("span", { className: "dot" }), t(chipText)]);
     driver.dataset.popover = "driver";
-    driver.addEventListener("click", () => (popover?.classList.contains("driver") ? closePopover() : openDriver()));
+    driver.addEventListener("click", () => (popover?.classList.contains("driver") ? closePopover() : void showDriver()));
     const settingsButton = el("button", { type: "button", className: "icon-btn", title: t("window.settings"), ariaLabel: t("window.settings") }, [html(icons.gear)]);
     settingsButton.dataset.popover = "settings";
     settingsButton.addEventListener("click", () => (popover?.classList.contains("settings") ? closePopover() : openSettings()));
@@ -248,7 +419,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     };
     const titlebar = el("header", { className: "titlebar" }, [
       el("div", { className: "brand", innerHTML: logoWord }),
-      el("nav", { className: "seg tabs", ariaLabel: "Ninjoy" }, [tab("controllers", t("tab.controllers")), tab("skins", t("tab.skins"))]),
+      ...(screen === "main" ? [el("nav", { className: "seg tabs", ariaLabel: "Ninjoy" }, [tab("controllers", t("tab.controllers")), tab("skins", t("tab.skins"))])] : []),
       el("div", { className: "drag" }),
       network,
       driver,
@@ -262,7 +433,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     // the window moves by its title bar (Tauri)
     for (const e of [titlebar, titlebar.querySelector(".brand")!, titlebar.querySelector(".drag")!]) e.setAttribute("data-tauri-drag-region", "");
 
-    const create = el("button", { type: "button", className: "pill create" }, [html(icons.plus), t("create")]);
+    const create = el("button", { type: "button", className: "pill create", disabled: controllersMissing(snapshot.setup) }, [html(icons.plus), t("create")]);
     create.addEventListener("click", async () => {
       const n = await bridge.create();
       await refresh();
@@ -274,7 +445,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     details = null; // texts change with the language
     const skins = () =>
       renderSkins({ i18n, bridge, skins: snapshot.skins, onDefault: (id) => void setSettings({ defaultSkin: id }).then(() => refresh()) });
-    app.replaceChildren(titlebar, page === "controllers" ? main : skins());
+    app.replaceChildren(titlebar, screen === "start" && snapshot.setup ? startScreen() : page === "controllers" ? main : skins());
     renderList();
     renderDetail();
   };
@@ -314,6 +485,13 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     }
   };
 
+  /** One second: latency samples, and every other second the start screen checks the system. */
+  let ticks = 0;
+  const tick = async () => {
+    await refresh(true);
+    if (screen === "start" && ++ticks % 2 === 0) await checkSetup();
+  };
+
   applyTheme(snapshot.settings.theme);
   render();
   // phones are only offered skins that pass the skin format rules
@@ -322,7 +500,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
   let timer = 0;
   let raf = 0;
   if (o.timers ?? true) {
-    timer = window.setInterval(() => void refresh(true), 1000);
+    timer = window.setInterval(() => void tick(), 1000);
     const loop = (time: number) => {
       void frame(time);
       raf = requestAnimationFrame(loop);
@@ -333,7 +511,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
   return {
     refresh,
     /** one second: refresh with latency samples */
-    tick: () => refresh(true),
+    tick,
     frame,
     get selected() {
       return selected;

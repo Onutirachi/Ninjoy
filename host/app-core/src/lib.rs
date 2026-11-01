@@ -8,7 +8,9 @@ pub mod setup;
 mod store;
 
 pub use crate::core::{
-    AddressesView, AppCore, ControllerView, CoreConfig, CoreError, DriverView, LiveView, SkinView,
-    Snapshot, data_dir, qr_svg,
+    AddressesView, AppCore, ControllerView, CoreConfig, CoreError, DriverView, LiveView,
+    SetupConfigureResult, SkinView, Snapshot, data_dir, qr_svg, should_move_to_low_ports,
 };
-pub use store::{Language, PortsError, PortsMode, PortsSetting, Saved, Settings, Theme};
+pub use store::{
+    Language, PortsError, PortsMode, PortsSetting, Saved, Settings, SetupPrefs, Theme,
+};

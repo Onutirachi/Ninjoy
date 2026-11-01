@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::setup::ItemId;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Theme {
@@ -112,6 +114,18 @@ impl PortsSetting {
     }
 }
 
+/// The Linux start screen and touchpad choices.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct SetupPrefs {
+    /// "Continue anyway": the start screen opens only for a missing Critical item
+    pub skipped_recommended: bool,
+    /// the controllers' touchpad stays a desktop mouse (no touchpad rule)
+    pub touchpad_mouse: bool,
+    /// Recommended items the user chose to ignore: they no longer count as missing
+    pub ignored: Vec<ItemId>,
+}
+
 /// The standard ports Automatic tries first.
 pub const AUTOMATIC_SECURE: u16 = 443;
 pub const AUTOMATIC_PLAIN: u16 = 80;
@@ -134,6 +148,7 @@ pub struct Settings {
     /// the skin phones use unless they pick their own
     pub default_skin: String,
     pub ports: PortsSetting,
+    pub setup: SetupPrefs,
 }
 
 impl Default for Settings {
@@ -147,6 +162,7 @@ impl Default for Settings {
             close_to_tray: true,
             default_skin: "ninjoy".into(),
             ports: PortsSetting::default(),
+            setup: SetupPrefs::default(),
         }
     }
 }
@@ -251,7 +267,12 @@ mod tests {
                 plain: 80
             }
         );
+        assert_eq!(saved.settings.setup, SetupPrefs::default());
         let json = serde_json::to_value(&saved.settings).unwrap();
+        assert_eq!(
+            json["setup"],
+            serde_json::json!({ "skippedRecommended": false, "touchpadMouse": false, "ignored": [] })
+        );
         assert_eq!(
             json["ports"],
             serde_json::json!({ "mode": "automatic", "secure": 443, "plain": 80 })

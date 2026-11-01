@@ -51,6 +51,8 @@ firewall-cmd --reload
 
 - Remove the four files above.
 - Run `udevadm control --reload`.
+- Run `setfacl -b /dev/uhid` (or restart): the access already given to the session stays on the
+  device node until then.
 - Run `sysctl --system`.
 - Delete the firewall rules: `ufw delete …` with the same arguments, or
   `firewall-cmd --permanent --remove-rich-rule=…` and then `--reload`.

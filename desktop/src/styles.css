@@ -466,6 +466,325 @@ button.chip:hover {
   word-break: break-all;
 }
 
+/* Linux setup, in the virtual controller popover */
+.popover.driver {
+  width: 400px;
+  max-height: calc(100vh - 72px);
+  overflow-y: auto;
+}
+
+.setup-items {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-items li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.setup-items b {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.setup-items p {
+  font-size: 12.5px;
+}
+
+/* a setup item's light: missing (amber), done (green), failed (red) */
+.setup-items .state,
+.start .state {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--warn) 60%, transparent);
+}
+
+.setup-items [data-state="done"] .state,
+.start [data-state="done"] .state {
+  background: var(--ok);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--ok) 60%, transparent);
+}
+
+.setup-items [data-state="failed"] .state,
+.start [data-state="failed"] .state {
+  background: var(--bad);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--bad) 60%, transparent);
+}
+
+.popover .see-setup {
+  justify-self: start;
+  width: auto;
+}
+
+/* Linux start screen: what the system still needs, in place of the main window */
+.start {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: start center;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2vh 0 24px;
+}
+
+.start-card {
+  display: grid;
+  gap: 14px;
+  width: min(640px, 100%);
+}
+
+.start h1 {
+  font: 700 30px var(--ff-display);
+  text-align: center;
+}
+
+.start .setup-list {
+  display: grid;
+  gap: 10px;
+}
+
+.start details {
+  border-radius: var(--radius-m);
+  background: var(--bg);
+  box-shadow: var(--shadow-m);
+}
+
+.start summary {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.start summary::-webkit-details-marker {
+  display: none;
+}
+
+/* the chevron */
+.start summary::after {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 2px solid var(--text-faint);
+  border-bottom: 2px solid var(--text-faint);
+  transform: rotate(45deg);
+}
+
+.start details[open] summary::after {
+  transform: rotate(-135deg);
+}
+
+/* "Ignore" on a Recommended item: it sits before the chevron and the card fades, but not its
+   buttons, which still work */
+.start summary .ignore {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.start summary:has(.ignore)::after {
+  margin-left: 4px;
+}
+
+.start [data-ignored] .what,
+.start [data-ignored] .body > :not(.actions),
+.setup-items [data-ignored] b {
+  opacity: 0.5;
+}
+
+.setup-items [data-ignored] .state,
+.start [data-ignored] .state {
+  background: var(--text-faint);
+  box-shadow: none;
+}
+
+.start .what {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.start .title {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.start .title b {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.start .summary {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.flag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-light);
+  box-shadow: var(--shadow-s);
+  color: var(--text-faint);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.flag.critical {
+  color: var(--warn);
+}
+
+.start .body {
+  display: grid;
+  gap: 8px;
+  padding: 0 16px 16px 40px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.start .body .label {
+  margin-top: 4px;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.start .reason {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+/* an item's own Apply and Copy, like the main buttons but on the left */
+.start .body .actions {
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+
+.start .actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.start .actions .pill {
+  width: auto;
+  padding-inline: 22px;
+}
+
+.start .firewall-help,
+.start .outcome {
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.start .outcome p {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.link {
+  justify-self: center;
+  padding: 4px 8px;
+  color: var(--text-faint);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  color: var(--text-muted);
+}
+
+.start.all-set {
+  place-items: center;
+}
+
+.start.all-set h1 {
+  color: var(--ok);
+  font-size: 40px;
+}
+
+.start.all-set p {
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.create:disabled,
+.start button:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.permission .see-setup {
+  width: auto;
+}
+
+/* command output and commands, as a terminal shows them (never translated) */
+.start code.terminal {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  user-select: text;
+}
+
+.popover code.terminal,
+.start code.terminal {
+  background: oklch(0.14 0.005 var(--hue));
+  box-shadow: var(--sunken);
+  color: oklch(0.9 0.02 150);
+  font: 500 12px ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+  line-height: 1.5;
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+}
+
+.popover .ready {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+/* a short message at the bottom of the window */
+.notice {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 20;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 12px 18px;
+  border-radius: var(--radius-m);
+  background: var(--bg-top);
+  box-shadow: var(--shadow-l);
+  color: var(--text);
+  font-weight: 600;
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+
 /* body: list + details */
 .main {
   position: relative;

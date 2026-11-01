@@ -19,3 +19,5 @@ qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
+futures-util.workspace = true
+tokio-tungstenite.workspace = true

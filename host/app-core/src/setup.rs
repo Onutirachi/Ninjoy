@@ -11,6 +11,8 @@ use std::path::{Path, PathBuf};
 use ninjoy_devices::uhid_rules;
 use serde::{Deserialize, Serialize};
 
+use crate::store::{AUTOMATIC_PLAIN, AUTOMATIC_SECURE, PortsMode, PortsSetting};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ItemId {
@@ -21,6 +23,11 @@ pub enum ItemId {
 }
 
 impl ItemId {
+    /// Without these Ninjoy does not work (games see no controllers, phones cannot connect).
+    pub fn critical(self) -> bool {
+        matches!(self, Self::Controllers | Self::Firewall)
+    }
+
     fn as_str(self) -> &'static str {
         match self {
             Self::Controllers => "controllers",
@@ -52,12 +59,22 @@ pub enum Firewall {
 pub struct SetupItem {
     pub id: ItemId,
     pub state: ItemState,
+    /// Critical or Recommended (see [`ItemId::critical`])
+    pub critical: bool,
     /// raw reason (command output) when it failed
     pub reason: Option<String>,
     /// the commands to run by hand (`sudo …`)
     pub commands: Vec<String>,
     /// which firewall, for the firewall item
     pub firewall: Option<Firewall>,
+}
+
+/// Why a run as root did not apply its change.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RunError {
+    NotRun(Outcome),
+    /// the command's output
+    Failed(String),
 }
 
 /// How the last Configure ended when it did not run the script.
@@ -155,6 +172,8 @@ pub const PORT_START_FILE: &str = "/etc/sysctl.d/99-ninjoy.conf";
 pub enum Fix {
     Controllers,
     Touchpad,
+    /// the controllers' touchpad becomes a desktop mouse again
+    RemoveTouchpad,
     /// lets programs use ports from `start` up
     Ports {
         start: u16,
@@ -256,7 +275,7 @@ impl Fix {
     pub fn id(&self) -> ItemId {
         match self {
             Self::Controllers => ItemId::Controllers,
-            Self::Touchpad => ItemId::Touchpad,
+            Self::Touchpad | Self::RemoveTouchpad => ItemId::Touchpad,
             Self::Ports { .. } => ItemId::Ports,
             Self::Ufw { .. } | Self::Firewalld { .. } => ItemId::Firewall,
         }
@@ -287,6 +306,10 @@ impl Fix {
                     file: uhid_rules::TOUCHPAD_RULE_FILE,
                     line: uhid_rules::TOUCHPAD_RULE.into(),
                 },
+                run("udevadm control --reload".into()),
+            ],
+            Self::RemoveTouchpad => vec![
+                run(format!("rm -f {}", uhid_rules::TOUCHPAD_RULE_FILE)),
                 run("udevadm control --reload".into()),
             ],
             Self::Ports { start } => vec![
@@ -362,7 +385,8 @@ impl Fix {
 /// `ninjoy-item <id> ok` or `ninjoy-item <id> failed <reason>`; a failed block never stops
 /// the next ones.
 pub fn script(fixes: &[Fix]) -> String {
-    let mut script = String::from("set -u\n");
+    // pkexec keeps the caller's umask: system files must not be group-writable
+    let mut script = String::from("set -u\numask 022\n");
     for fix in fixes {
         let id = fix.id().as_str();
         let steps: Vec<String> = fix.commands().iter().map(Command::script).collect();
@@ -377,9 +401,12 @@ pub fn script(fixes: &[Fix]) -> String {
     script
 }
 
+/// One item's result after a run: `Err` holds the command output.
+pub type ItemResult = (ItemId, Result<(), String>);
+
 /// Each fix's result from the script's output: `Ok`, or `Err` with the reason. A fix without a
 /// line did not run to the end.
-pub fn results(fixes: &[Fix], output: &str) -> Vec<(ItemId, Result<(), String>)> {
+pub fn results(fixes: &[Fix], output: &str) -> Vec<ItemResult> {
     fixes
         .iter()
         .map(|fix| {
@@ -506,6 +533,321 @@ pub fn uhid_builtin(modules_builtin: &str) -> bool {
         .any(|line| line.trim().rsplit('/').next() == Some(name.as_str()))
 }
 
+/// The ports the firewall opens: the custom ones, or in Automatic the standard ones (the ports
+/// item, when missing, is applied in the same run).
+pub fn firewall_ports(ports: &PortsSetting) -> UfwPorts {
+    match ports.mode {
+        PortsMode::Custom => UfwPorts {
+            secure: ports.secure,
+            plain: ports.plain,
+        },
+        PortsMode::Automatic => UfwPorts {
+            secure: AUTOMATIC_SECURE,
+            plain: AUTOMATIC_PLAIN,
+        },
+    }
+}
+
+/// How `pkexec` ended when it did not run the script: 126 is a dismissed prompt; 127 is either
+/// no prompt at all (no authentication agent for this process, e.g. started outside the desktop
+/// session) or authentication that failed.
+pub fn pkexec_outcome(code: Option<i32>, stderr: &str) -> Option<Outcome> {
+    match code {
+        Some(126) => Some(Outcome::Cancelled),
+        Some(127) if stderr.contains("authentication agent") => Some(Outcome::NoPrompt),
+        Some(127) => Some(Outcome::Cancelled),
+        _ => None,
+    }
+}
+
+/// The items after a run: an item the run failed on, and the check still finds missing, is
+/// `failed` with the reason.
+pub fn with_results(mut items: Vec<SetupItem>, results: &[ItemResult]) -> Vec<SetupItem> {
+    for item in &mut items {
+        if item.state != ItemState::Missing {
+            continue;
+        }
+        if let Some((_, Err(reason))) = results.iter().find(|(id, _)| *id == item.id) {
+            item.state = ItemState::Failed;
+            item.reason = Some(reason.clone());
+        }
+    }
+    items
+}
+
+/// The checks and the run, which read and change the system.
+#[cfg(target_os = "linux")]
+mod linux {
+    use std::path::{Path, PathBuf};
+    use std::process::Command;
+    use std::time::{Duration, Instant};
+
+    use ninjoy_devices::{uhid, uhid_rules};
+
+    use super::*;
+    use crate::store::SetupPrefs;
+
+    /// stdout of a command that succeeded.
+    fn output(program: &str, args: &[&str]) -> Option<String> {
+        let out = Command::new(program).args(args).output().ok()?;
+        out.status
+            .success()
+            .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+    }
+
+    fn file_has(path: &str, line: &str) -> bool {
+        std::fs::read_to_string(path).is_ok_and(|text| text.lines().any(|l| l.trim() == line))
+    }
+
+    fn port_start_now() -> u16 {
+        std::fs::read_to_string("/proc/sys/net/ipv4/ip_unprivileged_port_start")
+            .ok()
+            .and_then(|v| v.trim().parse().ok())
+            .unwrap_or(1024)
+    }
+
+    fn port_start_at_boot() -> u16 {
+        let dirs: Vec<PathBuf> = SYSCTL_DIRS.iter().map(PathBuf::from).collect();
+        persisted_sysctl(&dirs, Path::new(SYSCTL_CONF), PORT_START_KEY)
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(1024)
+    }
+
+    fn uhid_loads_at_boot() -> bool {
+        file_has(uhid_rules::MODULES_LOAD_FILE, uhid_rules::MODULE)
+            || std::fs::read_to_string("/proc/sys/kernel/osrelease")
+                .ok()
+                .and_then(|release| {
+                    std::fs::read_to_string(format!(
+                        "/lib/modules/{}/modules.builtin",
+                        release.trim()
+                    ))
+                    .ok()
+                })
+                .is_some_and(|builtin| uhid_builtin(&builtin))
+    }
+
+    enum Active {
+        Firewalld(Vec<String>),
+        Ufw,
+    }
+
+    fn active_firewall() -> Option<Active> {
+        if output("firewall-cmd", &["--state"]).is_some_and(|s| s.trim() == "running") {
+            let mut zones = output("firewall-cmd", &["--get-active-zones"])
+                .map(|out| active_zones(&out))
+                .unwrap_or_default();
+            if zones.is_empty()
+                && let Some(zone) = output("firewall-cmd", &["--get-default-zone"])
+            {
+                zones.push(zone.trim().to_owned());
+            }
+            return Some(Active::Firewalld(zones));
+        }
+        let enabled = std::fs::read_to_string("/etc/ufw/ufw.conf").is_ok_and(|c| ufw_enabled(&c));
+        if enabled
+            && output("systemctl", &["is-active", "ufw"]).is_some_and(|s| s.trim() == "active")
+        {
+            return Some(Active::Ufw);
+        }
+        None
+    }
+
+    /// Each item with whether it is done, and the fix that applies it.
+    fn inspect(
+        ports: &PortsSetting,
+        prefs: &SetupPrefs,
+        record: &SetupRecord,
+    ) -> Vec<(SetupItem, Fix)> {
+        let mut found = Vec::new();
+        let mut add = |done: bool, fix: Fix, firewall: Option<Firewall>| {
+            found.push((
+                SetupItem {
+                    id: fix.id(),
+                    state: if done {
+                        ItemState::Done
+                    } else {
+                        ItemState::Missing
+                    },
+                    critical: fix.id().critical(),
+                    reason: None,
+                    commands: fix.manual(),
+                    firewall,
+                },
+                fix,
+            ));
+        };
+
+        let controllers = uhid::can_open()
+            && file_has(uhid_rules::UDEV_RULE_FILE, uhid_rules::UDEV_RULE)
+            && uhid_loads_at_boot();
+        add(controllers, Fix::Controllers, None);
+        if !prefs.touchpad_mouse {
+            add(
+                file_has(uhid_rules::TOUCHPAD_RULE_FILE, uhid_rules::TOUCHPAD_RULE),
+                Fix::Touchpad,
+                None,
+            );
+        }
+
+        if let Some(wanted) = ports.wanted_low_port() {
+            let now = port_start_now();
+            add(
+                now <= wanted && port_start_at_boot() <= wanted,
+                Fix::Ports {
+                    start: port_start(wanted, now),
+                },
+                None,
+            );
+        }
+
+        let open = firewall_ports(ports);
+        match active_firewall() {
+            Some(Active::Firewalld(zones)) => {
+                let wanted = wanted_rich_rules(open.secure, open.plain);
+                let mut done = !zones.is_empty();
+                let mut stale = Vec::new();
+                for zone in &zones {
+                    let listed = output(
+                        "firewall-cmd",
+                        &[&format!("--zone={zone}"), "--list-rich-rules"],
+                    )
+                    .unwrap_or_default();
+                    let ours = ninjoy_rich_rules(&listed);
+                    done &= wanted.iter().all(|rule| ours.contains(rule));
+                    stale.extend(
+                        ours.into_iter()
+                            .filter(|rule| !wanted.contains(rule))
+                            .map(|rule| (zone.clone(), rule)),
+                    );
+                }
+                done &= stale.is_empty();
+                add(
+                    done,
+                    Fix::Firewalld {
+                        secure: open.secure,
+                        plain: open.plain,
+                        zones,
+                        stale,
+                    },
+                    Some(Firewall::Firewalld),
+                );
+            }
+            Some(Active::Ufw) => add(
+                record.ufw == Some(open),
+                Fix::Ufw {
+                    secure: open.secure,
+                    plain: open.plain,
+                    previous: record.ufw,
+                },
+                Some(Firewall::Ufw),
+            ),
+            None => {}
+        }
+        found
+    }
+
+    /// Every setup item and whether it is in place.
+    pub fn check(ports: &PortsSetting, prefs: &SetupPrefs, data_dir: &Path) -> Vec<SetupItem> {
+        inspect(ports, prefs, &SetupRecord::load(data_dir))
+            .into_iter()
+            .map(|(item, _)| item)
+            .collect()
+    }
+
+    /// Runs `fixes` as root with one password prompt; each fix's result, or why nothing ran.
+    fn run_as_root(fixes: &[Fix]) -> Result<Vec<ItemResult>, Outcome> {
+        let out = Command::new("pkexec")
+            .args(["/bin/sh", "-c", &script(fixes)])
+            .output()
+            .map_err(|error| {
+                tracing::warn!(%error, "pkexec could not start");
+                Outcome::NoPrompt
+            })?;
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        if let Some(outcome) = pkexec_outcome(out.status.code(), &stderr) {
+            tracing::info!(?outcome, %stderr, "the setup did not run");
+            return Err(outcome);
+        }
+        let results = results(fixes, &String::from_utf8_lossy(&out.stdout));
+        tracing::info!(?results, "setup run");
+        Ok(results)
+    }
+
+    /// Applies the missing items (all, or only those in `only`) with one password prompt, then
+    /// checks again.
+    pub fn configure(
+        ports: &PortsSetting,
+        prefs: &SetupPrefs,
+        data_dir: &Path,
+        only: Option<&[ItemId]>,
+    ) -> SetupView {
+        let mut record = SetupRecord::load(data_dir);
+        let fixes: Vec<Fix> = inspect(ports, prefs, &record)
+            .into_iter()
+            .filter(|(item, _)| item.state != ItemState::Done)
+            .filter(|(item, _)| only.is_none_or(|ids| ids.contains(&item.id)))
+            .map(|(_, fix)| fix)
+            .collect();
+        if fixes.is_empty() {
+            return SetupView::new(check(ports, prefs, data_dir), None);
+        }
+        let results = match run_as_root(&fixes) {
+            Ok(results) => results,
+            Err(outcome) => return SetupView::new(check(ports, prefs, data_dir), Some(outcome)),
+        };
+        for (fix, (_, result)) in fixes.iter().zip(&results) {
+            if let (Fix::Ufw { secure, plain, .. }, Ok(())) = (fix, result) {
+                record.ufw = Some(UfwPorts {
+                    secure: *secure,
+                    plain: *plain,
+                });
+                if let Err(error) = record.save(data_dir) {
+                    tracing::warn!(%error, "could not save the setup record");
+                }
+            }
+        }
+
+        // udev applies the device permission a moment later
+        let controllers_ran = results
+            .iter()
+            .any(|(id, result)| *id == ItemId::Controllers && result.is_ok());
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let mut fresh = check(ports, prefs, data_dir);
+        while controllers_ran
+            && Instant::now() < deadline
+            && fresh
+                .iter()
+                .any(|item| item.id == ItemId::Controllers && item.state != ItemState::Done)
+        {
+            std::thread::sleep(Duration::from_millis(100));
+            fresh = check(ports, prefs, data_dir);
+        }
+        SetupView::new(with_results(fresh, &results), None)
+    }
+
+    /// Makes the controllers' touchpad a desktop mouse again (`on`: removes the rule) or not
+    /// (applies it), with one password prompt.
+    pub fn set_touchpad_mouse(on: bool) -> Result<(), RunError> {
+        let fix = if on {
+            Fix::RemoveTouchpad
+        } else {
+            Fix::Touchpad
+        };
+        match run_as_root(std::slice::from_ref(&fix)) {
+            Err(outcome) => Err(RunError::NotRun(outcome)),
+            Ok(results) => match results.into_iter().next() {
+                Some((_, Ok(()))) => Ok(()),
+                Some((_, Err(reason))) => Err(RunError::Failed(reason)),
+                None => Err(RunError::Failed("no result".into())),
+            },
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+pub use linux::{check, configure, set_touchpad_mouse};
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -526,7 +868,7 @@ mod tests {
     #[test]
     fn each_block_reports_its_item_and_never_stops_the_script() {
         let script = script(&all_fixes());
-        assert!(script.starts_with("set -u\n"));
+        assert!(script.starts_with("set -u\numask 022\n"));
         assert!(!script.contains("set -e"));
         for id in ["controllers", "touchpad", "ports", "firewall"] {
             assert!(
@@ -641,6 +983,41 @@ mod tests {
     }
 
     #[test]
+    fn controllers_and_firewall_are_critical() {
+        assert!(ItemId::Controllers.critical());
+        assert!(ItemId::Firewall.critical());
+        assert!(!ItemId::Touchpad.critical());
+        assert!(!ItemId::Ports.critical());
+        let item = SetupItem {
+            id: ItemId::Firewall,
+            state: ItemState::Missing,
+            critical: true,
+            reason: None,
+            commands: vec![],
+            firewall: Some(Firewall::Ufw),
+        };
+        assert_eq!(serde_json::to_value(&item).unwrap()["critical"], true);
+    }
+
+    #[test]
+    fn the_touchpad_can_become_a_mouse_again() {
+        assert_eq!(Fix::RemoveTouchpad.id(), ItemId::Touchpad);
+        assert_eq!(
+            Fix::RemoveTouchpad.manual(),
+            [
+                "sudo rm -f /etc/udev/rules.d/72-ninjoy-touchpad.rules",
+                "sudo udevadm control --reload"
+            ]
+        );
+        let script = script(&[Fix::RemoveTouchpad]);
+        assert!(script.contains(
+            "rm -f /etc/udev/rules.d/72-ninjoy-touchpad.rules &&
+udevadm control --reload"
+        ));
+        assert!(script.contains("echo 'ninjoy-item touchpad ok'"));
+    }
+
+    #[test]
     fn manual_commands_are_the_script_commands_with_sudo() {
         let manual = Fix::Controllers.manual();
         assert_eq!(
@@ -673,9 +1050,10 @@ mod tests {
 
     #[test]
     fn the_view_is_ready_when_every_item_is_done_and_lists_what_is_left() {
-        let item = |id, state, commands: &[&str]| SetupItem {
+        let item = |id: ItemId, state, commands: &[&str]| SetupItem {
             id,
             state,
+            critical: id.critical(),
             reason: None,
             commands: commands.iter().map(|c| c.to_string()).collect(),
             firewall: None,
@@ -764,6 +1142,78 @@ mod tests {
              rule service name=\"ssh\" accept\n  {mdns}\n"
         );
         assert_eq!(ninjoy_rich_rules(&output), [ours, mdns]);
+    }
+
+    #[test]
+    fn the_firewall_opens_the_ports_the_app_will_use() {
+        let custom = PortsSetting {
+            mode: PortsMode::Custom,
+            secure: 9443,
+            plain: 9080,
+        };
+        let ports = |p: UfwPorts| (p.secure, p.plain);
+        assert_eq!(ports(firewall_ports(&custom)), (9443, 9080));
+        assert_eq!(ports(firewall_ports(&PortsSetting::default())), (443, 80));
+    }
+
+    #[test]
+    fn pkexec_tells_a_missing_prompt_from_a_cancelled_one() {
+        assert_eq!(pkexec_outcome(Some(0), ""), None);
+        assert_eq!(
+            pkexec_outcome(Some(1), "ufw failed"),
+            None,
+            "the script ran"
+        );
+        assert_eq!(pkexec_outcome(Some(126), ""), Some(Outcome::Cancelled));
+        assert_eq!(
+            pkexec_outcome(
+                Some(127),
+                "Error executing command as another user: No authentication agent found."
+            ),
+            Some(Outcome::NoPrompt)
+        );
+        assert_eq!(
+            pkexec_outcome(
+                Some(127),
+                "Error creating textual authentication agent: Error opening current controlling terminal for the process (`/dev/tty'): No such device or address"
+            ),
+            Some(Outcome::NoPrompt)
+        );
+        assert_eq!(
+            pkexec_outcome(
+                Some(127),
+                "Error executing command as another user: Not authorized"
+            ),
+            Some(Outcome::Cancelled)
+        );
+    }
+
+    #[test]
+    fn a_failed_run_marks_the_items_still_missing() {
+        let item = |id: ItemId, state| SetupItem {
+            id,
+            state,
+            critical: id.critical(),
+            reason: None,
+            commands: vec![],
+            firewall: None,
+        };
+        let items = with_results(
+            vec![
+                item(ItemId::Controllers, ItemState::Done),
+                item(ItemId::Touchpad, ItemState::Missing),
+                item(ItemId::Ports, ItemState::Missing),
+            ],
+            &[
+                (ItemId::Controllers, Err("late".into())),
+                (ItemId::Touchpad, Err("udevadm failed".into())),
+                (ItemId::Ports, Ok(())),
+            ],
+        );
+        assert_eq!(items[0].state, ItemState::Done, "the check found it done");
+        assert_eq!(items[1].state, ItemState::Failed);
+        assert_eq!(items[1].reason.as_deref(), Some("udevadm failed"));
+        assert_eq!(items[2].state, ItemState::Missing);
     }
 
     #[test]

@@ -257,12 +257,47 @@ async fn without_a_backend_the_session_runs_and_slots_say_why() {
         fix: "Install ViGEmBus".into(),
     };
     let hub = DeviceHub::new(Err(reason.clone()));
-    assert_eq!(hub.unavailable(), Some(&reason));
+    assert_eq!(hub.unavailable(), Some(reason.clone()));
     assert_eq!(hub.backend_name(), None);
     let session = session(&hub).await;
     let slot = session.create_slot();
     until("the slot's status", || hub.status(slot).is_some()).await;
     assert_eq!(hub.status(slot), Some(PadStatus::Unavailable));
     hub.on_state(slot, &pressed(button::CROSS)); // ignored
+    session.shutdown().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_backend_given_later_plugs_the_existing_slots() {
+    let hub = DeviceHub::new(Err(Unavailable {
+        reason: "No permission".into(),
+        fix: "Press Configure".into(),
+    }));
+    assert_eq!(hub.backend_name(), None);
+    let session = session(&hub).await;
+    let (one, two) = (session.create_slot(), session.create_slot());
+    until("the slots' status", || hub.status(two).is_some()).await;
+    assert_eq!(hub.status(one), Some(PadStatus::Unavailable));
+
+    let backend = Recording::default();
+    let log = backend.log.clone();
+    hub.set_backend(Box::new(backend), &[one, two]);
+    assert_eq!(hub.backend_name(), Some("test"));
+    assert_eq!(hub.unavailable(), None);
+    assert_eq!(log.lock().unwrap().plugs, [one, two]);
+    assert_eq!(hub.status(one), Some(PadStatus::Plugged));
+    assert_eq!(hub.status(two), Some(PadStatus::Plugged));
+
+    // states reach the pads, and the pump resends them
+    hub.on_state(one, &pressed(button::CROSS));
+    let sent = |log: &Arc<Mutex<Log>>| log.lock().unwrap().reports[&one].len();
+    let first = sent(&log);
+    until("the pump resends", || sent(&log) > first + 2).await;
+
+    // a second backend is ignored
+    hub.set_backend(Box::new(Recording::default()), &[one, two]);
+    assert_eq!(log.lock().unwrap().plugs, [one, two]);
+    assert_eq!(hub.backend_name(), Some("test"));
+    hub.unplug_all();
     session.shutdown().await;
 }

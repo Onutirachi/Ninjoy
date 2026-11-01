@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createApp, type App } from "../../src/app.ts";
-import type { Bridge, ControllerView, LiveView, Settings, Snapshot } from "../../src/bridge.ts";
+import type { Bridge, ControllerView, LiveView, SetupConfigureResult, SetupItem, SetupView, Settings, Snapshot } from "../../src/bridge.ts";
 import { latencyStats } from "../../src/details.ts";
 import "../../src/styles.css";
 
@@ -26,15 +26,27 @@ function controller(number: number, patch: Partial<ControllerView> = {}): Contro
   };
 }
 
+function item(id: SetupItem["id"], state: SetupItem["state"] = "missing", patch: Partial<SetupItem> = {}): SetupItem {
+  return { id, state, critical: id === "controllers" || id === "firewall", reason: null, commands: [`sudo fix ${id}`], firewall: id === "firewall" ? "ufw" : null, ...patch };
+}
+
+function view(items: SetupItem[], outcome: SetupView["outcome"] = null): SetupView {
+  const left = items.filter((i) => i.state !== "done");
+  return { items, ready: left.length === 0, outcome, allCommands: left.flatMap((i) => i.commands).join("\n") };
+}
+
 /** A fake app behind the window. */
 class FakeBridge implements Bridge {
   snap: Snapshot = {
     addresses: { name: "ninjoy.local", ips: ["192.168.0.10"], securePort: 8443, plainPort: 8080 },
     driver: { ok: true, backend: "ViGEmBus", reason: null, fix: null },
-    settings: { theme: "auto", language: "en", holdSeconds: 60, phonesCanCreate: true, startWithSystem: false, closeToTray: true, defaultSkin: "ninjoy" },
+    settings: { theme: "auto", language: "en", holdSeconds: 60, phonesCanCreate: true, startWithSystem: false, closeToTray: true, defaultSkin: "ninjoy", ports: { mode: "automatic", secure: 443, plain: 80 }, setup: { skippedRecommended: false, touchpadMouse: false, ignored: [] } },
     controllers: [],
     skins: [{ id: "ninjoy", name: "Ninjoy", author: "Ninjoy", version: "0.2.0", format: 1, bundled: true, preview: null, files: [], broken: null, isDefault: true }],
+    setup: null,
   };
+  /** what the next Configure returns */
+  configured: SetupConfigureResult = { setup: null, portsMoved: false };
   files: Record<string, string> = {};
   brokenReports: Record<string, string>[] = [];
   liveState: LiveView | null = null;
@@ -73,6 +85,20 @@ class FakeBridge implements Bridge {
   async setBrokenSkins(broken: Record<string, string>) {
     this.brokenReports.push(broken);
     for (const s of this.snap.skins) s.broken = broken[s.id] ?? null;
+  }
+  async setupCheck() {
+    this.calls.push("setupCheck");
+    return structuredClone(this.snap.setup);
+  }
+  async setupConfigure(items: SetupItem["id"][] | null) {
+    this.calls.push(`setupConfigure ${items ? items.join(",") : "all"}`);
+    this.snap.setup = this.configured.setup;
+    return structuredClone(this.configured);
+  }
+  async setupTouchpadMouse(on: boolean) {
+    this.calls.push(`setupTouchpadMouse ${on}`);
+    this.snap.settings.setup.touchpadMouse = on;
+    return { setup: this.snap.setup, portsMoved: false };
   }
   async qrSvg(text: string) {
     return `<svg data-text="${text}"></svg>`;
@@ -115,7 +141,7 @@ describe("desktop window", () => {
     root = document.createElement("div");
     root.style.cssText = "position:fixed;inset:0";
     document.body.append(root);
-    app = await createApp(root, bridge, { timers: false, now: () => NOW, systemLanguages: ["en-US"] });
+    app = await createApp(root, bridge, { timers: false, now: () => NOW, systemLanguages: ["en-US"], allSetMs: 60 });
   };
   afterEach(() => {
     app.dispose();
@@ -300,6 +326,220 @@ describe("desktop window", () => {
     const pop = root.querySelector<HTMLElement>(".popover.driver")!;
     expect(pop.textContent).toContain("The ViGEmBus driver is not available");
     expect(text(pop, "code")).toContain("nefarius/ViGEmBus");
+    expect(pop.querySelector(".setup-items")).toBeNull();
+  });
+
+  const linux = (b: FakeBridge, setup: SetupView) => {
+    b.snap.driver = { ok: setup.items.some((i) => i.id === "controllers" && i.state === "done"), backend: null, reason: "No permission to create virtual controllers (/dev/uhid)", fix: "Press Configure in the virtual controller status." };
+    b.snap.setup = setup;
+  };
+  const startScreen = () => root.querySelector<HTMLElement>(".start");
+  const itemEl = (id: string) => root.querySelector<HTMLDetailsElement>(`.start details[data-item="${id}"]`)!;
+  /** longer than "All set!" stays in the tests */
+  const afterAllSet = () => new Promise((r) => setTimeout(r, 120));
+  const button = (selector: string) => root.querySelector<HTMLButtonElement>(selector)!;
+  const all = () => view([item("controllers"), item("touchpad"), item("ports"), item("firewall")]);
+  const done = () => view([item("controllers", "done"), item("touchpad", "done"), item("ports", "done"), item("firewall", "done")]);
+
+  it("opens on the start screen with each item, its flag and its details", async () => {
+    await start((b) => linux(b, all()));
+    expect(startScreen()).not.toBeNull();
+    expect(root.querySelector(".tabs")).toBeNull();
+    expect(text(root, ".start h1")).toBe("Requirements");
+    expect(text(root, ".chip.warn")).toBe("Requirements pending");
+    const items = [...root.querySelectorAll<HTMLElement>(".start details")];
+    expect(items.map((i) => i.dataset.item)).toEqual(["controllers", "firewall", "touchpad", "ports"]);
+    expect(text(itemEl("controllers"), ".flag")).toBe("Critical");
+    expect(text(itemEl("firewall"), ".flag")).toBe("Critical");
+    expect(text(itemEl("touchpad"), ".flag")).toBe("Recommended");
+    expect(text(itemEl("controllers"), ".title b")).toBe("Create controllers");
+    expect(text(itemEl("firewall"), ".summary")).toContain("local network");
+    // the backend's reason is not translated: the items say what is missing
+    expect(startScreen()!.textContent).not.toContain("No permission to create virtual controllers");
+
+    // expanded: the details (with the real firewall and ports), the commands and one Apply
+    itemEl("firewall").querySelector("summary")!.click();
+    await settle();
+    expect(itemEl("firewall").open).toBe(true);
+    expect(itemEl("firewall").textContent).toContain("ufw is active");
+    expect(itemEl("firewall").textContent).toContain("(443 and 80)");
+    expect(text(itemEl("firewall"), "code.terminal")).toBe("sudo fix firewall");
+    // each item copies only its own commands
+    const copied: string[] = [];
+    const writeText = navigator.clipboard.writeText;
+    navigator.clipboard.writeText = async (t: string) => void copied.push(t);
+    itemEl("firewall").querySelector<HTMLButtonElement>("button.copy")!.click();
+    await settle();
+    navigator.clipboard.writeText = writeText;
+    expect(copied).toEqual(["sudo fix firewall"]);
+    expect(text(itemEl("firewall"), "button.copy")).toBe("Copied");
+    bridge.configured = { setup: view([item("controllers"), item("touchpad"), item("ports"), item("firewall", "done")]), portsMoved: false };
+    itemEl("firewall").querySelector<HTMLButtonElement>("button.apply")!.click();
+    await settle();
+    expect(bridge.calls).toContain("setupConfigure firewall");
+    expect(itemEl("firewall").dataset.state).toBe("done");
+    expect(itemEl("firewall").open).toBe(true);
+  });
+
+  it("configures everything with one button, says All set and opens the main window", async () => {
+    await start((b) => linux(b, all()));
+    bridge.configured = { setup: done(), portsMoved: true };
+    bridge.snap.driver = { ok: true, backend: "UHID", reason: null, fix: null };
+    button(".start button.configure").click();
+    await settle();
+    expect(bridge.calls).toContain("setupConfigure all");
+    expect(text(root, ".start h1")).toBe("All set!");
+    expect(text(root, ".notice")).toContain("scan their controller's QR code again");
+    await afterAllSet();
+    expect(startScreen()).toBeNull();
+    expect(button(".list .create").disabled).toBe(false);
+  });
+
+  it("shows a failed item's output and the commands when the prompt is cancelled", async () => {
+    await start((b) => linux(b, all()));
+    bridge.configured = {
+      setup: view([item("controllers", "done"), item("touchpad", "done"), item("ports", "done"), item("firewall", "failed", { reason: "ERROR: Couldn't determine iptables version", commands: ["sudo ufw allow from 10.0.0.0/8 to any port 443 proto tcp"] })]),
+      portsMoved: false,
+    };
+    button(".start button.configure").click();
+    await settle();
+    const failed = itemEl("firewall");
+    expect(failed.dataset.state).toBe("failed");
+    // the output and the commands, untouched, in terminal blocks
+    const [output, commands] = [...failed.querySelectorAll<HTMLElement>("code.terminal")].map((c) => c.textContent);
+    expect(output).toBe("ERROR: Couldn't determine iptables version");
+    expect(commands).toBe("sudo ufw allow from 10.0.0.0/8 to any port 443 proto tcp");
+
+    bridge.configured = { setup: view([item("firewall")], "cancelled"), portsMoved: false };
+    button(".start button.configure").click();
+    await settle();
+    expect(text(root, ".start .outcome")).toContain("cancelled");
+    button(".start button.copy.all").click();
+    await settle();
+    expect(bridge.calls).toContain("setupConfigure all");
+  });
+
+  it("follows the system while shown: items done in a terminal turn green on their own", async () => {
+    await start((b) => linux(b, view([item("controllers"), item("touchpad")])));
+    bridge.snap.setup = view([item("controllers", "done"), item("touchpad")]);
+    await app.tick();
+    await app.tick();
+    expect(bridge.calls.filter((c) => c === "setupCheck")).toHaveLength(1);
+    expect(itemEl("controllers").dataset.state).toBe("done");
+    bridge.snap.setup = view([item("controllers", "done"), item("touchpad", "done")]);
+    await app.tick();
+    await app.tick();
+    expect(text(root, ".start h1")).toBe("All set!");
+    await afterAllSet();
+    expect(startScreen()).toBeNull();
+  });
+
+  it("continues anyway: no controller can be created and the setup stays one click away", async () => {
+    await start((b) => linux(b, all()));
+    button(".start button.skip").click();
+    await settle();
+    expect(bridge.saved.at(-1)!.setup.skippedRecommended).toBe(true);
+    expect(startScreen()).toBeNull();
+    expect(button(".list .create").disabled).toBe(true);
+    expect(text(root, ".permission h2")).toBe("Permission needed");
+    expect(text(root, ".permission p")).toContain("does not have permission");
+    button(".permission .see-setup").click();
+    expect(startScreen()).not.toBeNull();
+  });
+
+  it("skips the start screen for Recommended items only once the user said so", async () => {
+    const recommended = view([item("controllers", "done"), item("touchpad")]);
+    await start((b) => linux(b, recommended));
+    expect(startScreen()).not.toBeNull();
+    app.dispose();
+    root.remove();
+    await start((b) => {
+      linux(b, recommended);
+      b.snap.settings.setup.skippedRecommended = true;
+    });
+    expect(startScreen()).toBeNull();
+    expect(button(".list .create").disabled).toBe(false);
+    app.dispose();
+    root.remove();
+    await start((b) => {
+      linux(b, view([item("controllers"), item("touchpad")]));
+      b.snap.settings.setup.skippedRecommended = true;
+    });
+    expect(startScreen()).not.toBeNull();
+  });
+
+  it("ignores a Recommended item: it no longer counts as missing", async () => {
+    await start((b) => linux(b, view([item("controllers"), item("touchpad"), item("ports")])));
+    expect(itemEl("controllers").querySelector(".ignore")).toBeNull();
+    const box = itemEl("touchpad").querySelector<HTMLInputElement>(".ignore input")!;
+    box.click();
+    await settle();
+    expect(bridge.saved.at(-1)!.setup.ignored).toEqual(["touchpad"]);
+    // the box does not open the card, and the card fades
+    expect(itemEl("touchpad").open).toBe(false);
+    expect(itemEl("touchpad").dataset.ignored).toBe("");
+    // Configure and Copy leave the ignored item out
+    bridge.configured = { setup: view([item("controllers", "done"), item("touchpad"), item("ports", "done")]), portsMoved: false };
+    button(".start button.configure").click();
+    await settle();
+    expect(bridge.calls).toContain("setupConfigure controllers,ports");
+    // nothing else missing: the chip is calm and the start screen does not come back
+    expect(text(root, '[data-popover="driver"]')).toBe("Requirements OK");
+    expect(root.querySelector(".chip.warn")).toBeNull();
+    app.dispose();
+    root.remove();
+    await start((b) => {
+      linux(b, view([item("controllers", "done"), item("touchpad"), item("ports", "done")]));
+      b.snap.settings.setup.ignored = ["touchpad"];
+    });
+    expect(startScreen()).toBeNull();
+    expect(root.querySelector(".chip.warn")).toBeNull();
+    app.dispose();
+    root.remove();
+
+    // applied while still ignored: the item is done, not faded
+    await start((b) => {
+      linux(b, view([item("controllers"), item("touchpad", "done")]));
+      b.snap.settings.setup.ignored = ["touchpad"];
+    });
+    expect(itemEl("touchpad").dataset.ignored).toBeUndefined();
+    expect(itemEl("touchpad").querySelector(".ignore")).toBeNull();
+  });
+
+  it("lists the items in the status panel with a way to the start screen", async () => {
+    await start((b) => {
+      linux(b, view([item("controllers", "done"), item("touchpad")]));
+      b.snap.settings.setup.skippedRecommended = true;
+    });
+    root.querySelector<HTMLButtonElement>('[data-popover="driver"]')!.click();
+    await settle();
+    expect(bridge.calls).toContain("setupCheck");
+    const pop = root.querySelector<HTMLElement>(".popover.driver")!;
+    expect([...pop.querySelectorAll<HTMLElement>(".setup-items li")].map((r) => r.dataset.state)).toEqual(["done", "missing"]);
+    expect(text(pop, ".firewall-help")).toContain("firewall");
+    pop.querySelector<HTMLButtonElement>(".see-setup")!.click();
+    expect(startScreen()).not.toBeNull();
+  });
+
+  it("changes the controllers' touchpad into a mouse from the Linux settings", async () => {
+    await start((b) => {
+      linux(b, done());
+      b.snap.driver = { ok: true, backend: "UHID", reason: null, fix: null };
+    });
+    root.querySelector<HTMLButtonElement>('[data-popover="settings"]')!.click();
+    const toggle = root.querySelector<HTMLInputElement>('[data-setting="touchpadMouse"]')!;
+    expect(toggle.checked).toBe(false);
+    toggle.click();
+    await settle();
+    expect(bridge.calls).toContain("setupTouchpadMouse true");
+    expect(toggle.checked).toBe(true);
+  });
+
+  it("has no start screen or touchpad setting off Linux", async () => {
+    await start();
+    expect(startScreen()).toBeNull();
+    root.querySelector<HTMLButtonElement>('[data-popover="settings"]')!.click();
+    expect(root.querySelector('[data-setting="touchpadMouse"]')).toBeNull();
   });
 
   it("lists the skin library, chooses the default and shows broken skins", async () => {

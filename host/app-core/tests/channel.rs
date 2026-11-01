@@ -33,6 +33,7 @@ async fn core() -> Arc<AppCore> {
             reason: "tests".into(),
             fix: String::new(),
         }),
+        check_setup: false,
     })
     .await
     .unwrap()

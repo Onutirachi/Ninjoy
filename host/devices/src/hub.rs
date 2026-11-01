@@ -2,7 +2,7 @@
 //! game's feedback back to the phones.
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock, Weak};
 use std::time::{Duration, Instant};
 
 use ninjoy_session::{ControllerState, Feedback, FeedbackHandle, Session, SessionEvent, StateSink};
@@ -40,8 +40,9 @@ const RETRY: Duration = Duration::from_secs(1);
 type ToolFeedback = Arc<dyn Fn(u16, Feedback) + Send + Sync>;
 
 struct Inner {
-    backend: Option<Box<dyn Backend>>,
-    unavailable: Option<Unavailable>,
+    /// set once: at start, or later when the system allows it (the Linux setup)
+    backend: OnceLock<Box<dyn Backend>>,
+    unavailable: Mutex<Option<Unavailable>>,
     pads: Mutex<HashMap<u16, Entry>>,
     feedback: Mutex<Option<FeedbackHandle>>,
     /// feedback received per slot is printed by tools when set
@@ -63,38 +64,49 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 impl DeviceHub {
     /// A hub over `backend`, or without pads when no backend works here (the session still runs).
     pub fn new(backend: Result<Box<dyn Backend>, Unavailable>) -> Self {
-        let (backend, unavailable) = match backend {
-            Ok(b) => (Some(b), None),
-            Err(u) => (None, Some(u)),
-        };
         let hub = Self {
             inner: Arc::new(Inner {
-                backend,
-                unavailable,
+                backend: OnceLock::new(),
+                unavailable: Mutex::new(None),
                 pads: Mutex::new(HashMap::new()),
                 feedback: Mutex::new(None),
                 on_feedback: Mutex::new(None),
                 started: Instant::now(),
             }),
         };
-        if hub.inner.backend.is_some() {
-            let weak = Arc::downgrade(&hub.inner);
-            std::thread::Builder::new()
-                .name("ninjoy-pads".into())
-                .spawn(move || pump(weak))
-                .expect("pump thread starts");
+        match backend {
+            Ok(backend) => hub.set_backend(backend, &[]),
+            Err(why) => *lock(&hub.inner.unavailable) = Some(why),
         }
         hub
     }
 
+    /// Gives a hub created without a backend the one that now works (the Linux setup allowed
+    /// it), and plugs a pad for each of `slots`. Ignored when the hub already has one.
+    pub fn set_backend(&self, backend: Box<dyn Backend>, slots: &[u16]) {
+        if self.inner.backend.set(backend).is_err() {
+            return;
+        }
+        *lock(&self.inner.unavailable) = None;
+        let weak = Arc::downgrade(&self.inner);
+        std::thread::Builder::new()
+            .name("ninjoy-pads".into())
+            .spawn(move || pump(weak))
+            .expect("pump thread starts");
+        let mut pads = lock(&self.inner.pads);
+        for &slot in slots {
+            ensure(&self.inner, &mut pads, slot);
+        }
+    }
+
     /// The backend in use ("ViGEmBus", "UHID"), if any.
     pub fn backend_name(&self) -> Option<&'static str> {
-        self.inner.backend.as_ref().map(|b| b.name())
+        self.inner.backend.get().map(|b| b.name())
     }
 
     /// Why there are no virtual pads on this computer, if so.
-    pub fn unavailable(&self) -> Option<&Unavailable> {
-        self.inner.unavailable.as_ref()
+    pub fn unavailable(&self) -> Option<Unavailable> {
+        lock(&self.inner.unavailable).clone()
     }
 
     /// Follows the session: plugs a pad for host-created slots, unplugs freed slots and sends
@@ -155,7 +167,7 @@ fn ensure<'a>(inner: &Arc<Inner>, pads: &'a mut HashMap<u16, Entry>, slot: u16) 
     });
     if entry.pad.is_none()
         && entry.retry_at.is_none_or(|at| Instant::now() >= at)
-        && let Some(backend) = &inner.backend
+        && let Some(backend) = inner.backend.get()
     {
         let weak = Arc::downgrade(inner);
         let feedback: OnFeedback = Arc::new(move |f: Feedback| {
@@ -207,7 +219,7 @@ fn send(entry: &mut Entry, slot: u16, now_us: u64) {
 impl StateSink for DeviceHub {
     fn on_state(&self, slot: u16, state: &ControllerState) {
         let inner = &self.inner;
-        if inner.backend.is_none() {
+        if inner.backend.get().is_none() {
             return;
         }
         let now_us = inner.started.elapsed().as_micros() as u64;

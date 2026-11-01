@@ -3,6 +3,23 @@
 export type Theme = "auto" | "dark" | "light";
 export type Language = "auto" | "en" | "pt";
 
+/** Automatic: the standard ports with their alternates; Custom: exactly these. */
+export interface PortsSetting {
+  mode: "automatic" | "custom";
+  secure: number;
+  plain: number;
+}
+
+/** Linux start screen and touchpad choices. */
+export interface SetupPrefs {
+  /** "Continue anyway": the start screen opens only for a missing Critical item */
+  skippedRecommended: boolean;
+  /** the controllers' touchpad stays a desktop mouse */
+  touchpadMouse: boolean;
+  /** Recommended items the user chose to ignore: they no longer count as missing */
+  ignored: SetupItem["id"][];
+}
+
 export interface Settings {
   theme: Theme;
   language: Language;
@@ -12,6 +29,8 @@ export interface Settings {
   closeToTray: boolean;
   /** the skin phones use unless they pick their own */
   defaultSkin: string;
+  ports: PortsSetting;
+  setup: SetupPrefs;
 }
 
 export interface ControllerView {
@@ -48,12 +67,42 @@ export interface SkinView {
   isDefault: boolean;
 }
 
+/** One system change Ninjoy needs on Linux. */
+export interface SetupItem {
+  id: "controllers" | "touchpad" | "ports" | "firewall";
+  state: "done" | "missing" | "failed";
+  /** Critical (controllers, firewall) or Recommended */
+  critical: boolean;
+  /** raw command output when it failed */
+  reason: string | null;
+  /** the commands to run by hand */
+  commands: string[];
+  firewall: "ufw" | "firewalld" | null;
+}
+
+export interface SetupView {
+  items: SetupItem[];
+  ready: boolean;
+  /** the last Configure, when it did not run */
+  outcome: "cancelled" | "noPrompt" | null;
+  /** every item still to do, as commands to copy */
+  allCommands: string;
+}
+
+export interface SetupConfigureResult {
+  setup: SetupView | null;
+  /** the phone servers moved: phones must scan their QR code again */
+  portsMoved: boolean;
+}
+
 export interface Snapshot {
   addresses: { name: string | null; ips: string[]; securePort: number | null; plainPort: number };
   driver: { ok: boolean; backend: string | null; reason: string | null; fix: string | null };
   settings: Settings;
   controllers: ControllerView[];
   skins: SkinView[];
+  /** the Linux setup; null on other systems */
+  setup: SetupView | null;
 }
 
 export interface LiveView {
@@ -75,6 +124,12 @@ export interface Bridge {
   kick(number: number): Promise<void>;
   setSettings(settings: Settings): Promise<void>;
   qrSvg(text: string): Promise<string>;
+  /** checks the Linux setup items again (null on other systems) */
+  setupCheck(): Promise<SetupView | null>;
+  /** applies the missing Linux setup items (all, or only `items`); resolves once the password prompt is answered */
+  setupConfigure(items: SetupItem["id"][] | null): Promise<SetupConfigureResult>;
+  /** makes the controllers' touchpad a desktop mouse (`on`) or not; one password prompt */
+  setupTouchpadMouse(on: boolean): Promise<SetupConfigureResult>;
   /** a file of a skin in the library */
   skinFile(id: string, path: string): Promise<Uint8Array>;
   /** skins the window found broken (id → reason) */
@@ -101,6 +156,9 @@ export async function tauriBridge(): Promise<Bridge> {
     kick: (number) => invoke<void>("kick", { number }),
     setSettings: (settings) => invoke<void>("set_settings", { settings }),
     qrSvg: (text) => invoke<string>("qr_svg", { text }),
+    setupCheck: () => invoke<SetupView | null>("setup_check"),
+    setupConfigure: (items) => invoke<SetupConfigureResult>("setup_configure", { items }),
+    setupTouchpadMouse: (on) => invoke<SetupConfigureResult>("setup_touchpad_mouse", { on }),
     skinFile: async (id, path) => new Uint8Array(await invoke<ArrayBuffer>("skin_file", { id, path })),
     setBrokenSkins: (broken) => invoke<void>("set_broken_skins", { broken }),
     onChanged(listener) {

@@ -91,17 +91,21 @@ Port setting, server restart and the setup module's pure parts. US1 and US3 both
 
 ## Phase 3: User Story 1 - Configure Linux with one button (P1) 🎯 MVP
 
-**Goal**: missing items listed; one Configure with one password applies them all; controllers
-appear without a restart.
+**Goal**: a start screen lists the missing items; one Configure with one password applies them
+all (or one at a time); controllers appear without a restart; nothing can create a controller
+games cannot see.
 
 **Independent test**: quickstart "Linux PC", steps 1–4 and 6–8.
 
-- [ ] T011 [P] [US1] Tests in `host/devices/tests/hub.rs`, with a fake backend:
+T011–T017 are done. The start screen (clarifications of 2026-10-31) replaces the Configure part
+of the status panel in T018/T019 and adds T031–T036.
+
+- [X] T011 [P] [US1] Tests in `host/devices/tests/hub.rs`, with a fake backend:
   - a hub created with `Err(Unavailable)` reports `backend_name() == None`;
   - after `set_backend(fake, &[1, 2])`, slots 1 and 2 are `Plugged`, `unavailable()` is `None`,
     and the next `on_state` reaches the fake pad (the pump runs);
   - a second `set_backend` is ignored.
-- [ ] T012 [US1] Implement `DeviceHub::set_backend(backend, slots: &[u16])` in
+- [X] T012 [US1] Implement `DeviceHub::set_backend(backend, slots: &[u16])` in
   `host/devices/src/hub.rs`:
   - `backend` in a `OnceLock<Box<dyn Backend>>`;
   - `unavailable` in a `Mutex<Option<…>>`;
@@ -109,7 +113,7 @@ appear without a restart.
   - call `ensure` for each slot.
 
   Update `backend_name()`, `unavailable()` and `on_state`.
-- [ ] T013 [US1] Implement the Linux check in `host/app-core/src/setup.rs`
+- [X] T013 [US1] Implement the Linux check in `host/app-core/src/setup.rs`
   (`#[cfg(target_os = "linux")] pub fn check(ports: &PortsSetting, record: &SetupRecord) -> Vec<SetupItem>`),
   following research R1–R4:
   - **controllers**: `uhid::can_open()`, plus our rule file content, plus the modules-load file
@@ -121,7 +125,7 @@ appear without a restart.
     `systemctl is-active ufw`, record matches the ports), or no item.
 
   The whole check targets under 300 ms. On other systems it returns an empty list.
-- [ ] T014 [US1] Implement `configure()` in `host/app-core/src/setup.rs` (Linux):
+- [X] T014 [US1] Implement `configure()` in `host/app-core/src/setup.rs` (Linux):
   - build the script for the missing items and run `pkexec /bin/sh -c <script>`;
   - map exit 126 → `outcome: "cancelled"`; exit 127 with "No authentication agent", or a spawn
     error → `"noPrompt"`;
@@ -129,7 +133,7 @@ appear without a restart.
   - write `linux-setup.json` when the ufw firewall item succeeded;
   - check again, retrying the controllers item for up to 2 s;
   - `failed` items keep their reason and commands.
-- [ ] T015 [US1] Wire it into `host/app-core/src/core.rs`:
+- [X] T015 [US1] Wire it into `host/app-core/src/core.rs`:
   - `AppCore::setup_check()` and `AppCore::setup_configure()` return the view (and
     `portsMoved`);
   - when the hub has no backend and the controllers item is done, call `open_default()` and
@@ -139,17 +143,54 @@ appear without a restart.
     (`should_move_to_low_ports(ports, low_allowed, running_plain) -> bool`);
   - `Snapshot.setup`: the last view on Linux (a first check at start), `None` on Windows;
   - `changed()` after each.
-- [ ] T016 [P] [US1] Tests:
+- [X] T016 [P] [US1] Tests:
   - in `host/app-core/tests/core.rs`: the snapshot has `setup: null` off Linux
     (`#[cfg(not(target_os = "linux"))]`); the snapshot's `settings.ports` defaults;
   - in `host/app-core/src/core.rs` (unit, all platforms), `should_move_to_low_ports`: Automatic
     + low ports allowed + running on 8080 → true; already on 80 → false; low ports not allowed
     → false; Custom → false (US3 scenario 3).
-- [ ] T017 [US1] Add the Tauri commands `setup_check` and `setup_configure` in
+- [X] T017 [US1] Add the Tauri commands `setup_check` and `setup_configure` in
   `host/app/src/main.rs`. Run `setup_configure` on a blocking thread
   (`tauri::async_runtime::spawn_blocking`), because pkexec waits for the user.
-- [ ] T018 [P] [US1] UI tests in `desktop/test/browser/app.test.ts`, with the fake bridge:
-  - the chip warns while `driver.ok` is false;
+- [X] T031 [P] [US1] Unit tests in `host/app-core/src/setup.rs` and `store.rs`:
+  - `SetupPrefs` defaults (`skippedRecommended: false`, `touchpadMouse: false`, `ignored: []`)
+    and loading an
+    `app.json` without it;
+  - items carry `critical` (controllers and firewall);
+  - `pkexec_outcome` and the script for a subset of fixes, and the touchpad removal script
+    (`rm` of the rule file, then `udevadm control --reload`).
+- [X] T032 [US1] Implement in `host/app-core/src/store.rs` and `setup.rs`:
+  - `Settings.setup: SetupPrefs`;
+  - `SetupItem.critical`;
+  - `check` leaves out the touchpad item while `touchpadMouse` is on;
+  - `configure(…, only: Option<&[ItemId]>)`;
+  - `Fix::RemoveTouchpad` and `set_touchpad_mouse(on)` (Linux).
+- [X] T033 [P] [US1] Tests in `host/app-core/tests/core.rs`: while the controllers item is
+  missing, `create` returns `CoreError::SetupNeeded` and the session refuses phones creating
+  controllers (with a fake view injected through a test hook); once done, both work again.
+- [X] T034 [US1] Implement in `host/app-core/src/core.rs` and `host/app/src/main.rs`:
+  - `CoreError::SetupNeeded`; `create` refuses while the controllers item is missing;
+  - the phones' permission is `settings.phonesCanCreate && controllers done`, applied after
+    every check and settings change;
+  - `setup_configure(items)` and `setup_touchpad_mouse(on)` (core and Tauri commands).
+- [X] T018 [P] [US1] UI tests in `desktop/test/browser/app.test.ts`, with the fake bridge:
+  - the start screen shows when a Critical item is missing, and when only Recommended items are
+    missing unless `skippedRecommended`; not on Windows (`setup: null`) or when ready;
+  - items show their light, flag, title and summary; a click expands details, commands and an
+    Apply button that calls `setupConfigure(["touchpad"])` and a Copy button for that item's
+    commands; Critical items come first;
+  - Configure automatically calls `setupConfigure(null)`; Copy commands copies `allCommands`;
+  - checks every 2 s while shown (fake timers or a `tick`), and lights follow the results;
+  - all done → "All set!" then the main window;
+  - Ignore on a Recommended item saves `ignored`, fades the card, leaves it out of Configure
+    and Copy, and calms the chip when nothing else is missing;
+  - Continue anyway saves `skippedRecommended` and shows the main window; without the
+    controllers item, "Create controller" is disabled and "Permission needed" with "See setup"
+    reopens the start screen;
+  - the status panel lists the items with a "See setup" button;
+  - the Linux touchpad setting calls `setupTouchpadMouse`;
+  - the chip reads "Requirements pending" while any item is missing ("Requirements OK" when
+    ready);
   - opening the panel calls `setupCheck`;
   - missing items are listed with their explanations and one Configure button;
   - after Configure, done/failed are shown, with each failed item's reason and commands;
@@ -159,15 +200,17 @@ appear without a restart.
   - with every item done there is no Configure button and the panel says "ready";
   - `portsMoved` shows the moved notice;
   - on Windows (`setup: null`) the panel is as today.
-- [ ] T019 [US1] Implement it in the desktop window:
+- [X] T019 [US1] Implement it in the desktop window (start screen in a new
+  `desktop/src/setup.ts`, the rest in `app.ts`):
   - types and calls in `desktop/src/bridge.ts`;
   - the status panel in `desktop/src/app.ts` (the driver popover);
   - styles in `desktop/src/styles.css`;
-  - strings in `desktop/src/i18n/en.json` and `pt.json`: item titles and one-line explanations
-    (the touchpad note: "applies to controllers plugged after the setup"), Configure, ready,
-    cancelled, no prompt, copy, moved notice, and the firewall help for an unknown firewall.
+  - strings in `desktop/src/i18n/en.json` and `pt.json`: the spec's item texts (title, summary,
+    details), flags, start screen buttons, "All set!", "Permission needed", cancelled, no prompt,
+    copy, moved notice, the touchpad setting, and the firewall help for an unknown firewall.
 
-**Checkpoint**: Configure works end to end on the CachyOS PC.
+**Checkpoint**: the start screen works end to end on the Ubuntu VM: Configure automatically,
+one item's Apply, commands run by hand turning green, Continue anyway, and the touchpad setting.
 
 ## Phase 4: User Story 2 - The touchpad stays inside the game (P1)
 

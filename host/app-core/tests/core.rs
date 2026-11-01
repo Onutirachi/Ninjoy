@@ -34,6 +34,7 @@ fn config(dir: &Path) -> CoreConfig {
             reason: "no driver in tests".into(),
             fix: "none".into(),
         }),
+        check_setup: false,
     }
 }
 
@@ -253,4 +254,76 @@ fn keeps_data_beside_the_program_and_brings_the_old_data_along() {
     // a folder that cannot be made falls back to the user's data folder
     std::fs::write(root.join("file"), "").unwrap();
     assert_eq!(data_dir(&root.join("file/data"), &user), user);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_snapshot_has_the_ports_setting_and_no_setup_without_the_check() {
+    let core = start(&temp_dir()).await;
+    let snap = serde_json::to_value(core.snapshot()).unwrap();
+    assert_eq!(
+        snap["settings"]["ports"],
+        serde_json::json!({ "mode": "automatic", "secure": 443, "plain": 80 })
+    );
+    // no Linux setup off Linux, nor when the check is off (tests)
+    assert!(snap["setup"].is_null());
+    assert!(core.setup_check().is_none());
+    #[cfg(not(target_os = "linux"))]
+    {
+        let result = core.setup_configure(None).await;
+        assert!(result.setup.is_none() && !result.ports_moved);
+    }
+    core.shutdown().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn nothing_creates_controllers_until_linux_allows_it() {
+    use ninjoy_app_core::setup::{ItemId, ItemState, SetupItem, SetupView};
+    let item = |state| SetupItem {
+        id: ItemId::Controllers,
+        state,
+        critical: true,
+        reason: None,
+        commands: vec![],
+        firewall: None,
+    };
+    let core = start(&temp_dir()).await;
+    core.inject_setup_view(SetupView::new(vec![item(ItemState::Missing)], None));
+    assert_eq!(core.create(None), Err(CoreError::SetupNeeded));
+    assert!(core.snapshot().controllers.is_empty());
+    // phones are refused too, whatever the setting says
+    assert!(core.settings().phones_can_create);
+    assert!(!phones_may_create(&core).await);
+
+    core.inject_setup_view(SetupView::new(vec![item(ItemState::Done)], None));
+    assert_eq!(core.create(None), Ok(1));
+    assert!(phones_may_create(&core).await);
+    core.shutdown().await;
+}
+
+/// Asks the session's controller list, as a phone does, whether phones may create controllers.
+async fn phones_may_create(core: &AppCore) -> bool {
+    use futures_util::{SinkExt, StreamExt};
+    use ninjoy_session::protocol::{HostMessage, PageMessage, decode_host, encode_page};
+    use tokio_tungstenite::tungstenite::Message;
+    let port = core.snapshot().addresses.plain_port;
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{port}/ws"))
+        .await
+        .expect("websocket connects");
+    let mut buf = Vec::new();
+    encode_page(&PageMessage::List { device: [7; 16] }, &mut buf);
+    ws.send(Message::Binary(buf.into())).await.unwrap();
+    loop {
+        let message = tokio::time::timeout(Duration::from_secs(3), ws.next())
+            .await
+            .expect("an answer")
+            .expect("open")
+            .expect("valid");
+        if let Message::Binary(bytes) = message
+            && let Some(HostMessage::SlotList {
+                phones_can_create, ..
+            }) = decode_host(&bytes).unwrap()
+        {
+            return phones_can_create;
+        }
+    }
 }

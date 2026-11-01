@@ -2214,12 +2214,14 @@ name = "ninjoy-app-core"
 version = "0.1.0"
 dependencies = [
  "directories",
+ "futures-util",
  "ninjoy-devices",
  "ninjoy-session",
  "qrcode",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-tungstenite 0.30.0",
  "tracing",
 ]
 

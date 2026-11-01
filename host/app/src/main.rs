@@ -5,7 +5,10 @@
 
 use std::sync::Arc;
 
-use ninjoy_app_core::{AppCore, CoreConfig, LiveView, Settings, Snapshot, channel, cli};
+use ninjoy_app_core::setup::{ItemId, SetupView};
+use ninjoy_app_core::{
+    AppCore, CoreConfig, LiveView, Settings, SetupConfigureResult, Snapshot, channel, cli,
+};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder, WindowEvent};
@@ -42,6 +45,33 @@ fn kick(core: State<'_, Core>, number: u16) -> Result<(), String> {
 fn set_settings(app: AppHandle, core: State<'_, Core>, settings: Settings) {
     core.update_settings(settings);
     sync_autostart(&app, &core);
+}
+
+/// Checks the Linux setup items again (null on other systems).
+#[tauri::command]
+fn setup_check(core: State<'_, Core>) -> Option<SetupView> {
+    core.setup_check()
+}
+
+/// Applies the missing Linux setup items (all, or only `items`); waits while the password
+/// prompt is open.
+#[tauri::command]
+async fn setup_configure(
+    core: State<'_, Core>,
+    items: Option<Vec<ItemId>>,
+) -> Result<SetupConfigureResult, String> {
+    let core = core.inner().clone();
+    Ok(core.setup_configure(items).await)
+}
+
+/// Makes the controllers' touchpad a desktop mouse or not (Linux, one password prompt).
+#[tauri::command]
+async fn setup_touchpad_mouse(
+    core: State<'_, Core>,
+    on: bool,
+) -> Result<SetupConfigureResult, String> {
+    let core = core.inner().clone();
+    Ok(core.setup_touchpad_mouse(on).await)
 }
 
 /// A skin file's bytes (previews and validation in the window), sent as raw binary.
@@ -177,6 +207,9 @@ fn main() {
             remove,
             kick,
             set_settings,
+            setup_check,
+            setup_configure,
+            setup_touchpad_mouse,
             qr_svg,
             skin_file,
             set_broken_skins

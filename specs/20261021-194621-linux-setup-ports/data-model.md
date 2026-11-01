@@ -15,6 +15,17 @@
   - Custom: secure `[secure]`, plain `[plain]`.
 - `wanted_low_port()`: the lowest port below 1024 the setting wants, if any (Automatic: 80).
 
+## SetupPrefs (`app.json` → `settings.setup`)
+
+| Field | Type | Rule |
+|---|---|---|
+| `skippedRecommended` | bool | "Continue anyway" was pressed: the start screen opens only for a missing Critical item; default false |
+| `touchpadMouse` | bool | the controllers' touchpad stays a desktop mouse (no touchpad rule); default false |
+| `ignored` | list of item ids | Recommended items the user ignores: they no longer count as missing (chip, start screen, Configure, Copy); Critical ids are not honored; default empty |
+
+While the controllers item is missing on Linux, phones cannot create controllers (the session's
+`phones_can_create` is off whatever the setting says) and `AppCore::create` refuses.
+
 ## SetupItem (Linux only; built by each check, not stored)
 
 | Field | Type | Notes |
@@ -24,8 +35,10 @@
 | `reason` | string? | raw reason when failed (command output) |
 | `commands` | string[] | the manual commands (`sudo …`) for this item |
 | `firewall` | `"ufw"` \| `"firewalld"`? | only for `firewall` |
+| `critical` | bool | controllers and firewall: without them Ninjoy does not work |
 
 - `ports` is present only when `wanted_low_port()` is some.
+- `touchpad` is absent while `settings.setup.touchpadMouse` is on.
 - `firewall` is present only when ufw or firewalld is active.
 - The explanation text comes from the window's locale files by `id`.
 
