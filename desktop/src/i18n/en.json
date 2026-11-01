@@ -100,5 +100,14 @@
   "setup.ports.details": "With the standard ports (80 and 443), the controllers' address is simplified: ninjoy.local/1 instead of ninjoy.local:8080/1.\nBy default, Linux reserves the ports below 1024 to the administrator. The adjustment lowers this limit (net.ipv4.ip_unprivileged_port_start) to {port}, in /etc/sysctl.d. The change applies to every program on this computer, without modifying how any of them works.",
   "permission.title": "Permission needed",
   "permission.text": "Ninjoy does not have permission to create virtual controllers.",
-  "settings.touchpadMouse": "Controllers' touchpad moves the mouse"
+  "settings.touchpadMouse": "Controllers' touchpad moves the mouse",
+  "settings.ports": "Ports",
+  "ports.automatic": "Automatic",
+  "ports.custom": "Custom",
+  "ports.secure": "Secure (HTTPS)",
+  "ports.plain": "Plain (HTTP)",
+  "ports.save": "Save",
+  "ports.range": "Ports go from 1 to 65535.",
+  "ports.same": "The secure and plain ports must be different.",
+  "ports.failed": "Ninjoy kept the previous ports. {reason}"
 }

@@ -218,7 +218,7 @@ one item's Apply, commands run by hand turning green, Continue anyway, and the t
 
 **Independent test**: quickstart "Linux PC", step 5, plus a real DS4/DualSense plugged in.
 
-- [ ] T020 [US2] On the CachyOS PC, check that `TOUCHPAD_RULE` (T009) matches the proven rule
+- [x] T020 [US2] On the CachyOS PC, check that `TOUCHPAD_RULE` (T009) matches the proven rule
   (`/etc/udev/rules.d/72-ninjoy-touchpad.rules` there; T009 used the contract's text because the
   PC was off) and, with `udevadm info`, a Ninjoy touchpad event node. Check that a real
   DS4/DualSense touchpad does not match (its `uniq` is not `02:4e:4a:*`). Adjust
@@ -233,26 +233,26 @@ notice.
 
 **Independent test**: quickstart "Ports", steps 1–4.
 
-- [ ] T022 [P] [US3] Tests in `host/app-core/tests/core.rs`, with test ports:
+- [x] T022 [P] [US3] Tests in `host/app-core/tests/core.rs`, with test ports:
   - `update_settings` with new valid ports restarts the servers, the snapshot shows the new
     ports, `portsMoved: true`, and controllers keep their numbers;
   - invalid ports → `Err`, and settings and session are unchanged;
   - a taken port → `Err` naming it, previous ports running, previous setting saved;
   - an unchanged ports setting → `portsMoved: false`.
-- [ ] T023 [US3] Change `AppCore::update_settings` to return
+- [x] T023 [US3] Change `AppCore::update_settings` to return
   `Result<SettingsResult { ports_moved }, String>` in `host/app-core/src/core.rs`:
   - validate;
   - call `restart_servers` when `ports` changed;
   - on error keep the previous setting.
 
   Update `set_settings` in `host/app/src/main.rs` to return it.
-- [ ] T024 [P] [US3] UI tests in `desktop/test/browser/app.test.ts`:
+- [x] T024 [P] [US3] UI tests in `desktop/test/browser/app.test.ts`:
   - the Ports row shows Automatic / Custom;
   - Custom shows the secure and plain inputs and Save;
   - invalid input shows the reason inline and does not call the bridge;
   - a bridge error shows the port and reason, and the inputs go back to the running setting;
   - success shows the moved notice.
-- [ ] T025 [US3] Implement the Ports row in the settings popover (`desktop/src/app.ts`), with
+- [x] T025 [US3] Implement the Ports row in the settings popover (`desktop/src/app.ts`), with
   validation mirroring T001, the strings in `desktop/src/i18n/en.json` and `pt.json`, and styles
   in `desktop/src/styles.css`.
 

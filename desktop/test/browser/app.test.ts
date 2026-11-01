@@ -73,9 +73,15 @@ class FakeBridge implements Bridge {
   async kick(number: number) {
     this.calls.push(`kick ${number}`);
   }
+  /** the reason the next ports change fails, as the app gives it */
+  portsError: string | null = null;
   async setSettings(settings: Settings) {
+    const portsMoved = JSON.stringify(settings.ports) !== JSON.stringify(this.snap.settings.ports);
+    if (portsMoved && this.portsError) throw this.portsError;
     this.saved.push(settings);
     this.snap.settings = settings;
+    if (portsMoved && settings.ports.mode === "custom") this.snap.addresses = { ...this.snap.addresses, securePort: settings.ports.secure, plainPort: settings.ports.plain };
+    return { portsMoved };
   }
   async skinFile(id: string, path: string) {
     const text = this.files[`${id}/${path}`];
@@ -313,6 +319,69 @@ describe("desktop window", () => {
     const tray = settings().querySelector<HTMLInputElement>('[data-setting="closeToTray"]')!;
     tray.click();
     expect(bridge.saved.at(-1)!.closeToTray).toBe(false);
+  });
+
+  it("chooses Automatic or Custom ports, with the secure and plain ports and Save", async () => {
+    await start();
+    root.querySelector<HTMLButtonElement>('[data-popover="settings"]')!.click();
+    const ports = () => root.querySelector<HTMLElement>(".popover.settings .ports")!;
+    expect(ports().querySelector('[data-value="automatic"]')!.getAttribute("aria-pressed")).toBe("true");
+    expect(ports().querySelector("input")).toBeNull();
+    ports().querySelector<HTMLButtonElement>('[data-value="custom"]')!.click();
+    const secure = ports().querySelector<HTMLInputElement>('input[name="secure"]')!;
+    const plain = ports().querySelector<HTMLInputElement>('input[name="plain"]')!;
+    expect([secure.value, plain.value]).toEqual(["443", "80"]);
+    expect(bridge.saved).toHaveLength(0);
+    secure.value = "9443";
+    plain.value = "9080";
+    ports().querySelector<HTMLButtonElement>("button.save")!.click();
+    await settle();
+    expect(bridge.saved.at(-1)!.ports).toEqual({ mode: "custom", secure: 9443, plain: 9080 });
+    expect(text(root, ".notice")).toContain("scan their controller's QR code again");
+    // back to Automatic saves at once
+    root.querySelector(".notice")!.remove();
+    ports().querySelector<HTMLButtonElement>('[data-value="automatic"]')!.click();
+    await settle();
+    expect(bridge.saved.at(-1)!.ports).toEqual({ mode: "automatic", secure: 9443, plain: 9080 });
+    expect(root.querySelector(".notice")).not.toBeNull();
+  });
+
+  it("explains invalid ports without asking the app", async () => {
+    await start();
+    root.querySelector<HTMLButtonElement>('[data-popover="settings"]')!.click();
+    const ports = () => root.querySelector<HTMLElement>(".popover.settings .ports")!;
+    ports().querySelector<HTMLButtonElement>('[data-value="custom"]')!.click();
+    const save = (secure: string, plain: string) => {
+      ports().querySelector<HTMLInputElement>('input[name="secure"]')!.value = secure;
+      ports().querySelector<HTMLInputElement>('input[name="plain"]')!.value = plain;
+      ports().querySelector<HTMLButtonElement>("button.save")!.click();
+    };
+    save("70000", "9080");
+    expect(text(ports(), ".error")).toBe("Ports go from 1 to 65535.");
+    save("9443", "abc");
+    expect(text(ports(), ".error")).toBe("Ports go from 1 to 65535.");
+    save("9443", "9443");
+    expect(text(ports(), ".error")).toBe("The secure and plain ports must be different.");
+    await settle();
+    expect(bridge.saved).toHaveLength(0);
+  });
+
+  it("names a port the app could not use and shows the running setting again", async () => {
+    await start((b) => {
+      b.portsError = "port 9443: address in use";
+    });
+    root.querySelector<HTMLButtonElement>('[data-popover="settings"]')!.click();
+    const ports = () => root.querySelector<HTMLElement>(".popover.settings .ports")!;
+    ports().querySelector<HTMLButtonElement>('[data-value="custom"]')!.click();
+    ports().querySelector<HTMLInputElement>('input[name="secure"]')!.value = "9443";
+    ports().querySelector<HTMLInputElement>('input[name="plain"]')!.value = "9080";
+    ports().querySelector<HTMLButtonElement>("button.save")!.click();
+    await settle();
+    expect(text(ports(), ".error")).toBe("Ninjoy kept the previous ports. port 9443: address in use");
+    expect(ports().querySelector('[data-value="automatic"]')!.getAttribute("aria-pressed")).toBe("true");
+    expect(ports().querySelector("input")).toBeNull();
+    expect(root.querySelector(".notice")).toBeNull();
+    expect(bridge.snap.settings.ports.mode).toBe("automatic");
   });
 
   it("explains a missing driver from the title bar", async () => {

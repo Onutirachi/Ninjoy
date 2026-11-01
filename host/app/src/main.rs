@@ -7,7 +7,8 @@ use std::sync::Arc;
 
 use ninjoy_app_core::setup::{ItemId, SetupView};
 use ninjoy_app_core::{
-    AppCore, CoreConfig, LiveView, Settings, SetupConfigureResult, Snapshot, channel, cli,
+    AppCore, CoreConfig, LiveView, Settings, SettingsResult, SetupConfigureResult, Snapshot,
+    channel, cli,
 };
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -41,10 +42,17 @@ fn kick(core: State<'_, Core>, number: u16) -> Result<(), String> {
     core.kick(number).map_err(|e| e.to_string())
 }
 
+/// Saves the settings; a ports change moves the phone servers first, and an error leaves
+/// everything as it was.
 #[tauri::command]
-fn set_settings(app: AppHandle, core: State<'_, Core>, settings: Settings) {
-    core.update_settings(settings);
+async fn set_settings(
+    app: AppHandle,
+    core: State<'_, Core>,
+    settings: Settings,
+) -> Result<SettingsResult, String> {
+    let result = core.update_settings(settings).await?;
     sync_autostart(&app, &core);
+    Ok(result)
 }
 
 /// Checks the Linux setup items again (null on other systems).

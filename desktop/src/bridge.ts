@@ -89,6 +89,11 @@ export interface SetupView {
   allCommands: string;
 }
 
+export interface SettingsResult {
+  /** the phone servers moved: phones must scan their QR code again */
+  portsMoved: boolean;
+}
+
 export interface SetupConfigureResult {
   setup: SetupView | null;
   /** the phone servers moved: phones must scan their QR code again */
@@ -122,7 +127,8 @@ export interface Bridge {
   create(number?: number): Promise<number>;
   remove(number: number): Promise<void>;
   kick(number: number): Promise<void>;
-  setSettings(settings: Settings): Promise<void>;
+  /** saves the settings; a ports change moves the phone servers, or fails naming the port */
+  setSettings(settings: Settings): Promise<SettingsResult>;
   qrSvg(text: string): Promise<string>;
   /** checks the Linux setup items again (null on other systems) */
   setupCheck(): Promise<SetupView | null>;
@@ -154,7 +160,7 @@ export async function tauriBridge(): Promise<Bridge> {
     create: (number) => invoke<number>("create", { number: number ?? null }),
     remove: (number) => invoke<void>("remove", { number }),
     kick: (number) => invoke<void>("kick", { number }),
-    setSettings: (settings) => invoke<void>("set_settings", { settings }),
+    setSettings: (settings) => invoke<SettingsResult>("set_settings", { settings }),
     qrSvg: (text) => invoke<string>("qr_svg", { text }),
     setupCheck: () => invoke<SetupView | null>("setup_check"),
     setupConfigure: (items) => invoke<SetupConfigureResult>("setup_configure", { items }),

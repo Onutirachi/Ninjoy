@@ -5,7 +5,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
-use ninjoy_app_core::{AppCore, CoreConfig, CoreError, Settings, Theme, data_dir};
+use ninjoy_app_core::{
+    AppCore, CoreConfig, CoreError, PortsMode, PortsSetting, Settings, Theme, data_dir,
+};
 use ninjoy_devices::Unavailable;
 use ninjoy_session::SessionConfig;
 
@@ -126,7 +128,7 @@ async fn keeps_settings_across_restarts() {
         close_to_tray: false,
         ..defaults
     };
-    core.update_settings(changed.clone());
+    core.update_settings(changed.clone()).await.unwrap();
     assert_eq!(core.snapshot().settings, changed);
     core.shutdown().await;
 
@@ -155,7 +157,9 @@ async fn lists_skins_and_keeps_the_default_skin() {
     core.update_settings(Settings {
         default_skin: "arcade".into(),
         ..core.settings()
-    });
+    })
+    .await
+    .unwrap();
     assert!(core.snapshot().skins[1].is_default);
     core.shutdown().await;
 
@@ -181,12 +185,16 @@ async fn clamps_the_hold_time() {
     core.update_settings(Settings {
         hold_seconds: 5,
         ..Settings::default()
-    });
+    })
+    .await
+    .unwrap();
     assert_eq!(core.settings().hold_seconds, 10);
     core.update_settings(Settings {
         hold_seconds: 9000,
         ..Settings::default()
-    });
+    })
+    .await
+    .unwrap();
     assert_eq!(core.settings().hold_seconds, 300);
     core.shutdown().await;
 }
@@ -326,4 +334,107 @@ async fn phones_may_create(core: &AppCore) -> bool {
             return phones_can_create;
         }
     }
+}
+
+/// A port nothing listens on now.
+fn free_port() -> u16 {
+    std::net::TcpListener::bind(("0.0.0.0", 0))
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port()
+}
+
+fn custom(secure: u16, plain: u16) -> PortsSetting {
+    PortsSetting {
+        mode: PortsMode::Custom,
+        secure,
+        plain,
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn new_ports_move_the_servers_and_keep_the_controllers() {
+    let core = start(&temp_dir()).await;
+    core.create(Some(4)).unwrap();
+    let (secure, plain) = (free_port(), free_port());
+    let result = core
+        .update_settings(Settings {
+            ports: custom(secure, plain),
+            ..core.settings()
+        })
+        .await
+        .expect("the ports are free");
+    assert!(result.ports_moved);
+    let snap = core.snapshot();
+    assert_eq!(snap.addresses.secure_port, Some(secure));
+    assert_eq!(snap.addresses.plain_port, plain);
+    assert_eq!(snap.settings.ports, custom(secure, plain));
+    let numbers: Vec<u16> = snap.controllers.iter().map(|c| c.number).collect();
+    assert_eq!(numbers, [4]);
+    assert!(snap.controllers[0].url.contains(&format!(":{plain}/4")));
+    assert_eq!(
+        serde_json::to_value(&result).unwrap(),
+        serde_json::json!({ "portsMoved": true })
+    );
+
+    // the same ports again, with another setting changed: nothing moves
+    let result = core
+        .update_settings(Settings {
+            hold_seconds: 90,
+            ..core.settings()
+        })
+        .await
+        .unwrap();
+    assert!(!result.ports_moved);
+    assert_eq!(core.snapshot().addresses.plain_port, plain);
+    core.shutdown().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn invalid_ports_change_nothing() {
+    let core = start(&temp_dir()).await;
+    let before = core.snapshot();
+    let port = free_port();
+    for ports in [custom(port, port), custom(0, port)] {
+        let error = core
+            .update_settings(Settings {
+                ports,
+                hold_seconds: 90,
+                ..core.settings()
+            })
+            .await
+            .expect_err("invalid ports are refused");
+        assert!(!error.is_empty());
+    }
+    let after = core.snapshot();
+    assert_eq!(after.settings, before.settings);
+    assert_eq!(after.addresses.plain_port, before.addresses.plain_port);
+    core.shutdown().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_taken_port_keeps_the_previous_ports_and_setting() {
+    let dir = temp_dir();
+    let core = start(&dir).await;
+    let before = core.snapshot();
+    let taken = std::net::TcpListener::bind(("0.0.0.0", 0)).unwrap();
+    let port = taken.local_addr().unwrap().port();
+    let error = core
+        .update_settings(Settings {
+            ports: custom(port, free_port()),
+            ..core.settings()
+        })
+        .await
+        .expect_err("the port is taken");
+    assert!(error.starts_with(&format!("port {port}:")), "{error}");
+    let after = core.snapshot();
+    assert_eq!(after.settings.ports, PortsSetting::default());
+    assert_eq!(after.addresses.plain_port, before.addresses.plain_port);
+    assert_eq!(after.addresses.secure_port, before.addresses.secure_port);
+    core.shutdown().await;
+
+    let core = start(&dir).await;
+    assert_eq!(core.settings().ports, PortsSetting::default(), "not saved");
+    core.shutdown().await;
 }

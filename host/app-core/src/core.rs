@@ -11,7 +11,7 @@ use tokio::time::Instant;
 
 use ninjoy_devices::{Backend, DeviceHub, PadStatus, Unavailable};
 use ninjoy_session::slots::{SlotError, SlotStatus};
-use ninjoy_session::{ControllerState, Feedback, Session, SessionConfig, StateSink};
+use ninjoy_session::{ControllerState, Feedback, Session, SessionConfig, StartError, StateSink};
 use serde::Serialize;
 use tokio::sync::broadcast;
 
@@ -144,6 +144,14 @@ pub struct Snapshot {
 #[serde(rename_all = "camelCase")]
 pub struct SetupConfigureResult {
     pub setup: Option<SetupView>,
+    /// the phone servers moved to other ports: phones must scan their QR code again
+    pub ports_moved: bool,
+}
+
+/// What saving the settings did.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingsResult {
     /// the phone servers moved to other ports: phones must scan their QR code again
     pub ports_moved: bool,
 }
@@ -603,14 +611,35 @@ impl AppCore {
         self.after_setup(view);
     }
 
-    pub fn update_settings(&self, settings: Settings) {
+    /// Applies and saves the settings. A changed ports setting moves the phone servers first;
+    /// when the ports are invalid or cannot be used, nothing changes and the error says why.
+    pub async fn update_settings(&self, settings: Settings) -> Result<SettingsResult, String> {
         let settings = settings.clamped();
+        let ports_moved = settings.ports != self.settings().ports;
+        if ports_moved {
+            settings.ports.validate().map_err(|e| e.to_string())?;
+            self.session
+                .restart_servers(
+                    settings.ports.secure_ports(&self.automatic.secure),
+                    settings.ports.plain_ports(&self.automatic.plain),
+                )
+                .await
+                .map_err(|StartError::Bind { ports, source }| {
+                    let ports: Vec<String> = ports.iter().map(u16::to_string).collect();
+                    format!("port {}: {source}", ports.join(", "))
+                })?;
+        }
         self.session
             .set_grace(Duration::from_secs(settings.hold_seconds.into()));
         self.session.set_default_skin(&settings.default_skin);
         lock(&self.store).set_settings(settings);
         self.apply_phone_permission();
         self.changed();
+        if ports_moved {
+            // the port permission and firewall items follow the ports in use
+            self.setup_check();
+        }
+        Ok(SettingsResult { ports_moved })
     }
 
     /// The address phones open (and the QR code): the plain one, which explains the certificate

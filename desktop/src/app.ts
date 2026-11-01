@@ -4,12 +4,24 @@ import logoNinja from "../../assets/brand/logo-ninja.svg?raw";
 import logoFull from "../../assets/brand/logo-full.svg?raw";
 import logoWord from "../../assets/brand/logo-word.svg?raw";
 import preview from "../../skins/ninjoy/preview.png";
-import type { Bridge, ControllerView, Language, SetupItem, SetupView, Settings, Snapshot, Theme } from "./bridge.ts";
+import type { Bridge, ControllerView, Language, PortsSetting, SetupItem, SetupView, Settings, Snapshot, Theme } from "./bridge.ts";
 import { renderDetails, renderEmpty } from "./details.ts";
 import { el, html, icons, lightbarCss, shortUrl } from "./dom.ts";
 import { createI18n, detectLanguage, type I18n, type MessageKey } from "./i18n/index.ts";
 import { controllersMissing, isIgnored, orderedItems, pendingItems, renderStartScreen, wantsStartScreen } from "./setup.ts";
 import { checkLibrary, renderSkins } from "./skins.ts";
+
+/** A typed port, or NaN when it is not a whole number. */
+function portNumber(text: string): number {
+  return /^\d+$/.test(text.trim()) ? Number(text.trim()) : NaN;
+}
+
+/** Why custom ports cannot be used (the app's own checks), or null. */
+export function portsProblem(ports: PortsSetting): "ports.range" | "ports.same" | null {
+  const valid = (port: number) => Number.isInteger(port) && port >= 1 && port <= 65535;
+  if (!valid(ports.secure) || !valid(ports.plain)) return "ports.range";
+  return ports.secure === ports.plain ? "ports.same" : null;
+}
 
 /** Latency samples kept per controller (one per second). */
 const HISTORY = 60;
@@ -85,7 +97,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
       render();
       openSettings();
     }
-    await bridge.setSettings(settings);
+    return bridge.setSettings(settings);
   };
 
   /** One choice among a few (pressed buttons). */
@@ -120,6 +132,51 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
     return el("label", { className: "field" }, [t("settings.touchpadMouse"), input]);
   };
 
+  /** Automatic or Custom ports. Custom saves with its button, after the checks the app makes. */
+  const portsRow = () => {
+    const { t } = i18n;
+    const row = el("div", { className: "row ports" });
+    const error = el("p", { className: "error", role: "alert" });
+    const save = async (ports: PortsSetting) => {
+      try {
+        const result = await setSettings({ ports });
+        draw(ports.mode);
+        if (result.portsMoved) showNotice(t("notice.portsMoved"));
+      } catch (reason) {
+        await refresh();
+        draw(snapshot.settings.ports.mode);
+        error.textContent = t("ports.failed", { reason: String(reason) });
+      }
+    };
+    const draw = (mode: PortsSetting["mode"]) => {
+      const current = snapshot.settings.ports;
+      error.textContent = "";
+      const parts: Node[] = [
+        el("span", { className: "label", textContent: t("settings.ports") }),
+        seg<PortsSetting["mode"]>(t("settings.ports"), [["automatic", t("ports.automatic")], ["custom", t("ports.custom")]], mode, (m) =>
+          m === "custom" ? draw(m) : void save({ ...current, mode: m }),
+        ),
+      ];
+      if (mode === "custom") {
+        const input = (name: "secure" | "plain") =>
+          el("input", { type: "text", inputMode: "numeric", name, value: String(current[name]), ariaLabel: t(`ports.${name}`) });
+        const secure = input("secure");
+        const plain = input("plain");
+        const button = el("button", { type: "button", className: "pill create save", textContent: t("ports.save") });
+        button.addEventListener("click", () => {
+          const ports: PortsSetting = { mode: "custom", secure: portNumber(secure.value), plain: portNumber(plain.value) };
+          const problem = portsProblem(ports);
+          if (problem) error.textContent = t(problem);
+          else void save(ports);
+        });
+        parts.push(el("label", { className: "field" }, [t("ports.secure"), secure]), el("label", { className: "field" }, [t("ports.plain"), plain]), button);
+      }
+      row.replaceChildren(...parts, error);
+    };
+    draw(snapshot.settings.ports.mode);
+    return row;
+  };
+
   const openSettings = () => {
     closePopover();
     const { t } = i18n;
@@ -151,6 +208,7 @@ export async function createApp(root: HTMLElement, bridge: Bridge, o: AppOptions
       toggle(t("settings.closeToTray"), s.closeToTray, "closeToTray"),
       ...(snapshot.setup ? [touchpadToggle()] : []),
       el("div", { className: "row" }, [el("span", { className: "label", textContent: t("settings.network") }), el("div", { className: "field" }, [t("settings.address"), el("span", { textContent: address })])]),
+      portsRow(),
     ]);
     root.append(popover);
   };
